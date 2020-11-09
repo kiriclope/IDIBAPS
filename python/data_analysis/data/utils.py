@@ -16,7 +16,7 @@ def get_stimuli_times():
         gv.t_BL = [0, 2]
         gv.t_STIM = [2, 3]
         gv.t_DIST = [4.5, 5.5]
-        gv.t_cue = [6.5, 7]
+        gv.t_cue = [6.5, 7] 
         gv.t_DRT_reward = [7, 7.5]
         gv.t_test = [9, 10]
     else:

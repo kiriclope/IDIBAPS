@@ -28,8 +28,8 @@ def figDir(scriptdir=''):
 
     # if gv.normFluo:
     #     gv.figdir = gv.figdir + '/norm_Fluo'
-            
-    if gv.laser_on:
+    
+    if gv.laser_on: 
         gv.figdir = gv.figdir + '/laser_on'
     else:
         gv.figdir = gv.figdir + '/laser_off'
