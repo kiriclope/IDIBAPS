@@ -1,0 +1,10 @@
+OASIS/
+CaIman/
+figs/
+*.pyc
+*.py~
+*.svg
+*.pdf
+*.bak
+*.mp4
+*#
