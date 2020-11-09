@@ -8,10 +8,10 @@ sessions = []
 trial = 'ND' 
 trials = ['ND', 'D1', 'D2']
 
-global t_early_delay, t_DRT_delay, t_late_delay
-t_early_delay = []
-t_DRT_delay = []
-t_late_delay = []
+global t_ED, t_MD, t_LD
+t_ED = []
+t_MD = []
+t_LD = []
 
 global frame_rate, n_bin, duration, time
 frame_rate = []
@@ -19,10 +19,11 @@ n_bin = []
 duration = []
 time = []
 
-global t_sample, t_test, t_distractor, t_cue, t_DRT_reward
-t_sample = [2,3]
+global t_BL, t_STIM, t_test, t_DIST, t_cue, t_DRT_reward
+t_BL = [0,2]
+t_STIM = [2,3]
 t_test = []
-t_distractor = []
+t_DIST = []
 t_cue = []
 t_DRT_reward = []
 
@@ -32,12 +33,12 @@ global epochs
 # epochs = ['ED','Dist','MD','Cue','LD','Test']
 epochs = ['ED','MD','LD'] 
 
-global bins, bins_baseline, bins_stim, bins_ED, bins_dist, bins_MD, bins_LD, bins_cue, bins_DRT_rwd, bins_test
+global bins, bins_BL, bins_STIM, bins_ED, bins_DIST, bins_MD, bins_LD, bins_cue, bins_DRT_rwd, bins_test
 bins = []
-bins_baseline = []
-bins_stim=[]
+bins_BL = []
+bins_STIM=[]
 bins_ED=[]
-bins_dist=[]
+bins_DIST=[]
 bins_MD=[]
 bins_cue = []
 bins_DRT_rwd = []
@@ -76,3 +77,12 @@ n_components = 3
 
 global eps
 eps = np.finfo(float).eps
+
+global DELAY_ONLY, DELAY_AND_STIM, bins_delay, t_delay
+DELAY_ONLY = 0
+DELAY_AND_STIM = 0
+bins_delay = []
+t_delay = [] 
+bin_start = np.array(0)
+t_start = np.array(0)
+

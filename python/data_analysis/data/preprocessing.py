@@ -33,13 +33,12 @@ def conf_inter(y):
 
 def dFF0(X, AVG_TRIALS=0):
     if not AVG_TRIALS:
-        F0 = np.mean(X[:,:,gv.bins_baseline],axis=2) 
+        F0 = np.mean(X[:,:,gv.bins_BL],axis=2) 
         F0 = F0[:,:, np.newaxis] 
-    else:    
-        F0 = np.mean( np.mean(X[:,:,gv.bins_baseline],axis=2), axis=0)
+    else: 
+        F0 = np.mean( np.mean(X[:,:,gv.bins_BL],axis=2), axis=0)
         F0 = F0[np.newaxis,:, np.newaxis] 
     return (X-F0) / (F0 + gv.eps) 
-
 
 def findBaselineF0(rawF, fs, axis=0, keepdims=False):
 

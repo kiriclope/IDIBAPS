@@ -3,26 +3,26 @@ from . import constants as gv
 
 def get_delays_times():
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')):
-        gv.t_early_delay = [3, 4.5]
-        gv.t_DRT_delay = [5.5, 6.5]
-        gv.t_late_delay = [7.5, 9]
+        gv.t_ED = [3, 4.5]
+        gv.t_MD = [5.5, 6.5]
+        gv.t_LD = [7.5, 9]
     else:
-        gv.t_early_delay = [3, 6]
-        gv.t_DRT_delay = [7, 8]
-        gv.t_late_delay = [9, 12]
+        gv.t_ED = [3, 6]
+        gv.t_MD = [7, 8]
+        gv.t_LD = [9, 12]
 
 def get_stimuli_times():
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')):
-        gv.t_baseline = [0, 2]
-        gv.t_sample = [2, 3]
-        gv.t_distractor = [4.5, 5.5]
+        gv.t_BL = [0, 2]
+        gv.t_STIM = [2, 3]
+        gv.t_DIST = [4.5, 5.5]
         gv.t_cue = [6.5, 7]
         gv.t_DRT_reward = [7, 7.5]
         gv.t_test = [9, 10]
     else:
-        gv.t_baseline = [0, 2]
-        gv.t_sample = [2, 3]
-        gv.t_distractor = [6, 7]
+        gv.t_BL = [0, 2]
+        gv.t_STIM = [2, 3]
+        gv.t_DIST = [6, 7]
         gv.t_cue = [8, 8.5]
         gv.t_DRT_reward = [8.5, 9]
         gv.t_test = [12, 13]
@@ -192,8 +192,8 @@ def get_S1_S2_trials(X_data, y_labels):
 def get_trial_types(X_S1_trials): 
     gv.n_trials = 2*X_S1_trials.shape[0]
     gv.trial_type = ['ND'] * gv.n_trials + ['D1'] * gv.n_trials + ['D2'] * gv.n_trials
-    gv.trial_size = X_S1_trials.shape[2]
-    gv.t_type_ind = [np.argwhere(np.array(gv.trial_type) == t_type)[:, 0] for t_type in gv.trials]
+    # gv.trial_size = X_S1_trials.shape[2]
+    # gv.t_type_ind = [np.argwhere(np.array(gv.trial_type) == t_type)[:, 0] for t_type in gv.trials]
     
 def get_S1_S2_all(X_data, y_labels):
 
@@ -215,35 +215,40 @@ def get_S1_S2_all(X_data, y_labels):
 def get_bins(t_start=0):
 
     if(t_start==0): 
-        gv.bins_baseline = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_baseline[0]) and (gv.time[bin]<=gv.t_baseline[1])] 
+        gv.bins_BL = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_BL[0]) and (gv.time[bin]<=gv.t_BL[1])] 
     
-        gv.bins_stim = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_sample[0]) and (gv.time[bin]<=gv.t_sample[1]) ] 
+        gv.bins_STIM = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_STIM[0]) and (gv.time[bin]<=gv.t_STIM[1]) ] 
     
-        gv.bins_ED = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_early_delay[0]) and (gv.time[bin]<=gv.t_early_delay[1]) ]
+        gv.bins_ED = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_ED[1]) ]
         
-        gv.bins_dist = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_distractor[0]) and (gv.time[bin]<=gv.t_distractor[1]) ]
+        gv.bins_DIST = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DIST[0]) and (gv.time[bin]<=gv.t_DIST[1]) ]
         
-        gv.bins_MD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DRT_delay[0]) and (gv.time[bin]<=gv.t_DRT_delay[1]) ]
+        gv.bins_MD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_MD[0]) and (gv.time[bin]<=gv.t_MD[1]) ]
         
-        gv.bins_LD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_late_delay[0]) and (gv.time[bin]<=gv.t_late_delay[1]) ] 
+        gv.bins_LD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_LD[0]) and (gv.time[bin]<=gv.t_LD[1]) ] 
         
         gv.bins_cue = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_cue[0]) and (gv.time[bin]<=gv.t_cue[1]) ] 
 
         gv.bins_DRT_rwd = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DRT_reward[0]) and (gv.time[bin]<=gv.t_DRT_reward[1]) ] 
 
-        gv.bins_test = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_test[0]) and (gv.time[bin]<=gv.t_test[1]) ] 
+        gv.bins_test = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_test[0]) and (gv.time[bin]<=gv.t_test[1]) ]
+
+        gv.bins_delay = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_LD[1]) ] 
+
+        gv.t_delay = [ gv.time[bin] for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_LD[1]) ] 
+
     else:
-        gv.bins_baseline = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_baseline[1]-t_start) and (gv.time[bin]<=gv.t_baseline[1]) ] 
+        gv.bins_BL = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_BL[1]-t_start) and (gv.time[bin]<=gv.t_BL[1]) ] 
     
-        gv.bins_stim = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_sample[1]-t_start) and (gv.time[bin]<=gv.t_sample[1]) ] 
+        gv.bins_STIM = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_STIM[1]-t_start) and (gv.time[bin]<=gv.t_STIM[1]) ] 
     
-        gv.bins_ED = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_early_delay[1]-t_start) and (gv.time[bin]<=gv.t_early_delay[1]) ]
+        gv.bins_ED = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_ED[1]-t_start) and (gv.time[bin]<=gv.t_ED[1]) ]
         
-        gv.bins_dist = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_distractor[1]-t_start) and (gv.time[bin]<=gv.t_distractor[1]) ]
+        gv.bins_DIST = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DIST[1]-t_start) and (gv.time[bin]<=gv.t_DIST[1]) ]
         
-        gv.bins_MD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DRT_delay[1]-t_start) and (gv.time[bin]<=gv.t_DRT_delay[1]) ]
+        gv.bins_MD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_MD[1]-t_start) and (gv.time[bin]<=gv.t_MD[1]) ]
         
-        gv.bins_LD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_late_delay[1]-t_start) and (gv.time[bin]<=gv.t_late_delay[1]) ] 
+        gv.bins_LD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-t_start) and (gv.time[bin]<=gv.t_LD[1]) ] 
         
         gv.bins_cue = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_cue[1]-t_start) and (gv.time[bin]<=gv.t_cue[1]) ] 
 
@@ -251,6 +256,10 @@ def get_bins(t_start=0):
 
         gv.bins_test = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_test[1]-t_start) and (gv.time[bin]<=gv.t_test[1]) ] 
 
+        gv.bins_delay = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-t_start) and (gv.time[bin]<=gv.t_LD[1]) ] 
+
+        gv.t_delay = [ gv.time[bin] for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-t_start) and (gv.time[bin]<=gv.t_LD[1]) ] 
+        
 def get_X_y_epochs(X_S1_trials, X_S2_trials): 
 
     X_S1 = [] 
@@ -261,40 +270,40 @@ def get_X_y_epochs(X_S1_trials, X_S2_trials):
         X_S2=X_S2_trials
 
     if 'Baseline' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_baseline],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_baseline],axis=2)) 
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_BL-gv.bin_start],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_BL-gv.bin_start],axis=2)) 
 
     if 'Stim' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_stim],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_stim],axis=2)) 
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_STIM-gv.bin_start],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_STIM-gv.bin_start],axis=2)) 
 
     if 'ED' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_ED],axis=2))
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_ED],axis=2))
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_ED-gv.bin_start],axis=2))
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_ED-gv.bin_start],axis=2))
 
     if 'Dist' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_dist],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_dist],axis=2)) 
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_DIST-gv.bin_start],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_DIST-gv.bin_start],axis=2)) 
 
     if 'MD' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_MD],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_MD],axis=2)) 
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_MD-gv.bin_start],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_MD-gv.bin_start],axis=2)) 
         
     if 'LD' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_LD],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_LD],axis=2)) 
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_LD-gv.bin_start],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_LD-gv.bin_start],axis=2)) 
 
     if 'Cue' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_cue],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_cue],axis=2))
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_cue-gv.bin_start],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_cue-gv.bin_start],axis=2))
         
     if 'DRT_rwd' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_DRT_rwd],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_DRT_rwd],axis=2))
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_DRT_rwd-gv.bin_start],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_DRT_rwd-gv.bin_start],axis=2))
 
     if 'Test' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_test],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_test],axis=2))
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_test-gv.bin_start],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_test-gv.bin_start],axis=2))
         
     X_S1 = np.asarray(X_S1)  
     X_S2 = np.asarray(X_S2) 
@@ -318,16 +327,16 @@ def avgOverEpochs(X):
     X_avg = []
     
     if 'Baseline' in gv.epochs: 
-        X_avg.append(np.mean(X[gv.bins_baseline])) 
+        X_avg.append(np.mean(X[gv.bins_BL])) 
 
     if 'Stim' in gv.epochs: 
-        X_avg.append(np.mean(X[gv.bins_stim])) 
+        X_avg.append(np.mean(X[gv.bins_STIM])) 
 
     if 'ED' in gv.epochs: 
         X_avg.append(np.mean(X[gv.bins_ED]))
 
     if 'Dist' in gv.epochs: 
-        X_avg.append(np.mean(X[gv.bins_dist])) 
+        X_avg.append(np.mean(X[gv.bins_DIST])) 
 
     if 'MD' in gv.epochs: 
         X_avg.append(np.mean(X[gv.bins_MD])) 
@@ -357,16 +366,16 @@ def get_X_epochs(X_trials):
         X=X_trials
 
     if 'Baseline' in gv.epochs: 
-        X.append(np.mean(X_trials[:,:,gv.bins_baseline],axis=2)) 
+        X.append(np.mean(X_trials[:,:,gv.bins_BL],axis=2)) 
 
     if 'Stim' in gv.epochs: 
-        X.append(np.mean(X_trials[:,:,gv.bins_stim],axis=2)) 
+        X.append(np.mean(X_trials[:,:,gv.bins_STIM],axis=2)) 
 
     if 'ED' in gv.epochs: 
         X.append(np.mean(X_trials[:,:,gv.bins_ED],axis=2))
 
     if 'Dist' in gv.epochs: 
-        X.append(np.mean(X_trials[:,:,gv.bins_dist],axis=2)) 
+        X.append(np.mean(X_trials[:,:,gv.bins_DIST],axis=2)) 
 
     if 'MD' in gv.epochs: 
         X.append(np.mean(X_trials[:,:,gv.bins_MD],axis=2)) 
@@ -399,20 +408,20 @@ def get_dX_epochs(X_S1_trials, X_S2_trials):
         X_S2=X_S2_trials
 
     if 'Baseline' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_baseline],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_baseline],axis=2)) 
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_BL],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_BL],axis=2)) 
 
     if 'Stim' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_stim],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_stim],axis=2)) 
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_STIM],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_STIM],axis=2)) 
 
     if 'ED' in gv.epochs: 
         X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_ED],axis=2))
         X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_ED],axis=2))
 
     if 'Dist' in gv.epochs: 
-        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_dist],axis=2)) 
-        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_dist],axis=2)) 
+        X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_DIST],axis=2)) 
+        X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_DIST],axis=2)) 
 
     if 'MD' in gv.epochs: 
         X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_MD],axis=2)) 
@@ -486,14 +495,14 @@ def plot_avg(X):
 
 def vplot_delays():
     plt.gcf() 
-    plt.axvline(x=gv.t_sample[0], c='k', ls='--') # DPA sample onset 
-    plt.axvline(x=gv.t_sample[1], c='k', ls='--')
+    plt.axvline(x=gv.t_STIM[0], c='k', ls='--') # DPA sample onset 
+    plt.axvline(x=gv.t_STIM[1], c='k', ls='--')
 
     plt.axvline(x=gv.t_test[0], c='k', ls='--') # DPA test onset
     plt.axvline(x=gv.t_test[1], c='k', ls='--')
     
-    plt.axvline(x=gv.t_distractor[0], c='r', ls='--') # DRT distractor onset
-    plt.axvline(x=gv.t_distractor[1], c='r', ls='--')
+    plt.axvline(x=gv.t_DIST[0], c='r', ls='--') # DRT distractor onset
+    plt.axvline(x=gv.t_DIST[1], c='r', ls='--')
 
     plt.axvline(x=gv.t_cue[0], c='r', ls='--') # DRT cue onset
     plt.axvline(x=gv.t_cue[1], c='r', ls='--')

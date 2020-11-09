@@ -9,10 +9,10 @@ def figDir(scriptdir=''):
 
     gv.figdir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/figs'
 
-    if gv.DF_ONLY:
-        gv.figdir = gv.figdir + '/DF'
-    else:
-        gv.figdir = gv.figdir + '/DFoF0'
+    # if gv.DF_ONLY:
+    #     gv.figdir = gv.figdir + '/DF'
+    # else:
+    #     gv.figdir = gv.figdir + '/DFoF0'
 
     if gv.DENOISED:
         gv.figdir = gv.figdir + '/denoised'
@@ -20,14 +20,14 @@ def figDir(scriptdir=''):
     if gv.DELAY_ONLY:
         gv.figdir = gv.figdir + '/delay'
         
-    if gv.AVG_BL_TRIALS: 
-        gv.figdir = gv.figdir + '/avg_F0_all'
+    # if gv.AVG_BL_TRIALS: 
+    #     gv.figdir = gv.figdir + '/avg_F0_all'
 
-    if gv.perF0: 
-        gv.figdir = gv.figdir + '/perF0'
+    # if gv.perF0: 
+    #     gv.figdir = gv.figdir + '/perF0'
 
-    if gv.normFluo:
-        gv.figdir = gv.figdir + '/norm_Fluo'
+    # if gv.normFluo:
+    #     gv.figdir = gv.figdir + '/norm_Fluo'
             
     if gv.laser_on:
         gv.figdir = gv.figdir + '/laser_on'
@@ -63,14 +63,14 @@ def add_stim_to_plot(ax, bin_start=0):
 
 def vlines_delay(ax):
     
-    ax.axvline(gv.t_ED[0], color='k', ls='--')
-    ax.axvline(gv.t_ED[-1], color='k', ls='--')
+    ax.axvline(gv.t_ED[0]-2, color='k', ls='--')
+    ax.axvline(gv.t_ED[-1]-2, color='k', ls='--')
 
-    ax.axvline(gv.t_MD[0], color='r', ls='--')
-    ax.axvline(gv.t_MD[-1], color='r', ls='--')
+    ax.axvline(gv.t_MD[0]-2, color='r', ls='--')
+    ax.axvline(gv.t_MD[-1]-2, color='r', ls='--')
 
-    ax.axvline(gv.t_LD[0], color='k', ls='--')
-    ax.axvline(gv.t_LD[-1], color='k', ls='--')
+    ax.axvline(gv.t_LD[0]-2, color='k', ls='--')
+    ax.axvline(gv.t_LD[-1]-2, color='k', ls='--') 
 
 def hlines_delay(ax):
     
