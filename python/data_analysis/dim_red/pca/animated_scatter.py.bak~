@@ -1,0 +1,107 @@
+from libs import * 
+
+sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis') 
+
+import data.constants as gv 
+from plotting import *
+
+# import the animation and the HTML module to create and render the animation
+from matplotlib import animation 
+from IPython.display import HTML
+
+def animated_scatter(projected_trials):
+
+    # smooth the single projected trials 
+    for i in range(len(projected_trials)):
+        for pc in range(projected_trials[0].shape[0]):
+            projected_trials[i][pc, :] = gaussian_filter1d(projected_trials[i][pc, :], sigma=3) 
+            
+    # for every time point (imaging frame) get the position in PCA space of every trial 
+    pca_frame = [] 
+    for i in range(gv.trial_size): 
+        # projected data for all trials at time t        
+        Xp = np.hstack([trial[:, None, i] for trial in projected_trials]).T 
+        pca_frame.append(Xp) 
+
+    # print('pca_frame',len(pca_frame))
+    subspace = (0,1) # pick the subspace given by the second and third components
+    
+    # set up the figure
+    fig, ax = plt.subplots(1, 1, figsize=[6, 6]); plt.close()
+    ax.set_xlim((-50, 50))
+    ax.set_ylim((-50, 50))
+    ax.set_xlabel('PC 1')
+    # ax.set_xticks([-20, 0, 20])
+    # ax.set_yticks([-20, 0, 20])
+    ax.set_ylabel('PC 2')
+    sns.despine(fig=fig, top=True, right=True)
+
+    # generate empty scatter plot to be filled by data at every time point
+    scatters = []
+    for t, t_type in enumerate(gv.trials):
+        scatter, = ax.plot([], [], 'o', lw=2, color=pal[t]);
+        scatters.append(scatter)
+
+    # red dot to indicate when stimulus is being presented
+    stimdot, = ax.plot([], [], 'o', c='r', markersize=35, alpha=0.5)
+
+    # annotate with stimulus and time information
+    text = ax.text(50, 50, 'Stimulus OFF \nt = {:.2f}'.format(gv.time[0]), fontdict={'fontsize':14})
+
+    # this is the function to be called at every animation frame
+    def animate(i):
+        for t, t_type in enumerate(gv.trials):
+            # find the x and y position of all trials of a given type
+            x = pca_frame[i][gv.t_type_ind[t], subspace[0]]
+            y = pca_frame[i][gv.t_type_ind[t], subspace[1]]
+            # update the scatter
+            scatters[t].set_data(x, y)
+
+        # update stimulus and time annotation
+        if ((i > gv.bins_stim[0]) and (i < gv.bins_stim[-1])):
+            stimdot.set_data(50, 50)
+            text.set_text('Stimulus ON \nt = {:.2f}'.format(gv.time[i]))
+            
+        elif ((i > gv.bins_ED[0]) and (i < gv.bins_ED[-1])):
+            stimdot.set_data([], [])
+            text.set_text('Early Delay \nt = {:.2f}'.format(gv.time[i]))
+            
+        elif ((i > gv.bins_dist[0]) and (i < gv.bins_dist[-1])):
+            stimdot.set_data(50, 50)
+            text.set_text('Distractor \nt = {:.2f}'.format(gv.time[i]))
+            
+        elif ((i > gv.bins_MD[0]) and (i < gv.bins_MD[-1])):
+            stimdot.set_data([], [])
+            text.set_text('Middle Delay \nt = {:.2f}'.format(gv.time[i]))
+            
+        elif ((i > gv.bins_cue[0]) and (i < gv.bins_cue[-1])): 
+            stimdot.set_data(50, 50)
+            text.set_text('Cue \nt = {:.2f}'.format(gv.time[i]))
+            
+        elif ((i > gv.bins_DRT_rwd[0]) and (i < gv.bins_DRT_rwd[-1])):
+            stimdot.set_data([], [])
+            text.set_text('DRT reward \nt = {:.2f}'.format(gv.time[i]))
+            
+        elif ((i > gv.bins_LD[0]) and (i < gv.bins_LD[-1])):
+            stimdot.set_data([], [])
+            text.set_text('Late Delay \nt = {:.2f}'.format(gv.time[i]))
+            
+        elif ((i > gv.bins_test[0]) and (i < gv.bins_test[-1])):
+            stimdot.set_data(50, 50)
+            text.set_text('Test \nt = {:.2f}'.format(gv.time[i])) 
+        else:
+            stimdot.set_data([], [])
+            text.set_text(' \nt = {:.2f}'.format(gv.time[i]))
+            
+        return (scatter,)
+
+    # generate the animation
+    anim = animation.FuncAnimation(fig, animate, 
+                                   frames=len(pca_frame), interval=166.66, 
+                                   blit=False)
+
+    HTML(anim.to_jshtml()) # render animation
+
+    Writer = animation.writers['ffmpeg']
+    writer = Writer(fps=gv.frame_rate, metadata=dict(artist='Me'), bitrate=1800)
+    anim.save('animated_scatter.mp4', writer=writer)

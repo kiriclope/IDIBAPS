@@ -1,0 +1,7 @@
+In this buffer, type RET to select the completion near point.
+
+Possible completions are:
+../ 	./ 	__pycache__/ 	figs/ 	main.py 	main.py.bak 	main.py.bak~ 	main.py~
+main_mne.py 	main_mne.py~ 	mne_lib.py 	qdata.csv 	sklearn_lib.py 	sklearn_lib.py~ 	std_lib.py 	std_lib.pyc
+std_lib.py~ 	trend.py 	trend.py~ 	trend_data.py 	trend_data.py~ 	utils.py 	utils.py.alt 	utils.py.alt~
+utils.py.bak 	utils.py~

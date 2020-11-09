@@ -1,0 +1,224 @@
+from libs import * 
+sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis') 
+
+import data.constants as gv 
+
+import plotting as plot 
+
+from pyclustering.cluster.kmeans import kmeans
+from pyclustering.cluster.kmedians import kmedians
+from pyclustering.cluster.center_initializer import kmeans_plusplus_initializer, random_center_initializer
+
+from pyclustering.utils.metric import distance_metric, type_metric
+manhattan_metric = distance_metric(type_metric.MANHATTAN)
+
+from sklearn.cluster import KMeans 
+
+from joblib import Parallel, delayed
+import multiprocessing
+
+num_cores = multiprocessing.cpu_count() 
+
+def parbootstrap(S1, S2):
+    idx = np.random.randint(0, gv.n_neurons, gv.n_neurons) 
+    S1_avg = np.mean(S1[idx,:], axis=0)
+    S2_avg = np.mean(S2[idx,:], axis=0) 
+    return S1_avg, S2_avg 
+
+def bootstrap(S1,S2):
+    
+    S1_avg = []
+    S2_avg = []
+    for _ in range(100*S1.shape[0]): 
+        idx = np.random.randint(0, S1.shape[0], S1.shape[0]) 
+        S1_avg.append(np.mean(S1[idx,:], axis=0)) 
+        S2_avg.append(np.mean(S2[idx,:], axis=0)) 
+        
+    S1_avg = np.asarray(S1_avg) 
+    S2_avg = np.asarray(S2_avg) 
+
+    return S1_avg, S2_avg
+
+def kmean(S1,S2):
+    
+    # model1 = KMeans(n_clusters=1, n_init = 20).fit(S1) 
+    # model2 = KMeans(n_clusters=1, n_init = 20).fit(S2) 
+
+    model1 = KMeans(n_clusters=1, init = 'k-means++').fit(S1) 
+    model2 = KMeans(n_clusters=1, init = 'k-means++').fit(S2) 
+
+    cluster1 = np.array(model1.cluster_centers_[0]) 
+    cluster2 = np.array(model2.cluster_centers_[0]) 
+    return cluster1, cluster2 
+
+
+def kmean_pycluster(S1,S2):
+        
+    init1 = kmeans_plusplus_initializer(S1, 1).initialize() 
+    init2 = kmeans_plusplus_initializer(S2, 1).initialize() 
+    
+    # model1 = kmeans(S1, init1) 
+    # model2 = kmeans(S2, init2) 
+
+    model1 = kmeans(S1, init1, metric=manhattan_metric) 
+    model2 = kmeans(S2, init2, metric=manhattan_metric) 
+
+    model1.process()
+    model2.process()
+
+    cluster1 = np.array(model1.get_centers())[0] 
+    cluster2 = np.array(model2.get_centers())[0] 
+    return cluster1, cluster2
+    
+def unit_vector(vector): 
+    """ Returns the unit vector of the vector.  """ 
+    u = vector / np.linalg.norm(vector) 
+    return u 
+
+def angle_between(v1, v2): 
+    """ Returns the angle in radians between vectors 'v1' and 'v2':: """ 
+    v1_u = unit_vector(v1) 
+    v2_u = unit_vector(v2)    
+    # return np.arccos(np.dot(v1_u, v2_u))
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)) 
+
+def get_cos(coefs): 
+    """ Returns the cosine of the angle alpha between vector coefs[0] (early delay) and coefs[1] (late delay) """
+    alphas = [] 
+    cos_alp=[]
+    for j in np.arange(0, coefs.shape[0]): 
+        alpha = angle_between(coefs[0], coefs[j]) 
+        alphas.append(alpha) 
+        cos_alp.append(np.cos(alpha)) 
+        
+    return alphas, cos_alp 
+
+def EDVsLD(X_proj):
+    
+    IF_MEAN = 0
+    IF_KMEAN = 0
+    IF_BOOTSTRAP = 1
+    IF_SHUFFLE = 0
+    
+    X_stim = np.mean(X_proj[:,:,:,:,gv.bins_stim],axis=-1) 
+    X_ED = np.mean(X_proj[:,:,:,:,gv.bins_ED],axis=-1) 
+    X_MD = np.mean(X_proj[:,:,:,:,gv.bins_MD],axis=-1) 
+    X_LD = np.mean(X_proj[:,:,:,:,gv.bins_LD],axis=-1) 
+
+    X_stim_S1 = []
+    X_stim_S2 = []
+
+    X_ED_S1 = []
+    X_ED_S2 = []
+
+    for i in range(X_stim.shape[0]):
+        X_stim_S1.append(X_stim[i,0])
+        X_stim_S2.append(X_stim[i,1])
+
+        X_ED_S1.append(X_ED[i,0])
+        X_ED_S2.append(X_ED[i,1]) 
+
+    X_stim_S1 = np.vstack(np.asarray(X_stim_S1))
+    X_stim_S2 = np.vstack(np.asarray(X_stim_S2))
+
+    X_ED_S1 = np.vstack(np.asarray(X_ED_S1))
+    X_ED_S2 = np.vstack(np.asarray(X_ED_S2))
+
+    for n_trial, gv.trial in enumerate(gv.trials):
+        
+        X_MD_S1 = X_MD[n_trial,0] 
+        X_MD_S2 = X_MD[n_trial,1] 
+
+        X_LD_S1 = X_LD[n_trial,0] 
+        X_LD_S2 = X_LD[n_trial,1]
+
+        # if(IF_KMEAN):
+        #     X_stim_S1_avg, X_stim_S2_avg = kmean(X_stim_S1, X_stim_S2)
+        #     X_stim_avg = [X_stim_S1_avg, X_stim_S2_avg]
+        #     dX_stim = unit_vector(X_stim_avg[0]-X_stim_avg[1])
+        
+        #     X_ED_S1_avg, X_ED_S2_avg = kmean(X_ED_S1, X_ED_S2)
+        #     X_ED_avg = [X_ED_S1_avg, X_ED_S2_avg]
+        #     dX_ED = unit_vector(X_ED_avg[0]-X_ED_avg[1])
+
+        #     X_MD_S1_avg, X_MD_S2_avg = kmean(X_MD_S1, X_MD_S2)
+        #     X_MD_avg = [X_MD_S1_avg, X_MD_S2_avg]
+        #     dX_MD = unit_vector(X_MD_avg[0]-X_MD_avg[1])
+            
+        #     X_LD_S1_avg, X_LD_S2_avg = kmean(X_LD_S1, X_LD_S2)
+        #     X_LD_avg = [X_LD_S1_avg, X_LD_S2_avg]
+        #     dX_LD = unit_vector(X_LD_avg[0]-X_LD_avg[1])
+
+        # if(IF_MEAN):
+        #     X_stim_S1_avg = np.mean(X_stim_S1, axis=0) 
+        #     X_stim_S2_avg = np.mean(X_stim_S2, axis=0)
+        #     dX_stim = X_stim_S1_avg - X_stim_S2_avg 
+        #     dX_stim = unit_vector(dX_stim) 
+
+        #     X_ED_S1_avg = np.mean(X_ED_S1, axis=0)  
+        #     X_ED_S2_avg = np.mean(X_ED_S2, axis=0) 
+        #     dX_ED = X_ED_S1_avg - X_ED_S2_avg 
+        #     dX_ED = unit_vector(dX_ED)
+
+        #     X_MD_S1_avg = np.mean(X_MD_S1, axis=0)  
+        #     X_MD_S2_avg = np.mean(X_MD_S2, axis=0) 
+        #     dX_MD = X_MD_S1_avg - X_MD_S2_avg 
+        #     dX_MD = unit_vector(dX_MD)
+
+        #     X_LD_S1_avg = np.mean(X_LD_S1, axis=0) 
+        #     X_LD_S2_avg = np.mean(X_LD_S2, axis=0) 
+        #     dX_LD = X_LD_S1_avg - X_LD_S2_avg        
+        #     dX_LD = unit_vector(dX_LD) 
+
+        mean_cos = []
+        
+        if(IF_BOOTSTRAP):
+
+            for i in range(len(X_stim_S1)):
+                n_bootstrap = 100
+                
+                X_stim_S1_avg, X_stim_S2_avg = bootstrap(X_stim_S1, X_stim_S2)
+                # dum = Parallel(n_jobs=num_cores)(delayed(parbootstrap)(X_stim_S1, X_stim_S2) for j in list(range(0, n_bootstrap)) )
+                # print(dum)
+                # dum = np.asarray(dum).T
+                # X_stim_S1_avg, X_stim_S2_avg = dum[0], dum[1]
+                
+                X_stim_avg = np.array([X_stim_S1_avg[i], X_stim_S2_avg[i]])
+                dX_stim = unit_vector(X_stim_avg[0]-X_stim_avg[1])
+
+                X_ED_S1_avg, X_ED_S2_avg = bootstrap(X_ED_S1, X_ED_S2)
+                X_ED_avg = [X_ED_S1_avg[i], X_ED_S2_avg[i]]
+                dX_ED = unit_vector(X_ED_avg[0]-X_ED_avg[1])
+
+                X_MD_S1_avg, X_MD_S2_avg = bootstrap(X_MD_S1, X_MD_S2)
+                X_MD_avg = [X_MD_S1_avg[i], X_MD_S2_avg[i]]
+                dX_MD = unit_vector(X_MD_avg[0]-X_MD_avg[1])
+            
+                X_LD_S1_avg, X_LD_S2_avg = bootstrap(X_LD_S1, X_LD_S2)
+                X_LD_avg = [X_LD_S1_avg[i], X_LD_S2_avg[i]]
+                dX_LD = unit_vector(X_LD_avg[0]-X_LD_avg[1])
+
+                # dX = np.asarray([dX_ED, dX_MD, dX_LD])
+                dX = np.asarray([dX_stim, dX_ED, dX_MD, dX_LD])
+        
+                alpha, cos_alp = get_cos(dX) 
+                # print('stim', unit_vector(dX_stim), 'ED', unit_vector(dX_ED),'LD', unit_vector(dX_LD) )
+                # alpha = [i*180./np.pi for i in alpha] 
+                # print('trial', gv.trial, 'alpha', alpha, 'cos', cos_alp) 
+
+                mean_cos.append(cos_alp)
+
+        mean_cos = np.asarray(mean_cos) 
+        print(mean_cos.shape) 
+        gv.epochs = ['Stim', 'ED', 'MD', 'LD'] 
+        q1 = np.percentile(mean_cos, 25, axis=0) 
+        q3 = np.percentile(mean_cos, 75, axis=0)
+
+        mean_cos = np.mean(mean_cos, axis=0) 
+        print('trial', gv.trial, 'cos', cos_alp, 'q1', q1-mean_cos, 'q3', q3-mean_cos) 
+
+        plot.plot_cosine_bars(mean_cos, [], mean_cos-q1, q3-mean_cos, IF_SHUFFLE=IF_SHUFFLE) 
+
+    figdir = plot.figDir()
+    figname = '%s_%s_cos_alpha_pca_laser_off' % (gv.mouse, gv.session) 
+    plot.save_fig(figname, figdir) 

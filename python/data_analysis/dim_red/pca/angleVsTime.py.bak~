@@ -1,0 +1,121 @@
+from libs import * 
+sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis') 
+from scipy.spatial import distance
+
+import data.constants as gv 
+import data.plotting as plot 
+
+from joblib import Parallel, delayed
+import multiprocessing
+
+pal = ['r','b','y']
+
+def vlines_delay(ax):
+    
+    ax.axvline(gv.t_ED[0], color='k', ls='--') 
+    ax.axvline(gv.t_ED[-1], color='k', ls='--') 
+
+    ax.axvline(gv.t_MD[0], color='r', ls='--') 
+    ax.axvline(gv.t_MD[-1], color='r', ls='--') 
+
+    ax.axvline(gv.t_LD[0], color='k', ls='--') 
+    ax.axvline(gv.t_LD[-1], color='k', ls='--') 
+
+def bootstrap_clf_par(X_trials, y, n_trial, clf, dum): 
+
+    X_S1 = X_trials[n_trial,0] 
+    X_S2 = X_trials[n_trial,1] 
+
+    X_S1_S2 = np.vstack((X_S1, X_S2)) 
+    scaler = StandardScaler().fit(X_S1_S2) 
+    
+    if dum==1: 
+        idx_S1 = np.arange(0, X_S1.shape[0]) 
+        idx_S2 = np.arange(0, X_S2.shape[0]) 
+    else: 
+        idx_S1 = np.random.randint(0, X_S1.shape[0], X_S1.shape[0]) 
+        idx_S2 = np.random.randint(0, X_S2.shape[0], X_S2.shape[0]) 
+        
+    X_sample = np.vstack((X_S1[idx_S1], X_S2[idx_S2])) 
+    X_sample = scaler.transform(X_sample) 
+    
+    clf.fit(X_sample, y) 
+    coefs_samples = clf.coef_.flatten() 
+
+    return coefs_samples 
+
+def unit_vector(vector): 
+    """ Returns the unit vector of the vector.  """ 
+    u = vector / np.linalg.norm(vector) 
+    return u 
+
+def angle_between(v1, v2): 
+    """ Returns the angle in radians between vectors 'v1' and 'v2':: """ 
+    v1_u = unit_vector(v1) 
+    v2_u = unit_vector(v2) 
+    # return np.arccos(np.dot(v1_u, v2_u)) 
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)) 
+
+def get_cos(coefs): 
+    """ Returns the cosine of the angle alpha between vector coefs[0] (early delay) and coefs[1] (late delay) """ 
+
+    cos_alp=np.empty(coefs.shape[0]) 
+    dum = np.ones(coefs.shape[1])
+    for i in np.arange(0, coefs.shape[0]): 
+        alpha = angle_between(dum, coefs[i]) 
+        # cos_alp[i] = np.cos(alpha) 
+        cos_alp[i] = alpha*180/np.pi 
+        # cos_alp[i] = alpha 
+        
+    return cos_alp 
+
+def angleVsTime(X_trials, C=1e0, penalty='l2', solver='liblinear'): 
+
+    clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
+    
+    gv.n_boot = int(1e0) 
+    num_cores = multiprocessing.cpu_count() 
+    gv.trial_size = X_trials.shape[-1] 
+    
+    print('n_boot', gv.n_boot) 
+
+    y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
+    cos_boot = np.empty( (len(gv.trials), gv.n_boot, gv.trial_size) ) 
+    
+    for n_trial, gv.trial in enumerate(gv.trials): 
+
+        X_S1 = X_trials[n_trial,0] 
+        X_S2 = X_trials[n_trial,1] 
+
+        X_S1_S2 = np.vstack((X_S1, X_S2)) 
+    
+        coefs = np.empty( (len(gv.trials), gv.trial_size,  gv.n_boot, gv.n_neurons) ) 
+        
+        for n_bins in range(gv.trial_size): 
+            X = X_S1_S2[:,:,n_bins] 
+            X = StandardScaler().fit_transform(X) 
+            
+            # coefs_boot = Parallel(n_jobs=num_cores)(delayed(bootstrap_clf_par)(X, y, n_trial, clf, gv.n_boot) for i in range(gv.n_boot)) 
+            
+            clf.fit(X, y) 
+            coefs_samples = clf.coef_.flatten() 
+            
+            coefs[n_trial, n_bins,0] = np.asarray(coefs_samples) 
+            # coefs[n_trial, n_bins] = np.asarray(coefs_boot) 
+            
+        for boot in range(gv.n_boot): 
+            cos_boot[n_trial, boot] = get_cos(coefs[n_trial,:,boot,:]) # bins x coefficients 
+            
+    print(cos_boot.shape) 
+    mean_cos = np.mean(cos_boot, axis=1) 
+    print(mean_cos.shape) 
+        
+    for n_trial, gv.trial in enumerate(gv.trials): 
+        ax = plt.figure('angleVsTime').add_subplot() 
+        plt.plot(gv.t_delay, mean_cos[n_trial], '-o', color=pal[n_trial]) 
+        plt.xlabel('time (s)') 
+        plt.ylabel('angle (deg C)')
+        plt.xlim([0,10])
+        vlines_delay(ax) 
+
+    return mean_cos 

@@ -1,0 +1,252 @@
+from .std_lib import * 
+from .sklearn_lib import * 
+from .mne_lib import * 
+
+from joblib import Parallel, delayed
+import multiprocessing
+ 
+sys.path.append('../../')
+import data.constants as gv
+
+def detrend_data(X_trial, poly_fit=1, degree=9): 
+    """ Detrending of the data, if poly_fit=1 uses polynomial fit else linear fit. """
+    # X_trial : # neurons, # times 
+    
+    model = LinearRegression()
+    fit_values_trial = []
+    
+    for i in range(0, X_trial.shape[0]): # neurons
+        indexes = range(0, X_trial.shape[1]) # neuron index
+        values = X_trial[i] # fluo value 
+        
+        indexes = np.reshape(indexes, (len(indexes), 1))
+        
+        if poly_fit:
+            poly = PolynomialFeatures(degree=degree) 
+            indexes = poly.fit_transform(indexes)
+            
+        model.fit(indexes, values)
+        fit_values = model.predict(indexes) 
+        
+        fit_values_trial.append(fit_values) 
+        
+    fit_values_trial = np.asarray(fit_values_trial)
+    return fit_values_trial 
+
+def K_fold_clf(clf, X_train, y_train, X_test, y_test, cv): 
+    scores = [] 
+    folds = KFold(n_splits=cv, shuffle=True)
+    
+    for train_index, test_index in folds.split(X_train): 
+        X_train_train, y_train_train = X_train[train_index], y_train[train_index] 
+
+        scaler =  StandardScaler().fit(X_train_train) 
+        X_train_train = scaler.transform(X_train_train) 
+        clf.fit(X_train_train, y_train_train) 
+        
+        X_test = scaler.transform(X_test) 
+        scores.append(clf.score(X_test, y_test)) 
+        
+    return np.mean(scores) 
+    
+def mne_cross_temp_clf( X, y, clf=None, cv=10, scoring='accuracy'):
+
+    print('clf', clf.__class__.__name__ )
+    if(clf==None): 
+        pipe = make_pipeline(StandardScaler(), LogisticRegression(C=1,solver='liblinear',penalty='l1')) 
+    else:
+        pipe = make_pipeline(StandardScaler(), clf) 
+        
+    time_gen = GeneralizingEstimator(pipe, n_jobs=-1, scoring=scoring, verbose=False) 
+    scores = cross_val_multiscore(time_gen, X, y, cv=cv, n_jobs=-1) 
+    scores = np.mean(scores, axis=0) 
+    scores_std= np.std(scores, axis=0) 
+
+    return scores, scores_std
+
+def grid_search_cv_clf(X, y, cv=10): 
+    clf = LogisticRegression() 
+    
+    pipe = Pipeline([('scale', StandardScaler()), ('classifier', clf)])
+    
+    param_grid = [{'classifier': [clf],
+                   'classifier__penalty' : ['l1'],
+                   'classifier__C' : np.logspace(-1, 1, 100),
+                   'classifier__solver' : ['liblinear'],
+                   'classifier__multi_class' : ['ovr']}
+    ]
+    
+    # X = StandardScaler().fit_transform(X) 
+    search = GridSearchCV(pipe, param_grid=param_grid, cv=cv, verbose=False, n_jobs=-1) 
+    
+    best_model = search.fit(X, y)
+    best_penalty = best_model.best_estimator_.get_params()['classifier__penalty'] 
+    best_C = best_model.best_estimator_.get_params()['classifier__C'] 
+    best_solver = best_model.best_estimator_.get_params()['classifier__solver'] 
+
+    print('gridsearchcv:' ,'C', best_C, 'penalty', best_penalty, 'solver', best_solver) 
+
+    return best_model 
+
+def cross_temp_clf(clf, X, y, IF_CV=0, cv=10): 
+
+    scores = [] 
+    for t_train in range(0, X.shape[2]): 
+        X_train = X[:,:,t_train] ; 
+        y_train = y ; 
+        
+        if not IF_CV : 
+            scaler =  StandardScaler().fit(X_train) 
+            X_train = scaler.transform(X_train) 
+            clf.fit(X_train, y_train) 
+            
+        for t_test in range(0, X.shape[2]): 
+            X_test = X[:,:,t_test] 
+            
+            if IF_CV: 
+                test_score = K_fold_clf(clf, X_train, y_train, X_test, y, cv=cv) 
+            else: 
+                X_test = scaler.transform(X_test) # scaler only fitted on training 
+                test_score = clf.score(X_test, y) 
+                
+            scores.append( test_score ) 
+            
+    scores = np.asarray(scores) 
+    scores = scores.reshape( X.shape[2], X.shape[2] ) 
+    return scores 
+
+def Kfold_par(idx_train, idx_test, t_train, t_test, clf, X, y):
+    X_t_train = X[:,:,t_train] 
+    y_t_train = y 
+    
+    X_t_test = X[:,:,t_test] 
+    y_t_test = y
+    
+    X_train, y_train = X_t_train[idx_train], y_t_train[idx_train] 
+    X_test, y_test = X_t_test[idx_test], y_t_test[idx_test] 
+    
+    scaler =  StandardScaler().fit(X_train) 
+    X_train = scaler.transform(X_train) 
+    
+    clf.fit(X_train, y_train)         
+    X_test = scaler.transform(X_test) 
+
+    return clf.score(X_test, y_test) 
+
+def cross_temp_clf_par(clf, X, y, cv=10): 
+
+    num_cores = multiprocessing.cpu_count() 
+    folds = KFold(n_splits=cv, shuffle=True) 
+    list_train = [idx_train for idx_train,_ in folds.split(X[:,:,0])] 
+    list_test = [idx_test for idx_train,idx_test in folds.split(X[:,:,0])] 
+    
+    scores = Parallel(n_jobs=num_cores, verbose=True)(delayed(Kfold_par)(idx_train, idx_test, t_train, t_test, clf, X, y) 
+                                                      for idx_train in list_train
+                                                      for idx_test in list_test
+                                                      for t_train in range(0, X.shape[2])
+                                                      for t_test in range(0, X.shape[2]) )
+    scores = np.asarray(scores)
+    scores = scores.reshape(len(list_train)*len(list_test), X.shape[2], X.shape[2] ) 
+    print(scores.shape)
+    scores = np.mean(scores, axis=0) 
+    return scores 
+
+def cross_temp_plot_diag(scores,scores_std): 
+
+    time = np.linspace(0, gv.duration, scores.shape[0]); 
+    diag_scores = np.diag(scores) 
+    diag_scores_std = scores_std 
+
+    figtitle = 'cross_temp_diag_%s_session_%s_trial_%s' % (gv.mouse,gv.session,gv.trial) 
+    ax = plt.figure(figtitle).add_subplot()
+    plt.plot(time, diag_scores) 
+    plt.fill_between(time, diag_scores - diag_scores_std, diag_scores + diag_scores_std, alpha=0.25, color='green') 
+
+    y_for_chance = np.repeat(0.50, len(diag_scores) ) ;
+    plt.plot(time, y_for_chance, '--', c='black') 
+    plt.ylim([0, 1]) 
+
+    plt.axvline(x=2, c='black', linestyle='dashed')
+    plt.axvline(x=3, c='black', linestyle='dashed')
+
+    plt.axvline(x=4.5, c='r', linestyle='dashed')
+    plt.axvline(x=5.5, c='r', linestyle='dashed')
+
+    plt.axvline(x=6.5, c='r', linestyle='dashed')
+    plt.axvline(x=7, c='r', linestyle='dashed')
+    
+    plt.text(2., 1., 'Sample', rotation=0)
+    plt.text(9., 1., 'Test', rotation=0)
+
+    plt.axvline(x=9, c='black', linestyle='dashed')
+    plt.axvline(x=10, c='black', linestyle='dashed')
+    
+    plt.xlim([0,gv.duration]) ;
+
+def cross_temp_plot_mat(scores, IF_EPOCHS=0, IF_MEAN=0):
+
+    duration = scores.shape[0]/gv.frame_rate 
+
+    # if IF_EPOCHS:
+    #     figtitle = '%s_session_%s_trial_%s_cross_temp_decoder_epochs' % (gv.mouse,gv.session,gv.trial)
+    # elif IF_MEAN: 
+    #     figtitle = '%s_session_%s_trial_%s_cross_temp_decoder_mean' % (gv.mouse,gv.session,gv.trial)
+    # else: 
+    figtitle = '%s_session_%s_trial_%s_cross_temp_decoder' % (gv.mouse,gv.session,gv.trial)
+    ax = plt.figure(figtitle).add_subplot() 
+
+    if IF_EPOCHS or IF_MEAN: 
+        im = ax.imshow(scores, cmap='jet', vmin=0.5, vmax=1, origin='lower') 
+    else: 
+        im = ax.imshow(scores, interpolation='lanczos', cmap='jet', origin='lower', vmin=0.4, vmax=1, extent = [-2 , gv.duration-2, -2 , gv.duration-2]) 
+    ax.set_xlabel('Testing Time (s)')
+    ax.set_ylabel('Training Time (s)')
+    
+    ax.set_title(gv.trial) 
+
+    ax.grid(False)
+    cbar = plt.colorbar(im, ax=ax) 
+    cbar.set_label('accuracy', rotation=90) 
+
+    if(IF_EPOCHS or IF_MEAN):
+        labels = ['ED','MD','LD']
+        xticks = np.arange(0,len(labels)) 
+        yticks = np.arange(0,len(labels))
+        
+        ax.set_xticks(xticks) ; 
+        ax.set_xticklabels(labels) ; 
+
+        ax.set_yticks(yticks) ; 
+        ax.set_yticklabels(labels) ;
+
+    else:
+
+        plt.axvline(x=gv.t_sample[0]-2, c='k', ls='-') # sample onset
+        plt.axhline(y=gv.t_sample[0]-2, c='k', ls='-') 
+
+        # plt.axvline(x=gv.t_distractor[0]-2, c='r', ls='-') # sample onset
+        # plt.axhline(y=gv.t_distractor[0]-2, c='r', ls='-') 
+
+        plt.axvline(x=gv.t_early_delay[0]-2, c='k', ls='--') 
+        plt.axvline(x=gv.t_early_delay[1]-2, c='k', ls='--') # DPA early delay
+    
+        plt.axvline(x=gv.t_DRT_delay[0]-2, c='r', ls='--') #DRT delay
+        plt.axvline(x=gv.t_DRT_delay[1]-2, c='r', ls='--') 
+        
+        plt.axvline(x=gv.t_late_delay[0]-2, c='k', ls='--')
+        plt.axvline(x=gv.t_late_delay[1]-2, c='k', ls='--') # DPA late delay
+    
+        plt.axhline(y=gv.t_early_delay[0]-2, c='k', ls='--')
+        plt.axhline(y=gv.t_early_delay[1]-2, c='k', ls='--') # DPA early delay
+
+        plt.axhline(y=gv.t_DRT_delay[0]-2, c='r', ls='--') #DRT delay
+        plt.axhline(y=gv.t_DRT_delay[1]-2, c='r', ls='--') 
+    
+        plt.axhline(y=gv.t_late_delay[0]-2, c='k', ls='--')
+        plt.axhline(y=gv.t_late_delay[1]-2, c='k', ls='--') # DPA late delay
+
+        plt.xlim([gv.t_early_delay[0]-2, gv.t_late_delay[1]-2]) ;
+        plt.ylim([gv.t_early_delay[0]-2, gv.t_late_delay[1]-2]) ;
+
+        # plt.xlim([-2, gv.duration-2]);
+        # plt.ylim([-2, gv.duration-2]);

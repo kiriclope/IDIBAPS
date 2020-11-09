@@ -1,0 +1,182 @@
+from libs import * 
+sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis') 
+
+import data.constants as gv 
+
+from pyclustering.cluster.kmeans import kmeans
+from pyclustering.cluster.kmedians import kmedians
+from pyclustering.cluster.center_initializer import kmeans_plusplus_initializer, random_center_initializer
+
+from pyclustering.utils.metric import distance_metric, type_metric
+manhattan_metric = distance_metric(type_metric.MANHATTAN)
+
+def kmean(S1,S2):
+        
+    init1 = kmeans_plusplus_initializer(S1, 1).initialize()
+    init2 = kmeans_plusplus_initializer(S2, 1).initialize()
+    
+    # model1 = kmeans(S1, init1) 
+    # model2 = kmeans(S2, init2) 
+
+    model1 = kmeans(S1, init1, metric=manhattan_metric) 
+    model2 = kmeans(S2, init2, metric=manhattan_metric) 
+
+    model1.process()
+    model2.process()
+
+    cluster1 = np.array(model1.get_centers())[0] 
+    cluster2 = np.array(model2.get_centers())[0] 
+    return cluster1, cluster2
+    
+def unit_vector(vector): 
+    """ Returns the unit vector of the vector.  """ 
+    u = vector / np.linalg.norm(vector) 
+    return u 
+
+def angle_between(v1, v2): 
+    """ Returns the angle in radians between vectors 'v1' and 'v2':: """ 
+    v1_u = unit_vector(v1) 
+    v2_u = unit_vector(v2)    
+    # return np.arccos(np.dot(v1_u, v2_u))
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)) 
+
+def get_cos(coefs): 
+    """ Returns the cosine of the angle alpha between vector coefs[0] (early delay) and coefs[1] (late delay) """
+    alphas = [] 
+    cos_alp=[]
+    for j in np.arange(0, coefs.shape[0]): 
+        alpha = angle_between(coefs[0], coefs[j]) 
+        alphas.append(alpha) 
+        cos_alp.append(np.cos(alpha)) 
+        
+    return alphas, cos_alp 
+
+def EDVsLD(X_proj):
+
+    IF_MEAN = 1
+    IF_KMEAN = 1
+    
+    X_stim = np.mean(X_proj[:,:,:,:,gv.bins_stim],axis=-1) 
+    X_ED = np.mean(X_proj[:,:,:,:,gv.bins_ED],axis=-1) 
+    X_MD = np.mean(X_proj[:,:,:,:,gv.bins_MD],axis=-1) 
+    X_LD = np.mean(X_proj[:,:,:,:,gv.bins_LD],axis=-1) 
+    
+    for n_trial, trial in enumerate(gv.trials): 
+        
+        X_stim_S1 = X_stim[n_trial,0] 
+        X_stim_S2 = X_stim[n_trial,1] 
+
+        X_ED_S1 = X_ED[n_trial,0] 
+        X_ED_S2 = X_ED[n_trial,1] 
+
+        X_MD_S1 = X_MD[n_trial,0] 
+        X_MD_S2 = X_MD[n_trial,1] 
+
+        X_LD_S1 = X_LD[n_trial,0] 
+        X_LD_S2 = X_LD[n_trial,1] 
+
+        if(IF_KMEAN):
+            X_stim_S1_avg, X_stim_S2_avg = kmean(X_stim_S1, X_stim_S2)
+            X_stim_avg = [X_stim_S1_avg, X_stim_S2_avg]
+            dX_stim = unit_vector(X_stim_avg[0]-X_stim_avg[1])
+        
+            X_ED_S1_avg, X_ED_S2_avg = kmean(X_ED_S1, X_ED_S2)
+            X_ED_avg = [X_ED_S1_avg, X_ED_S2_avg]
+            dX_ED = unit_vector(X_ED_avg[0]-X_ED_avg[1])
+
+            X_MD_S1_avg, X_MD_S2_avg = kmean(X_MD_S1, X_MD_S2)
+            X_MD_avg = [X_MD_S1_avg, X_MD_S2_avg]
+            dX_MD = unit_vector(X_MD_avg[0]-X_MD_avg[1])
+            
+            X_LD_S1_avg, X_LD_S2_avg = kmean(X_LD_S1, X_LD_S2)
+            X_LD_avg = [X_LD_S1_avg, X_LD_S2_avg]
+            dX_LD = unit_vector(X_LD_avg[0]-X_LD_avg[1])
+
+        if(IF_MEAN):
+            X_stim_S1_avg = np.mean(X_stim_S1, axis=0) 
+            X_stim_S2_avg = np.mean(X_stim_S2, axis=0)
+            dX_stim = X_stim_S1_avg - X_stim_S2_avg 
+            dX_stim = unit_vector(dX_stim) 
+
+            X_ED_S1_avg = np.mean(X_ED_S1, axis=0)  
+            X_ED_S2_avg = np.mean(X_ED_S2, axis=0) 
+            dX_ED = X_ED_S1_avg - X_ED_S2_avg 
+            dX_ED = unit_vector(dX_ED)
+
+            X_MD_S1_avg = np.mean(X_MD_S1, axis=0)  
+            X_MD_S2_avg = np.mean(X_MD_S2, axis=0) 
+            dX_MD = X_MD_S1_avg - X_MD_S2_avg 
+            dX_MD = unit_vector(dX_MD)
+
+            X_LD_S1_avg = np.mean(X_LD_S1, axis=0) 
+            X_LD_S2_avg = np.mean(X_LD_S2, axis=0) 
+            dX_LD = X_LD_S1_avg - X_LD_S2_avg        
+            dX_LD = unit_vector(dX_LD) 
+        
+        # dX = np.asarray([dX_stim, dX_ED, dX_LD])
+        dX = np.asarray([dX_ED, dX_MD, dX_LD])
+        
+        alpha, cos_alp = get_cos(dX) 
+        # print('stim', unit_vector(dX_stim), 'ED', unit_vector(dX_ED),'LD', unit_vector(dX_LD) )
+        alpha = [i*180./np.pi for i in alpha] 
+        print('trial', trial, 'alpha', alpha, 'cos', cos_alp) 
+
+        figname = '%s_%s_%s_all' % (gv.mouse, gv.session, trial) 
+        plt.figure(figname)
+        
+        # plt.plot([X_stim_S1_avg[0], X_stim_S2_avg[0]],[X_stim_S1_avg[1], X_stim_S2_avg[1] ], c='k') 
+        # plt.plot([X_ED_S1_avg[0], X_ED_S2_avg[0]],[X_ED_S1_avg[1], X_ED_S2_avg[1] ], c='b') 
+        # plt.plot([X_LD_S1_avg[0], X_LD_S2_avg[0]],[X_LD_S1_avg[1], X_LD_S2_avg[1] ], c='r') 
+
+        plt.arrow(0,0, dX_stim[0], dX_stim[1], color='k', head_width=0.05, head_length=0.2)
+        plt.arrow(0,0, dX_ED[0], dX_ED[1], color='b', head_width=0.05, head_length=0.2) 
+        plt.arrow(0,0, dX_MD[0], dX_MD[1], color='y', head_width=0.05, head_length=0.2) 
+        plt.arrow(0,0, dX_LD[0], dX_LD[1], color='r', head_width=0.05, head_length=0.2) 
+        
+        plt.xlabel('PC1') 
+        plt.ylabel('PC2') 
+
+        plt.xlim([-1.5,1.5])
+        plt.ylim([-1.5,1.5]) 
+        # # # figname = '%s_%s_%s_stim' % (gv.mouse, gv.session, trial)
+        # # # plt.figure(figname)
+        # # # plt.scatter(X_stim_S1[:,0], X_stim_S1[:,1], c='b') 
+        # # # plt.scatter(X_stim_S2[:,0], X_stim_S2[:,1], c='r')
+        # # # plt.scatter([X_stim_S1_avg[0], X_stim_S2_avg[0]],[X_stim_S1_avg[1], X_stim_S2_avg[1] ], s=30, c=['b','r']) 
+        # # # plt.plot([X_stim_S1_avg[0], X_stim_S2_avg[0]],[X_stim_S1_avg[1], X_stim_S2_avg[1] ], c='k') 
+
+        # # figname = '%s_%s_%s_ED' % (gv.mouse, gv.session, trial)
+        # # plt.figure(figname)
+        # # plt.scatter(X_ED_S1[:,0], X_ED_S1[:,1], c='b') 
+        # # plt.scatter(X_ED_S2[:,0], X_ED_S2[:,1], c='r')
+        # # plt.scatter([X_ED_S1_avg[0], X_ED_S2_avg[0]],[X_ED_S1_avg[1], X_ED_S2_avg[1] ], s=30, c=['b','r']) 
+        # # plt.plot([X_ED_S1_avg[0], X_ED_S2_avg[0]],[X_ED_S1_avg[1], X_ED_S2_avg[1] ], c='k') 
+
+        # # figname = '%s_%s_%s_LD' % (gv.mouse, gv.session, trial)
+        # # plt.figure(figname)
+        # # plt.scatter(X_LD_S1[:,0], X_LD_S1[:,1], c='b') 
+        # # plt.scatter(X_LD_S2[:,0], X_LD_S2[:,1], c='r')
+        # # plt.scatter([X_LD_S1_avg[0], X_LD_S2_avg[0]],[X_LD_S1_avg[1], X_LD_S2_avg[1] ], s=30, c=['b','r']) 
+        # # plt.plot([X_LD_S1_avg[0], X_LD_S2_avg[0]],[X_LD_S1_avg[1], X_LD_S2_avg[1] ], c='k') 
+
+        # figname = '%s_%s_%s_ED' % (gv.mouse, gv.session, trial)
+        # plt.figure(figname)
+        # plt.scatter(X_ED[n_trial,0,:,0], X_ED[n_trial,0,:,1], c='b') 
+        # plt.scatter(X_ED[n_trial,1,:,0], X_ED[n_trial,1,:,1], c='r')
+        # plt.scatter(np.mean(X_ED[n_trial,0,:,0]), np.mean(X_ED[n_trial,0,:,1]), s=30, c='b') 
+        # plt.scatter(np.mean(X_ED[n_trial,1,:,0]), np.mean(X_ED[n_trial,1,:,1]), s=30, c='r') 
+        # plt.plot([np.mean(X_ED[n_trial,0,:,0]), np.mean(X_ED[n_trial,1,:,0])], [np.mean(X_ED[n_trial,0,:,1]),np.mean(X_ED[n_trial,1,:,1])], c='k') 
+    
+        # plt.xlabel('PC1') 
+        # plt.ylabel('PC2') 
+
+        # figname = '%s_%s_%s_LD:' % (gv.mouse, gv.session, trial)
+        # plt.figure(figname)
+        # plt.scatter(X_LD[n_trial,0,:,0], X_LD[n_trial,0,:,1], c='b') 
+        # plt.scatter(X_LD[n_trial,1,:,0], X_LD[n_trial,1,:,1], c='r')
+        # plt.scatter(np.mean(X_LD[n_trial,0,:,0]), np.mean(X_LD[n_trial,0,:,1]), s=30, c='b') 
+        # plt.scatter(np.mean(X_LD[n_trial,1,:,0]), np.mean(X_LD[n_trial,1,:,1]), s=30, c='r') 
+        # plt.plot([np.mean(X_LD[n_trial,0,:,0]), np.mean(X_LD[n_trial,1,:,0])], [np.mean(X_LD[n_trial,0,:,1]),np.mean(X_LD[n_trial,1,:,1])], c='k') 
+
+        # plt.xlabel('PC1')
+        # plt.ylabel('PC2') 

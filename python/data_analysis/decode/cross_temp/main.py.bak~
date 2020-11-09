@@ -1,0 +1,43 @@
+from std_lib import *
+sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis')
+
+import data.constants as gv
+importlib.reload(gv) ;
+
+import data.utils as data
+importlib.reload(data) ;
+
+import utils as decode
+importlib.reload(decode) ; 
+
+from sklearn_lib import *
+from mne_lib import *
+
+for gv.mouse in [gv.mice[-1]] : 
+    print(gv.mouse) 
+    data.get_sessions_mouse() 
+    for gv.session in [gv.sessions[-1]] : 
+        print(gv.session) 
+        X_data, y_labels = data.get_fluo_data() 
+        
+        data.get_delays_times() 
+        data.get_frame_rate() 
+        
+        gv.duration = X_data.shape[2]/gv.frame_rate 
+        time = np.linspace(0, gv.duration, X_data.shape[2]) ; 
+
+        for gv.trial in gv.trials : 
+            print(gv.trial) 
+            gv.n_bin = 1 * gv.frame_rate 
+            
+            X_trials, y_trials = data.get_X_y_trials(X_data, y_labels) 
+            print('trial:', gv.trial, 'X',X_trials.shape,'y',y_trials.shape)
+            
+            scores, scores_std = decode.cross_temp_clf(X_trials, y_trials) 
+
+            # decode.cross_temp_plot_diag(scores, scores_std) 
+            decode.cross_temp_plot_mat(scores) 
+            
+            figname = 'cross_temp_decoder_%s_session_%s_trial_%s' % (gv.mouse,gv.session,gv.trial) 
+            plt.figure(figname)
+            plt.savefig(figname,format='svg')
