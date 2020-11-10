@@ -14,15 +14,14 @@ def bootstrap_clf_par(X, y, clf, dum):
         print('no boot') 
         idx = np.arange(0, X.shape[0]) 
     else: 
-        # idx = np.random.randint(0, X.shape[0], X.shape[0]) 
         idx = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)), np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) ) 
         
     X_sample = X[idx] 
     y_sample = y[idx] 
 
-    # X_sample = StandardScaler().fit_transform(X_sample)
-    scaler = StandardScaler().fit(X)
-    X_sample = scaler.transform(X_sample)
+    # X_sample = StandardScaler().fit_transform(X_sample.T).T
+    scaler = StandardScaler().fit(X.T).T 
+    X_sample = scaler.transform(X_sample.T).T 
     
     clf.fit(X_sample, y_sample) 
     coefs_samples = clf.coef_.flatten() 
@@ -57,7 +56,7 @@ def get_cos(coefs):
         
     return alphas, cos_alp 
 
-def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, IF_CLASSIFY, NO_PCA=0, C=1e0, penalty='l2'): 
+def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, IF_CLASSIFY, C=1e0, penalty='l2'): 
 
     gv.n_boot = int(1e3) 
     num_cores = multiprocessing.cpu_count() 
@@ -65,10 +64,12 @@ def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, IF_CLASSIFY, NO_PCA=0, C=1e0, penalty='
     # clf = LogisticRegression(C=C, solver=solver, penalty=penalty,tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
     # clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
     clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
-
-    if not NO_PCA: 
-        X_proj = X_proj[:,:,:,0:gv.n_components,:]
-    print(X_proj.shape)
+    
+    NO_PCA = 1 
+    if X_proj.shape[3]!=gv.n_neurons: 
+        NO_PCA = 0 
+        X_proj = X_proj[:,:,:,0:gv.n_components,:] 
+    print(X_proj.shape) 
         
     if IF_CONCAT:
         print('Concatenated Stim and ED')
@@ -77,18 +78,20 @@ def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, IF_CLASSIFY, NO_PCA=0, C=1e0, penalty='
         
     if IF_EDvsLD: 
         gv.epochs = ['ED', 'MD', 'LD'] 
+    else: 
+        gv.epochs = ['Stim', 'ED', 'MD', 'LD'] 
+
+
+    if gv.ED_MD_LD :
+        X_ED = np.mean(X_proj[:,:,:,:,0:len(gv.bins_ED)],axis=-1) 
+        X_MD = np.mean(X_proj[:,:,:,:,len(gv.bins_ED):len(gv.bins_ED)+len(gv.bins_MD)],axis=-1) 
+        X_LD = np.mean(X_proj[:,:,:,:,len(gv.bins_ED)+len(gv.bins_MD):len(gv.bins_ED)+len(gv.bins_MD)+len(gv.bins_LD)],axis=-1) 
+        X_stim = X_ED 
     else:
-        gv.epochs = ['Stim', 'ED', 'MD', 'LD']
-
-    X_ED = np.mean(X_proj[:,:,:,:,gv.bins_ED-gv.bin_start],axis=-1) 
-    X_MD = np.mean(X_proj[:,:,:,:,gv.bins_MD-gv.bin_start],axis=-1) 
-    X_LD = np.mean(X_proj[:,:,:,:,gv.bins_LD-gv.bin_start],axis=-1) 
-
-    # X_ED = np.mean(X_proj[:,:,:,:,0:len(gv.bins_ED)],axis=-1) 
-    # X_MD = np.mean(X_proj[:,:,:,:,len(gv.bins_ED)+1:len(gv.bins_MD)],axis=-1) 
-    # X_LD = np.mean(X_proj[:,:,:,:,len(gv.bins_MD)+1:len(gv.bins_LD)],axis=-1) 
+        X_ED = np.mean(X_proj[:,:,:,:,gv.bins_ED-gv.bin_start],axis=-1) 
+        X_MD = np.mean(X_proj[:,:,:,:,gv.bins_MD-gv.bin_start],axis=-1) 
+        X_LD = np.mean(X_proj[:,:,:,:,gv.bins_LD-gv.bin_start],axis=-1) 
     
-    # X_stim = X_ED 
     if gv.DELAY_ONLY: 
         X_stim = X_ED 
     else: 
@@ -145,18 +148,12 @@ def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, IF_CLASSIFY, NO_PCA=0, C=1e0, penalty='
         else: 
             X_epochs = [X_stim_S1_S2, X_ED_S1_S2 , X_MD_S1_S2 , X_LD_S1_S2 ] 
 
-        for X in X_epochs: 
+        coefs = np.empty((len(X_epochs), gv.n_boot, X_ED_S1_S2.shape[1])) 
+        for n_epochs, X in enumerate(X_epochs):
             y = np.array([np.zeros(int(X.shape[0]/2)), np.ones(int(X.shape[0]/2))]).flatten() 
-            
             boot_coefs = Parallel(n_jobs=num_cores)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot) for i in range(gv.n_boot)) 
-
-            coefs.append(boot_coefs) 
-            
-        # coefs = np.vstack(np.asarray(coefs)).reshape(len(X_epochs), int(gv.n_boot * X.shape[0]), X.shape[1]) 
-        coefs = np.vstack(np.asarray(coefs)).reshape(len(X_epochs), int(gv.n_boot), X.shape[1]) 
-        # coefs = np.asarray(coefs) 
-        # print(coefs.shape) 
-            
+            coefs[n_epochs] = np.array(boot_coefs) 
+        
         cos_samples = [] 
         for boot_sample in range(coefs.shape[1]): 
             alpha, cos_alp = get_cos(coefs[:,boot_sample,:]) 

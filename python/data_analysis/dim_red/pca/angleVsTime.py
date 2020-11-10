@@ -6,7 +6,7 @@ import data.constants as gv
 import data.plotting as pl
 
 from joblib import Parallel, delayed
-import multiprocessing
+import multiprocessing 
 
 pal = ['r','b','y']
 
@@ -25,10 +25,10 @@ def avg_epochs(X):
     X_epochs = np.moveaxis(X_epochs,0,2) 
     return X_epochs 
 
-def angleAllvsTime(alpha):
+def angleAllVsTime(alpha):
     ax = plt.figure('angleAllvsTime').add_subplot()
     for n_trial in range(0,len(gv.trials)):
-        plt.plot(gv.t_delay, alpha[n_trial], '-o', color=pal[n_trial]) 
+        plt.plot(gv.time, alpha[n_trial], '-o', color=pal[n_trial]) 
         plt.xlabel('time (s)') 
         plt.ylabel('$\\alpha$ (deg)') 
     plt.xlim([gv.t_start,gv.t_LD[-1]]) 
@@ -37,7 +37,7 @@ def angleAllvsTime(alpha):
 def angleNDvsTime(alpha):
     ax = plt.figure('angleNDvsTime').add_subplot()
     for n_trial in range(1,len(gv.trials)):
-        plt.plot(gv.t_delay, alpha[0]-alpha[n_trial], '-o', color=pal[n_trial]) 
+        plt.plot(gv.time, alpha[0]-alpha[n_trial], '-o', color=pal[n_trial]) 
         plt.xlabel('time (s)') 
         plt.ylabel('$\\alpha_{i,ND}$ (deg)') 
     plt.xlim([gv.t_start,gv.t_LD[-1]]) 
@@ -46,26 +46,26 @@ def angleNDvsTime(alpha):
 def cosNDvsTime(alpha):
     ax = plt.figure('cosNDvsTime').add_subplot() 
     for n_trial in range(1,len(gv.trials)):
-        plt.plot(gv.t_delay, np.cos( (alpha[0]-alpha[n_trial])*np.pi/180.), '-o', color=pal[n_trial]) 
+        plt.plot(gv.time, np.cos( (alpha[0]-alpha[n_trial])*np.pi/180.), '-o', color=pal[n_trial]) 
         plt.xlabel('time (s)') 
         plt.ylabel(' cos($\\alpha_{i,ND}$) (deg)') 
     plt.xlim([gv.t_start,gv.t_LD[-1]]) 
     pl.vlines_delay(ax) 
     
-def angleEDvsTime(agl, dum=0): 
+def angleEDvsTime(alpha, dum=0): 
     ax = plt.figure('angleEDvsTime').add_subplot()
 
     binED = gv.bins_ED-gv.bin_start
-    aglED = np.mean(agl[:,binED], axis=1)
+    alphaED = np.mean(alpha[:,binED], axis=1)
 
     # average over all trial types
     if dum :
-        aglED_avg = np.mean(aglED)
-        aglED = np.array([aglED_avg, aglED_avg, aglED_avg]) 
+        alphaED_avg = np.mean(alphaED)
+        alphaED = np.array([alphaED_avg, alphaED_avg, alphaED_avg]) 
         
-    x = gv.t_delay[binED[-1]:-1]
+    x = gv.time[binED[-1]:-1]
     for n_trial in range(len(gv.trials)):
-        y = aglED[n_trial, np.newaxis] - agl[n_trial, binED[-1]:-1]
+        y = alphaED[n_trial, np.newaxis] - alpha[n_trial, binED[-1]:-1]
         plt.plot(x, y, '-o', color=pal[n_trial])
     
     plt.xlabel('time (s)') 
@@ -73,41 +73,41 @@ def angleEDvsTime(agl, dum=0):
     pl.vlines_delay(ax) 
     plt.xlim([gv.t_ED[-1],gv.t_LD[-1]])
 
-def cosEDvsTime(agl, dum=0): 
+def cosEDvsTime(alpha, dum=0): 
     ax = plt.figure('cosEDvsTime').add_subplot()
 
     binED = gv.bins_ED-gv.bin_start 
-    aglED = np.mean(agl[:,binED], axis=1) 
+    alphaED = np.mean(alpha[:,binED], axis=1) 
 
     # average over all trial types
     if dum :
-        aglED_avg = np.mean(aglED)
-        aglED = np.array([aglED_avg, aglED_avg, aglED_avg]) 
+        alphaED_avg = np.mean(alphaED)
+        alphaED = np.array([alphaED_avg, alphaED_avg, alphaED_avg]) 
     
-    x = gv.t_delay[binED[-1]:-1] 
+    x = gv.time-np.array(2) 
     for n_trial in range(len(gv.trials)): 
-        y = np.cos( (aglED[n_trial, np.newaxis] - agl[n_trial, binED[-1]:-1]) *np.pi/180.) 
+        y = np.cos( (alpha[n_trial]) *np.pi/180.) 
         plt.plot(x, y, '-o', color=pal[n_trial]) 
         
     plt.xlabel('time (s)') 
     plt.ylabel('cos($\\alpha_{i,ED}$)') 
     pl.vlines_delay(ax) 
-    plt.xlim([gv.t_ED[-1],gv.t_LD[-1]])
+    # plt.xlim([gv.t_ED[-1],gv.t_LD[-1]])
 
-def cosStimVsTime(agl, dum=0): 
+def cosStimVsTime(alpha, dum=0): 
     ax = plt.figure('cosStimVsTime').add_subplot()
 
     binSTIM = gv.bins_STIM-gv.bin_start
-    aglSTIM = np.mean(agl[:,binSTIM[-3:-1]], axis=1) 
+    alphaSTIM = np.mean(alpha[:,binSTIM[-3:-1]], axis=1) 
 
     # average over all trial types
     if dum :
-        aglSTIM_avg = np.mean(aglSTIM)
-        aglSTIM = np.array([aglSTIM_avg, aglSTIM_avg, aglSTIM_avg]) 
+        alphaSTIM_avg = np.mean(alphaSTIM)
+        alphaSTIM = np.array([alphaSTIM_avg, alphaSTIM_avg, alphaSTIM_avg]) 
         
     x = gv.t_stim_delay[binSTIM[-1]:-1] 
     for n_trial in range(len(gv.trials)): 
-        y = np.cos( (aglSTIM[n_trial, np.newaxis] - agl[n_trial, binSTIM[-1]:-1]) *np.pi/180.) 
+        y = np.cos( (alphaSTIM[n_trial, np.newaxis] - alpha[n_trial, binSTIM[-1]:-1]) *np.pi/180.) 
         plt.plot(x, y, '-o', color=pal[n_trial]) 
         
     plt.xlabel('time (s)') 
@@ -143,9 +143,9 @@ def bootstrap_clf_par(X, y, clf, dum):
     X_sample = X[idx] 
     y_sample = y[idx] 
 
-    # X_sample = StandardScaler().fit_transform(X_sample) 
-    scaler = StandardScaler().fit(X) 
-    X_sample = scaler.transform(X_sample) 
+    # # X_sample = StandardScaler().fit_transform(X_sample) 
+    scaler = StandardScaler().fit(X.T).T 
+    X_sample = scaler.transform(X_sample.T).T 
     
     clf.fit(X_sample, y_sample) 
     coefs_samples = clf.coef_.flatten() 
@@ -184,12 +184,12 @@ def angleVsTime(X_trials, C=1e0, penalty='l2', solver='liblinear'):
         X_trials = X_trials[:,:,:,0:gv.n_components,:]
 
     # print('n_boot', gv.n_boot)
-    clf = LogisticRegression(C=C, solver=solver, penalty=penalty,tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
-    # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
+    # clf = LogisticRegression(C=C, solver=solver, penalty=penalty,tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
+    clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
     # clf = LinearDiscriminantAnalysis(tol=1e-6) 
 
     gv.AVG_EPOCHS = 0 
-    gv.trial_size = X_trials.shape[-1]
+    gv.trial_size = X_trials.shape[-1] 
     
     if gv.AVG_EPOCHS: 
         if gv.STIM_AND_DELAY: 
@@ -197,9 +197,11 @@ def angleVsTime(X_trials, C=1e0, penalty='l2', solver='liblinear'):
         elif gv.DELAY_ONLY: 
             gv.trial_size = len(['ED','MD','LD']) 
     
-    print(gv.trial_size) 
-    coefs = np.empty( (len(gv.trials), gv.trial_size,  gv.n_boot, X_trials.shape[3]) ) 
-    agl_boot = np.empty( (len(gv.trials), gv.n_boot, gv.trial_size) ) 
+    coefs = np.empty( (len(gv.trials), gv.trial_size,  gv.n_boot, X_trials.shape[3]) )  
+    mean_coefs = np.empty( (len(gv.trials), gv.trial_size,  X_trials.shape[3]) )  
+
+    alpha = np.empty( (len(gv.trials), gv.trial_size) )    
+    alpha_boot = np.empty( (len(gv.trials), gv.n_boot, gv.trial_size) ) 
     
     y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
     
@@ -209,23 +211,23 @@ def angleVsTime(X_trials, C=1e0, penalty='l2', solver='liblinear'):
         X_S2 = X_trials[n_trial,1] 
         X_S1_S2 = np.vstack((X_S1, X_S2)) 
 
-        if gv.AVG_EPOCHS:
-            X_S1_S2 = avg_epochs(X_S1_S2)
+        if gv.AVG_EPOCHS: 
+            X_S1_S2 = avg_epochs(X_S1_S2) 
         
         print('X_S1_S2', X_S1_S2.shape) 
         
         for n_bins in range(gv.trial_size): 
-            X = X_S1_S2[:,:,n_bins] 
-            
-            coefs_boot = Parallel(n_jobs=num_cores)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot) for i in range(gv.n_boot)) 
-            
+            X = X_S1_S2[:,:,n_bins]     
+            coefs_boot = Parallel(n_jobs=num_cores)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot) for i in range(gv.n_boot))             
             coefs[n_trial, n_bins] = np.asarray(coefs_boot) 
-            
-        for boot in range(gv.n_boot): 
-            agl_boot[n_trial, boot] = get_angle(coefs[n_trial,:,boot,:]) # bins x coefficients 
 
-    print(agl_boot.shape) 
-    mean_agl = np.mean(agl_boot, axis=1) 
-    print(mean_agl.shape) 
+        mean_coefs[n_trial] = np.mean(coefs[n_trial], axis=1)
+        alpha[n_trial] = get_angle(mean_coefs[n_trial])
+        
+        for boot in range(gv.n_boot): 
+            alpha_boot[n_trial,boot] = get_angle(coefs[n_trial,:,boot,:]) # bins x coefficients 
+
+    mean_alpha = np.mean(alpha_boot,axis=1)
+    print(mean_alpha.shape) 
     
-    return mean_agl 
+    return alpha, mean_alpha 

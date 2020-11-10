@@ -9,10 +9,12 @@ import data.plotting as plot
 import decode.cross_temp.utils as decode 
 importlib.reload(decode) 
 
-def temporal_decoder(X_proj, NO_PCA=0, IF_EPOCHS=0, C=1e0, penalty='l2', cv=8, my_decoder=0): 
+def temporal_decoder(X_proj, IF_EPOCHS=0, C=1e0, penalty='l2', cv=8, my_decoder=0): 
 
-    if not NO_PCA: 
-        X_proj = X_proj[:,:,:,0:gv.n_components,:]
+    NO_PCA=1
+    if X_proj.shape[3]!=gv.n_neurons:
+        NO_PCA=0
+        X_proj = X_proj[:,:,:,0:gv.n_components,:] 
         
     if IF_EPOCHS: 
         gv.epochs = ['ED','MD','LD'] 
@@ -20,9 +22,9 @@ def temporal_decoder(X_proj, NO_PCA=0, IF_EPOCHS=0, C=1e0, penalty='l2', cv=8, m
         gv.epochs = ['all'] 
     
     gv.my_decoder= my_decoder
-    # clf = LogisticRegression(C=C, solver='liblinear', penalty=penalty, tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
+    clf = LogisticRegression(C=C, solver='liblinear', penalty=penalty, tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
     # clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
-    clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
+    # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
 
     for i, gv.trial in enumerate(gv.trials): 
         X_S1_trials = X_proj[i,0] 
@@ -32,8 +34,8 @@ def temporal_decoder(X_proj, NO_PCA=0, IF_EPOCHS=0, C=1e0, penalty='l2', cv=8, m
         print('trial:', gv.trial, 'X', X_trials.shape,'y', y_trials.shape) 
         
         if gv.my_decoder: 
-            scores = decode.cross_temp_clf_par(clf, X_trials, y_trials, cv=cv)
-        else:
+            scores = decode.cross_temp_clf_par(clf, X_trials, y_trials, cv=cv) 
+        else: 
             scores, scores_std = decode.mne_cross_temp_clf(X_trials, y_trials, clf, cv=cv) 
         
         print('scores', scores.shape) 
