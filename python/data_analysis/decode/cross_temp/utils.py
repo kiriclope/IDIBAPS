@@ -6,32 +6,9 @@ from joblib import Parallel, delayed
 import multiprocessing
  
 sys.path.append('../../')
-import data.constants as gv
 
-def detrend_data(X_trial, poly_fit=1, degree=9): 
-    """ Detrending of the data, if poly_fit=1 uses polynomial fit else linear fit. """
-    # X_trial : # neurons, # times 
-    
-    model = LinearRegression()
-    fit_values_trial = []
-    
-    for i in range(0, X_trial.shape[0]): # neurons
-        indexes = range(0, X_trial.shape[1]) # neuron index
-        values = X_trial[i] # fluo value 
-        
-        indexes = np.reshape(indexes, (len(indexes), 1))
-        
-        if poly_fit:
-            poly = PolynomialFeatures(degree=degree) 
-            indexes = poly.fit_transform(indexes)
-            
-        model.fit(indexes, values)
-        fit_values = model.predict(indexes) 
-        
-        fit_values_trial.append(fit_values) 
-        
-    fit_values_trial = np.asarray(fit_values_trial)
-    return fit_values_trial 
+import data.constants as gv
+import data.plotting as pl
 
 def K_fold_clf_par(clf, X_train, y_train, X_test, y_test, cv): 
     scores = [] 
@@ -194,18 +171,16 @@ def cross_temp_plot_mat(scores, IF_EPOCHS=0, IF_MEAN=0):
 
     duration = scores.shape[0]/gv.frame_rate 
 
-    # if IF_EPOCHS:
-    #     figtitle = '%s_session_%s_trial_%s_cross_temp_decoder_epochs' % (gv.mouse,gv.session,gv.trial)
-    # elif IF_MEAN: 
-    #     figtitle = '%s_session_%s_trial_%s_cross_temp_decoder_mean' % (gv.mouse,gv.session,gv.trial)
-    # else: 
     figtitle = '%s_session_%s_trial_%s_cross_temp_decoder' % (gv.mouse,gv.session,gv.trial)
     ax = plt.figure(figtitle).add_subplot() 
 
     if IF_EPOCHS or IF_MEAN: 
-        im = ax.imshow(scores, cmap='jet', vmin=0.5, vmax=1, origin='lower') 
+        im = ax.imshow(scores, cmap='jet', vmin=0.5, vmax=1, origin='lower')
+    elif gv.DELAY_ONLY:
+        im = ax.imshow(scores, cmap='jet', origin='lower', vmin=0.5, vmax=1, extent = [gv.t_delay[0]-2 , gv.t_delay[-1]-2, gv.t_delay[0]-2 , gv.t_delay[-1]-2])
     else: 
-        im = ax.imshow(scores, interpolation='lanczos', cmap='jet', origin='lower', vmin=0.4, vmax=1, extent = [-2 , gv.duration-2, -2 , gv.duration-2]) 
+        im = ax.imshow(scores, cmap='jet', origin='lower', vmin=0.5, vmax=1, extent = [-2 , gv.duration-2, -2 , gv.duration-2]) 
+        
     ax.set_xlabel('Testing Time (s)')
     ax.set_ylabel('Training Time (s)')
     
@@ -228,32 +203,8 @@ def cross_temp_plot_mat(scores, IF_EPOCHS=0, IF_MEAN=0):
 
     else:
 
-        plt.axvline(x=gv.t_sample[0]-2, c='k', ls='-') # sample onset
-        plt.axhline(y=gv.t_sample[0]-2, c='k', ls='-') 
-
-        # plt.axvline(x=gv.t_distractor[0]-2, c='r', ls='-') # sample onset
-        # plt.axhline(y=gv.t_distractor[0]-2, c='r', ls='-') 
-
-        plt.axvline(x=gv.t_early_delay[0]-2, c='k', ls='--') 
-        plt.axvline(x=gv.t_early_delay[1]-2, c='k', ls='--') # DPA early delay
-    
-        plt.axvline(x=gv.t_DRT_delay[0]-2, c='r', ls='--') #DRT delay
-        plt.axvline(x=gv.t_DRT_delay[1]-2, c='r', ls='--') 
+        pl.vlines_delay(ax) 
+        pl.hlines_delay(ax) 
         
-        plt.axvline(x=gv.t_late_delay[0]-2, c='k', ls='--')
-        plt.axvline(x=gv.t_late_delay[1]-2, c='k', ls='--') # DPA late delay
-    
-        plt.axhline(y=gv.t_early_delay[0]-2, c='k', ls='--')
-        plt.axhline(y=gv.t_early_delay[1]-2, c='k', ls='--') # DPA early delay
-
-        plt.axhline(y=gv.t_DRT_delay[0]-2, c='r', ls='--') #DRT delay
-        plt.axhline(y=gv.t_DRT_delay[1]-2, c='r', ls='--') 
-    
-        plt.axhline(y=gv.t_late_delay[0]-2, c='k', ls='--')
-        plt.axhline(y=gv.t_late_delay[1]-2, c='k', ls='--') # DPA late delay
-
-        plt.xlim([gv.t_early_delay[0]-2, gv.t_late_delay[1]-2]) ;
-        plt.ylim([gv.t_early_delay[0]-2, gv.t_late_delay[1]-2]) ;
-
-        # plt.xlim([-2, gv.duration-2]);
-        # plt.ylim([-2, gv.duration-2]);
+        plt.xlim([gv.t_delay[0]-2, gv.t_delay[-1]-2]); 
+        plt.ylim([gv.t_delay[0]-2, gv.t_delay[-1]-2]); 
