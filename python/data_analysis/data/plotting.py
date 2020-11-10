@@ -29,22 +29,22 @@ def figDir(scriptdir=''):
     # if gv.normFluo:
     #     gv.figdir = gv.figdir + '/norm_Fluo'
     
-    if gv.laser_on: 
-        gv.figdir = gv.figdir + '/laser_on'
-    else:
-        gv.figdir = gv.figdir + '/laser_off'
+    # if gv.laser_on: 
+    #     gv.figdir = gv.figdir + '/laser_on'
+    # else:
+    #     gv.figdir = gv.figdir + '/laser_off'
 
-    if gv.detrend :
-        gv.figdir = gv.figdir + '/detrend' 
+    # if gv.detrend :
+    #     gv.figdir = gv.figdir + '/detrend' 
     
-    if 'cross_temp' in scriptdir:
-        gv.figdir = gv.figdir + '/decode/cross_temp'
+    # if 'cross_temp' in scriptdir:
+    #     gv.figdir = gv.figdir + '/decode/cross_temp'
 
-    if 'pca' in scriptdir:
-        gv.figdir = gv.figdir + '/dim_red/pca/n_comp_%d' % gv.n_components
+    # if 'pca' in scriptdir:
+    #     gv.figdir = gv.figdir + '/dim_red/pca/n_comp_%d' % gv.n_components
         
-    if 'tca' in scriptdir:
-        gv.figdir = gv.figdir + '/dim_red/tca/n_comp_%d' % gv.n_components
+    # if 'tca' in scriptdir:
+    #     gv.figdir = gv.figdir + '/dim_red/tca/n_comp_%d' % gv.n_components
 
     if not os.path.isdir(gv.figdir):
         os.makedirs(gv.figdir)

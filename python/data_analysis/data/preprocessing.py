@@ -1,6 +1,9 @@
 from .libs import * 
 from . import constants as gv
 
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+
 import scipy.signal
 
 def center(X):
@@ -9,11 +12,13 @@ def center(X):
     Xc = scaler.fit_transform(X.T).T
     return Xc
 
-def z_score(X):
-    # X: ndarray, shape (n_features, n_samples)
-    ss = StandardScaler(with_mean=True, with_std=True)
-    Xz = ss.fit_transform(X.T).T
-    return Xz
+def z_score(X): 
+    # X: ndarray, shape (n_features, n_samples) 
+    ss = StandardScaler(with_mean=True, with_std=True) 
+    # ss.fit(X[:,gv.bins_BL].T) 
+    # Xz = ss.transform(X.T).T 
+    Xz = ss.fit_transform(X.T).T 
+    return Xz 
 
 def normalize(X):
     # X: ndarray, shape (n_features, n_samples)
@@ -36,12 +41,11 @@ def dFF0(X, AVG_TRIALS=0):
         F0 = np.mean(X[:,:,gv.bins_BL],axis=2) 
         F0 = F0[:,:, np.newaxis] 
     else: 
-        F0 = np.mean( np.mean(X[:,:,gv.bins_BL],axis=2), axis=0)
+        F0 = np.mean( np.mean(X[:,:,gv.bins_BL],axis=2), axis=0) 
         F0 = F0[np.newaxis,:, np.newaxis] 
     return (X-F0) / (F0 + gv.eps) 
 
-def findBaselineF0(rawF, fs, axis=0, keepdims=False):
-
+def findBaselineF0(rawF, fs, axis=0, keepdims=False): 
     """Find the baseline for a fluorescence imaging trace line.
 
     The baseline, F0, is the 5th-percentile of the 1Hz
@@ -123,3 +127,49 @@ def findBaselineF0(rawF, fs, axis=0, keepdims=False):
     baselineF0 = baselineF0.T
     baselineF0 = baselineF0[:,np.newaxis,:]
     return baselineF0
+
+
+def bin_data(data, bin_step, bin_size):
+    # bin_step number of pts btw bins, bin_size number of size in each bin
+    bin_array = [np.mean(np.take(data,np.arange(int(i*bin_step),int(i*bin_step+bin_size)), axis=2), axis=2) for i in np.arange(data.shape[2]//bin_step-1)]
+    bin_array = np.array(bin_array)
+    bin_array = np.rollaxis(bin_array,0,3)
+    return bin_array
+
+def detrend_data(X_trial, poly_fit=1, degree=7): 
+    """ Detrending of the data, if poly_fit=1 uses polynomial fit else linear fit. """
+    # X_trial : # neurons, # times 
+    
+    model = LinearRegression()
+    fit_values_trial = []
+
+    indexes = range(0, X_trial.shape[1]) # neuron index 
+    values = np.mean(X_trial,axis=0) # mean fluo value 
+    
+    indexes = np.reshape(indexes, (len(indexes), 1))
+    
+    if poly_fit:
+        poly = PolynomialFeatures(degree=degree) 
+        indexes = poly.fit_transform(indexes) 
+            
+    model.fit(indexes, values)
+    fit_values = model.predict(indexes) 
+    fit_values_trial = np.array(fit_values)
+    
+    # for i in range(0, X_trial.shape[0]): # neurons 
+    #     indexes = range(0, X_trial.shape[1]) # neuron index 
+    #     values = X_trial[i] # fluo value 
+                
+    #     indexes = np.reshape(indexes, (len(indexes), 1))
+
+    #     if poly_fit:
+    #         poly = PolynomialFeatures(degree=degree) 
+    #         indexes = poly.fit_transform(indexes) 
+
+    #     model.fit(indexes, values)
+    #     fit_values = model.predict(indexes) 
+        
+    #     fit_values_trial.append(fit_values) 
+        
+    # fit_values_trial = np.array(fit_values_trial)
+    return fit_values_trial

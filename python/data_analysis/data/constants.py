@@ -78,11 +78,14 @@ n_components = 3
 global eps
 eps = np.finfo(float).eps
 
-global DELAY_ONLY, DELAY_AND_STIM, bins_delay, t_delay
+global DELAY_ONLY, DELAY_AND_STIM, bins_delay, t_delay, AVG_EPOCHS, bins_ED_MD_LD, t_ED_MD_LD, ED_MD_LD
 DELAY_ONLY = 0
 DELAY_AND_STIM = 0
 bins_delay = []
 t_delay = [] 
 bin_start = np.array(0)
 t_start = np.array(0)
-
+AVG_EPOCHS=0
+bins_ED_MD_LD = []
+t_ED_MD_LD = []
+ED_MD_LD = 0
