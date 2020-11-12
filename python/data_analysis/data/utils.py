@@ -230,11 +230,16 @@ def get_bins(t_start=0):
 
         gv.bins_delay = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-t_start) and (gv.time[bin]<=gv.t_LD[1]) ] 
 
-        gv.t_delay = [ gv.time[bin] for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-t_start) and (gv.time[bin]<=gv.t_LD[1]) ] 
-
-    gv.bins_ED_MD_LD = np.hstack( (gv.bins_ED, gv.bins_MD, gv.bins_LD) )     
-    gv.t_ED_MD_LD = np.hstack( (gv.t_ED, gv.t_MD, gv.t_LD) ) 
+        gv.t_delay = [ gv.time[bin] for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-t_start) and (gv.time[bin]<=gv.t_LD[1]) ]
         
+
+    # gv.bins_STIM_ED_MD_LD =  np.hstack( (gv.bins_STIM, gv.bins_ED, gv.bins_MD, gv.bins_LD) )
+    # gv.t__STIM_ED_MD_LD = gv.time[gv.bins_STIM_ED_MD_LD]
+    
+    gv.bins_ED_MD_LD = np.hstack( (gv.bins_ED, gv.bins_MD, gv.bins_LD) ) 
+    gv.t_ED_MD_LD = gv.time[gv.bins_ED_MD_LD] 
+
+    
 def get_X_y_epochs(X_S1_trials, X_S2_trials): 
 
     X_S1 = [] 

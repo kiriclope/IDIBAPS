@@ -11,7 +11,6 @@ def synthetic_data(prop_ortho):
     print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
 
     data.get_delays_times() 
-    data.get_frame_rate() 
     data.get_bins(t_start=0.0) 
 
     n_ortho = int(prop_ortho * gv.n_neurons) 
@@ -30,7 +29,7 @@ def synthetic_data(prop_ortho):
                 
                 if 'D1' in gv.trial: 
                     if k in gv.bins_LD: 
-                        S2_ortho = np.random.normal(-1, 4 + 10* erfc(k/len(gv.bins)), n_ortho) 
+                        S2_ortho = np.random.normal(-1, 4 + 10 * erfc(k/len(gv.bins)), n_ortho) 
                         S2[0:n_ortho] = S2_ortho 
                 X_S2[j,k] = S2 
                 

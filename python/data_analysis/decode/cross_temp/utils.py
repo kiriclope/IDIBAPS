@@ -10,38 +10,17 @@ sys.path.append('../../')
 import data.constants as gv
 import data.plotting as pl
 
-def K_fold_clf_par(clf, X_train, y_train, X_test, y_test, cv): 
+def K_fold_clf(clf, X_t_train, X_t_test, y, cv): 
     scores = [] 
     folds = KFold(n_splits=cv, shuffle=True) 
-    num_cores = multiprocessing.cpu_count() 
-
-    def loop(train_index, clf, X_train, y_train, X_test, y_test): 
-        X_train_train, y_train_train = X_train[train_index], y_train[train_index] 
-        
-        scaler =  StandardScaler().fit(X_train_train) 
-        X_train_train = scaler.transform(X_train_train) 
-        clf.fit(X_train_train, y_train_train) 
-
-        X_test = scaler.transform(X_test) 
-        score = clf.score(X_test, y_test) 
-
-        return score
     
-    scores = Parallel(n_jobs=num_cores)(delayed(loop)(train_index, clf, X_train, y_train, X_test, y_test) for train_index, _ in folds.split(X_train))
-    scores = np.asarray(scores) 
+    for idx_train, idx_test in folds.split(X_t_train): 
+        X_train, y_train = X_t_train[idx_train], y[idx_train] 
+        X_test, y_test = X_t_test[idx_test], y[idx_test] 
 
-    return np.mean(scores) 
-
-def K_fold_clf(clf, X_train, y_train, X_test, y_test, cv): 
-    scores = [] 
-    folds = KFold(n_splits=cv, shuffle=False)
-    
-    for train_index, test_index in folds.split(X_train): 
-        X_train_train, y_train_train = X_train[train_index], y_train[train_index] 
-
-        scaler =  StandardScaler().fit(X_train_train) 
-        X_train_train = scaler.transform(X_train_train) 
-        clf.fit(X_train_train, y_train_train) 
+        scaler =  StandardScaler().fit(X_train) 
+        X_train = scaler.transform(X_train) 
+        clf.fit(X_train, y_train) 
         
         X_test = scaler.transform(X_test) 
         scores.append(clf.score(X_test, y_test)) 
@@ -63,74 +42,20 @@ def mne_cross_temp_clf( X, y, clf=None, cv=10, scoring='accuracy'):
 
     return scores, scores_std
 
-def grid_search_cv_clf(X, y, cv=10): 
-    clf = LogisticRegression()
-    
-    pipe = Pipeline([('scale', StandardScaler()), ('classifier', clf)])
-    
-    param_grid = [{'classifier': [clf],
-                   'classifier__penalty' : ['l1'],
-                   'classifier__C' : np.logspace(-1, 1, 100),
-                   'classifier__solver' : ['liblinear'],
-                   'classifier__multi_class' : ['ovr']}
-    ]
-    
-    # X = StandardScaler().fit_transform(X) 
-    search = GridSearchCV(pipe, param_grid=param_grid, cv=cv, verbose=False, n_jobs=-1) 
-    
-    best_model = search.fit(X, y)
-    best_penalty = best_model.best_estimator_.get_params()['classifier__penalty'] 
-    best_C = best_model.best_estimator_.get_params()['classifier__C'] 
-    best_solver = best_model.best_estimator_.get_params()['classifier__solver'] 
+def cross_temp_clf_par(clf, X, y, cv=10): 
 
-    print('gridsearchcv:' ,'C', best_C, 'penalty', best_penalty, 'solver', best_solver) 
-
-    return best_model 
-
-def cross_temp_clf(clf, X, y, IF_CV=0, cv=10): 
-
-    scores = [] 
-    for t_train in range(0, X.shape[2]): 
-        X_train = X[:,:,t_train] ; 
-        y_train = y ; 
-        
-        if not IF_CV : 
-            scaler =  StandardScaler().fit(X_train) 
-            X_train = scaler.transform(X_train) 
-            clf.fit(X_train, y_train) 
-            
-        for t_test in range(0, X.shape[2]): 
-            X_test = X[:,:,t_test] 
-            
-            if IF_CV: 
-                test_score = K_fold_clf(clf, X_train, y_train, X_test, y, cv=cv) 
-            else: 
-                X_test = scaler.transform(X_test) # scaler only fitted on training 
-                test_score = clf.score(X_test, y) 
-                
-            scores.append( test_score ) 
-            
-    scores = np.asarray(scores) 
-    scores = scores.reshape( X.shape[2], X.shape[2] ) 
-    return scores 
-
-def cross_temp_clf_par(clf, X, y, IF_CV=0, cv=10): 
-
-    folds = KFold(n_splits=cv, shuffle=False) 
-    num_cores = multiprocessing.cpu_count() 
+    num_cores = -int(multiprocessing.cpu_count()/2) 
 
     def loop(t_train, t_test, clf, X, y, cv): 
-        X_train = X[:,:,t_train] 
-        y_train = y 
+        X_t_train = X[:,:,t_train]         
+        X_t_test = X[:,:,t_test]
         
-        X_test = X[:,:,t_test] 
-        y_test = y 
-        score = K_fold_clf(clf, X_train, y_train, X_test, y_test, cv)
+        score = K_fold_clf(clf, X_t_train,  X_t_test, y, cv) 
         return score 
     
     scores = Parallel(n_jobs=num_cores, verbose=True)(delayed(loop)(t_train, t_test, clf, X, y, cv)
-                                        for t_train in range(0, X.shape[2])
-                                        for t_test in range(0, X.shape[2]))    
+                                                      for t_train in range(0, X.shape[2])
+                                                      for t_test in range(0, X.shape[2]))    
     scores = np.asarray(scores) 
     scores = scores.reshape( X.shape[2], X.shape[2] ) 
     return scores 
