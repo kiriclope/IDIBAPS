@@ -3,43 +3,151 @@ sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python
 from scipy.spatial import distance
 
 import data.constants as gv 
-import data.plotting as plot 
+import data.plotting as pl
 
 from joblib import Parallel, delayed
 import multiprocessing
 
 pal = ['r','b','y']
 
-def vlines_delay(ax):
+def avg_epochs(X):
     
-    ax.axvline(gv.t_ED[0], color='k', ls='--') 
-    ax.axvline(gv.t_ED[-1], color='k', ls='--') 
+    X_ED = np.mean(X[:,:,gv.bins_ED-gv.bin_start],axis=-1) 
+    X_MD = np.mean(X[:,:,gv.bins_MD-gv.bin_start],axis=-1) 
+    X_LD = np.mean(X[:,:,gv.bins_LD-gv.bin_start],axis=-1) 
 
-    ax.axvline(gv.t_MD[0], color='r', ls='--') 
-    ax.axvline(gv.t_MD[-1], color='r', ls='--') 
-
-    ax.axvline(gv.t_LD[0], color='k', ls='--') 
-    ax.axvline(gv.t_LD[-1], color='k', ls='--') 
-
-def bootstrap_clf_par(X_trials, y, n_trial, clf, dum): 
-
-    X_S1 = X_trials[n_trial,0] 
-    X_S2 = X_trials[n_trial,1] 
-
-    X_S1_S2 = np.vstack((X_S1, X_S2)) 
-    scaler = StandardScaler().fit(X_S1_S2) 
-    
-    if dum==1: 
-        idx_S1 = np.arange(0, X_S1.shape[0]) 
-        idx_S2 = np.arange(0, X_S2.shape[0]) 
-    else: 
-        idx_S1 = np.random.randint(0, X_S1.shape[0], X_S1.shape[0]) 
-        idx_S2 = np.random.randint(0, X_S2.shape[0], X_S2.shape[0]) 
+    if gv.STIM_AND_DELAY:
+        X_STIM = np.mean(X[:,:,gv.bins_STIM-gv.bin_start],axis=-1) 
+        X_epochs = np.array([X_STIM, X_ED, X_MD, X_LD])
+    elif gv.DELAY_ONLY:
+        X_epochs = np.array([X_ED, X_MD, X_LD])
         
-    X_sample = np.vstack((X_S1[idx_S1], X_S2[idx_S2])) 
+    X_epochs = np.moveaxis(X_epochs,0,2) 
+    return X_epochs 
+
+def angleAllvsTime(alpha):
+    ax = plt.figure('angleAllvsTime').add_subplot()
+    for n_trial in range(0,len(gv.trials)):
+        plt.plot(gv.t_delay, alpha[n_trial], '-o', color=pal[n_trial]) 
+        plt.xlabel('time (s)') 
+        plt.ylabel('$\\alpha$ (deg)') 
+    plt.xlim([gv.t_start,gv.t_LD[-1]]) 
+    pl.vlines_delay(ax) 
+
+def angleNDvsTime(alpha):
+    ax = plt.figure('angleNDvsTime').add_subplot()
+    for n_trial in range(1,len(gv.trials)):
+        plt.plot(gv.t_delay, alpha[0]-alpha[n_trial], '-o', color=pal[n_trial]) 
+        plt.xlabel('time (s)') 
+        plt.ylabel('$\\alpha_{i,ND}$ (deg)') 
+    plt.xlim([gv.t_start,gv.t_LD[-1]]) 
+    pl.vlines_delay(ax) 
+
+def cosNDvsTime(alpha):
+    ax = plt.figure('cosNDvsTime').add_subplot() 
+    for n_trial in range(1,len(gv.trials)):
+        plt.plot(gv.t_delay, np.cos( (alpha[0]-alpha[n_trial])*np.pi/180.), '-o', color=pal[n_trial]) 
+        plt.xlabel('time (s)') 
+        plt.ylabel(' cos($\\alpha_{i,ND}$) (deg)') 
+    plt.xlim([gv.t_start,gv.t_LD[-1]]) 
+    pl.vlines_delay(ax) 
+    
+def angleEDvsTime(agl, dum=0): 
+    ax = plt.figure('angleEDvsTime').add_subplot()
+
+    binED = gv.bins_ED-gv.bin_start
+    aglED = np.mean(agl[:,binED], axis=1)
+
+    # average over all trial types
+    if dum :
+        aglED_avg = np.mean(aglED)
+        aglED = np.array([aglED_avg, aglED_avg, aglED_avg]) 
+        
+    x = gv.t_delay[binED[-1]:-1]
+    for n_trial in range(len(gv.trials)):
+        y = aglED[n_trial, np.newaxis] - agl[n_trial, binED[-1]:-1]
+        plt.plot(x, y, '-o', color=pal[n_trial])
+    
+    plt.xlabel('time (s)') 
+    plt.ylabel('$\\alpha_{i,ED}$ (deg)') 
+    pl.vlines_delay(ax) 
+    plt.xlim([gv.t_ED[-1],gv.t_LD[-1]])
+
+def cosEDvsTime(agl, dum=0): 
+    ax = plt.figure('cosEDvsTime').add_subplot()
+
+    binED = gv.bins_ED-gv.bin_start 
+    aglED = np.mean(agl[:,binED], axis=1) 
+
+    # average over all trial types
+    if dum :
+        aglED_avg = np.mean(aglED)
+        aglED = np.array([aglED_avg, aglED_avg, aglED_avg]) 
+        
+    x = gv.t_delay[binED[-1]:-1] 
+    for n_trial in range(len(gv.trials)): 
+        y = np.cos( (aglED[n_trial, np.newaxis] - agl[n_trial, binED[-1]:-1]) *np.pi/180.) 
+        plt.plot(x, y, '-o', color=pal[n_trial]) 
+        
+    plt.xlabel('time (s)') 
+    plt.ylabel('cos($\\alpha_{i,ED}$)') 
+    pl.vlines_delay(ax) 
+    plt.xlim([gv.t_ED[-1],gv.t_LD[-1]])
+
+def cosStimVsTime(agl, dum=0): 
+    ax = plt.figure('cosStimVsTime').add_subplot()
+
+    binSTIM = gv.bins_STIM-gv.bin_start
+    aglSTIM = np.mean(agl[:,binSTIM[-3:-1]], axis=1) 
+
+    # average over all trial types
+    if dum :
+        aglSTIM_avg = np.mean(aglSTIM)
+        aglSTIM = np.array([aglSTIM_avg, aglSTIM_avg, aglSTIM_avg]) 
+        
+    x = gv.t_stim_delay[binSTIM[-1]:-1] 
+    for n_trial in range(len(gv.trials)): 
+        y = np.cos( (aglSTIM[n_trial, np.newaxis] - agl[n_trial, binSTIM[-1]:-1]) *np.pi/180.) 
+        plt.plot(x, y, '-o', color=pal[n_trial]) 
+        
+    plt.xlabel('time (s)') 
+    plt.ylabel('cos($\\alpha_{i,ED}$)') 
+    pl.vlines_delay(ax) 
+    plt.xlim([gv.t_ED[0],gv.t_LD[-1]]) 
+
+def cosVsEpochs(alpha, dum=0): 
+    ax = plt.figure('cosStimVsEpochs').add_subplot()
+    
+    alphaSTIM = alpha[:,0]
+    # average over all trial types
+    if dum : 
+        alpha_avg = np.mean(alpha[:,0], axis=0) 
+        alphaSTIM = alpha_avg*np.ones(alpha.shape[1])
+
+    q = np.zeros(alpha.shape[1])
+    for n_trial, gv.trial in enumerate(gv.trials): 
+        y = np.cos( (alphaSTIM[n_trial] - alpha[n_trial, :]) *np.pi/180.)
+        print(y)
+        # pl.plot_cosine_bars(y, [], q, q) 
+
+    plt.ylim([0,1.1]) 
+    
+def bootstrap_clf_par(X, y, clf, dum): 
+
+    if dum==1: 
+        idx = np.arange(0, X.shape[0]) 
+    else: 
+        # idx = np.random.randint(0, X.shape[0], X.shape[0]) 
+        idx = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)), np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) ) 
+        
+    X_sample = X[idx] 
+    y_sample = y[idx] 
+
+    # X_sample = StandardScaler().fit_transform(X_sample) 
+    scaler = StandardScaler().fit(X) 
     X_sample = scaler.transform(X_sample) 
     
-    clf.fit(X_sample, y) 
+    clf.fit(X_sample, y_sample) 
     coefs_samples = clf.coef_.flatten() 
 
     return coefs_samples 
@@ -53,69 +161,70 @@ def angle_between(v1, v2):
     """ Returns the angle in radians between vectors 'v1' and 'v2':: """ 
     v1_u = unit_vector(v1) 
     v2_u = unit_vector(v2) 
-    # return np.arccos(np.dot(v1_u, v2_u)) 
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)) 
 
-def get_cos(coefs): 
+def get_angle(coefs): 
     """ Returns the cosine of the angle alpha between vector coefs[0] (early delay) and coefs[1] (late delay) """ 
 
-    cos_alp=np.empty(coefs.shape[0]) 
+    alp=np.empty(coefs.shape[0]) 
     dum = np.ones(coefs.shape[1])
     for i in np.arange(0, coefs.shape[0]): 
         alpha = angle_between(dum, coefs[i]) 
-        # cos_alp[i] = np.cos(alpha) 
-        cos_alp[i] = alpha*180/np.pi 
-        # cos_alp[i] = alpha 
+        alp[i] = alpha*180.0/np.pi 
         
-    return cos_alp 
+    return alp 
 
 def angleVsTime(X_trials, C=1e0, penalty='l2', solver='liblinear'): 
-
-    clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
     
-    gv.n_boot = int(1e0) 
+    gv.n_boot = int(1e3) 
     num_cores = multiprocessing.cpu_count() 
-    gv.trial_size = X_trials.shape[-1] 
-    
-    print('n_boot', gv.n_boot) 
 
+    if X_trials.shape[3]!=gv.n_neurons:
+        X_trials = X_trials[:,:,:,0:gv.n_components,:]
+
+    # print('n_boot', gv.n_boot)
+    clf = LogisticRegression(C=C, solver=solver, penalty=penalty,tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
+    # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
+    # clf = LinearDiscriminantAnalysis(tol=1e-6) 
+
+    gv.AVG_EPOCHS = 0 
+    gv.trial_size = X_trials.shape[-1]
+    
+    if gv.AVG_EPOCHS: 
+        if gv.STIM_AND_DELAY: 
+            gv.trial_size = len(['STIM','ED','MD','LD']) 
+        elif gv.DELAY_ONLY: 
+            gv.trial_size = len(['ED','MD','LD']) 
+    
+    print(gv.trial_size) 
+    coefs = np.empty( (len(gv.trials), gv.trial_size,  gv.n_boot, X_trials.shape[3]) ) 
+    agl_boot = np.empty( (len(gv.trials), gv.n_boot, gv.trial_size) ) 
+    
     y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
-    cos_boot = np.empty( (len(gv.trials), gv.n_boot, gv.trial_size) ) 
     
     for n_trial, gv.trial in enumerate(gv.trials): 
-
+    
         X_S1 = X_trials[n_trial,0] 
         X_S2 = X_trials[n_trial,1] 
-
         X_S1_S2 = np.vstack((X_S1, X_S2)) 
-    
-        coefs = np.empty( (len(gv.trials), gv.trial_size,  gv.n_boot, gv.n_neurons) ) 
+
+        if gv.AVG_EPOCHS:
+            X_S1_S2 = avg_epochs(X_S1_S2)
+        
+        print('X_S1_S2', X_S1_S2.shape) 
         
         for n_bins in range(gv.trial_size): 
             X = X_S1_S2[:,:,n_bins] 
-            X = StandardScaler().fit_transform(X) 
             
-            # coefs_boot = Parallel(n_jobs=num_cores)(delayed(bootstrap_clf_par)(X, y, n_trial, clf, gv.n_boot) for i in range(gv.n_boot)) 
+            coefs_boot = Parallel(n_jobs=num_cores)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot) for i in range(gv.n_boot)) 
             
-            clf.fit(X, y) 
-            coefs_samples = clf.coef_.flatten() 
-            
-            coefs[n_trial, n_bins,0] = np.asarray(coefs_samples) 
-            # coefs[n_trial, n_bins] = np.asarray(coefs_boot) 
+            coefs[n_trial, n_bins] = np.asarray(coefs_boot) 
             
         for boot in range(gv.n_boot): 
-            cos_boot[n_trial, boot] = get_cos(coefs[n_trial,:,boot,:]) # bins x coefficients 
-            
-    print(cos_boot.shape) 
-    mean_cos = np.mean(cos_boot, axis=1) 
-    print(mean_cos.shape) 
-        
-    for n_trial, gv.trial in enumerate(gv.trials): 
-        ax = plt.figure('angleVsTime').add_subplot() 
-        plt.plot(gv.t_delay, mean_cos[n_trial], '-o', color=pal[n_trial]) 
-        plt.xlabel('time (s)') 
-        plt.ylabel('angle (deg C)')
-        plt.xlim([0,10])
-        vlines_delay(ax) 
+            agl_boot[n_trial, boot] = get_angle(coefs[n_trial,:,boot,:]) # bins x coefficients 
 
-    return mean_cos 
+    print(agl_boot.shape) 
+    mean_agl = np.mean(agl_boot, axis=1) 
+    print(mean_agl.shape) 
+    
+    return mean_agl 

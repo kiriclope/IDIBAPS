@@ -17,35 +17,35 @@ def detrend_data(X_trial, poly_fit=1, degree=7):
     model = LinearRegression()
     fit_values_trial = []
 
-    indexes = range(0, X_trial.shape[1]) # neuron index 
-    values = np.mean(X_trial,axis=0) # mean fluo value 
+    # indexes = range(0, X_trial.shape[1]) # neuron index 
+    # values = np.mean(X_trial,axis=0) # mean fluo value 
     
-    indexes = np.reshape(indexes, (len(indexes), 1))
+    # indexes = np.reshape(indexes, (len(indexes), 1))
     
-    if poly_fit:
-        poly = PolynomialFeatures(degree=degree) 
-        indexes = poly.fit_transform(indexes) 
+    # if poly_fit:
+    #     poly = PolynomialFeatures(degree=degree) 
+    #     indexes = poly.fit_transform(indexes) 
             
-    model.fit(indexes, values)
-    fit_values = model.predict(indexes) 
-    fit_values_trial = np.array(fit_values)
+    # model.fit(indexes, values)
+    # fit_values = model.predict(indexes) 
+    # fit_values_trial = np.array(fit_values)
     
-    # for i in range(0, X_trial.shape[0]): # neurons 
-    #     indexes = range(0, X_trial.shape[1]) # neuron index 
-    #     values = X_trial[i] # fluo value 
+    for i in range(0, X_trial.shape[0]): # neurons 
+        indexes = range(0, X_trial.shape[1]) # neuron index 
+        values = X_trial[i] # fluo value 
                 
-    #     indexes = np.reshape(indexes, (len(indexes), 1))
+        indexes = np.reshape(indexes, (len(indexes), 1))
 
-    #     if poly_fit:
-    #         poly = PolynomialFeatures(degree=degree) 
-    #         indexes = poly.fit_transform(indexes) 
+        if poly_fit:
+            poly = PolynomialFeatures(degree=degree) 
+            indexes = poly.fit_transform(indexes) 
 
-    #     model.fit(indexes, values)
-    #     fit_values = model.predict(indexes) 
+        model.fit(indexes, values)
+        fit_values = model.predict(indexes) 
         
-    #     fit_values_trial.append(fit_values) 
+        fit_values_trial.append(fit_values) 
         
-    # fit_values_trial = np.array(fit_values_trial)
+    fit_values_trial = np.array(fit_values_trial)
     return fit_values_trial
 
 if __name__ == "__main__":

@@ -14,6 +14,8 @@ fac.SetPlotParams()
 import data.preprocessing as pp 
 import data.plotting as pl 
 
+import detrend 
+
 pal = ['r','b','y'] 
 gv.samples = ['S1', 'S2'] 
 pc_shift = 0 
@@ -21,16 +23,17 @@ pc_shift = 0
 gv.IF_SAVE=0 
 
 gv.DENOISED=0 
-gv.DELAY_ONLY=0 
-gv.ED_MD_LD = 0 
+gv.DELAY_ONLY=0
+gv.ED_MD_LD = 0
 gv.DOWN_SAMPLING=0 
 
 gv.detrend = 0 
 POLY_DEG = 7 
+
 gv.correct_trial = 0  # 17-14-16 / 6 
 gv.laser_on = 0 
 
-gv.n_components = 30 #'mle' #75% => 11 C57/ChR - 18 Jaws # inflexion 2-4 
+gv.n_components = 50 #'mle' #75% => 11 C57/ChR - 18 Jaws # inflexion 2-4 
 gv.data_type= 'fluo' 
 
 for gv.mouse in [gv.mice[1]] : 
@@ -60,9 +63,9 @@ for gv.mouse in [gv.mice[1]] :
             gv.bin_start = gv.bins_delay[0] 
             gv.t_start = gv.t_ED[0]
             gv.trial_size = len(gv.bins_ED_MD_LD) 
-            gv.time = gv.t_ED_MD_LD
+            gv.time = gv.t_ED_MD_LD 
             
-        X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) )
+        X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) ) 
         X_avg = np.empty( (len(gv.trials), gv.n_neurons, len(gv.samples) * gv.trial_size ) ) 
 
         for n_trial, gv.trial in enumerate(gv.trials): 
@@ -77,18 +80,37 @@ for gv.mouse in [gv.mice[1]] :
                 X_S2 = pp.downsample(X_S2,1,2) 
                 gv.trial_size = X_S1.shape[2] 
                 
-            if gv.DELAY_ONLY:
+            if gv.DELAY_ONLY: 
                 X_S1 = X_S1[:,:, gv.bins_delay] 
                 X_S2 = X_S2[:,:, gv.bins_delay] 
-            elif gv.ED_MD_LD:
+            elif gv.ED_MD_LD: 
                 X_S1 = X_S1[:,:, gv.bins_ED_MD_LD] 
                 X_S2 = X_S2[:,:, gv.bins_ED_MD_LD] 
                 
             # for i in range(X_S1.shape[0]): 
-            #     #     X_S1[i] = pp.z_score(X_S1[i]) 
-            #     #     X_S2[i] = pp.z_score(X_S2[i]) 
+            #     #     #     X_S1[i] = pp.z_score(X_S1[i]) 
+            #     #     #     X_S2[i] = pp.z_score(X_S2[i]) 
             #     X_S1[i] = pp.normalize(X_S1[i]) 
-            #     X_S2[i] = pp.normalize(X_S2[i]) 
+            #     X_S2[i] = pp.normalize(X_S2[i])
+            
+            if gv.detrend: 
+                X_trend = [] 
+                for trial in range(X_S1.shape[0]): 
+                    fit_values = detrend.detrend_data(X_S1[trial], poly_fit=1, degree=POLY_DEG) 
+                    X_trend.append(fit_values) 
+                X_trend = np.asarray(X_trend) 
+                
+                X_S1 = X_S1 - X_trend 
+                # X_S1 = X_S1 - X_trend[:,np.newaxis,:] 
+                
+                X_trend = [] 
+                for trial in range(X_S2.shape[0]): 
+                    fit_values = detrend.detrend_data(X_S2[trial], poly_fit=1, degree=POLY_DEG) 
+                    X_trend.append(fit_values)  
+                X_trend = np.asarray(X_trend) 
+                
+                X_S2 = X_S2 - X_trend 
+                # X_S2 = X_S2 - X_trend[:,np.newaxis,:] 
             
             X_trials[n_trial,0] = X_S1
             X_trials[n_trial,1] = X_S2

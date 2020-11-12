@@ -5,22 +5,23 @@ from scipy.spatial import distance
 import data.constants as gv 
 import data.plotting as plot 
 
-from joblib import Parallel, delayed 
+from joblib import Parallel, delayed, parallel_backend
 import multiprocessing 
 
 def bootstrap_clf_par(X, y, clf, dum): 
 
-    if dum==1: 
-        print('no boot') 
-        idx = np.arange(0, X.shape[0]) 
-    else: 
-        idx = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)), np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) ) 
+    # if dum==1: 
+    #     print('no boot') 
+    #     idx = np.arange(0, X.shape[0]) 
+    # else: 
+    idx = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)),
+                       np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) ) 
         
     X_sample = X[idx] 
     y_sample = y[idx] 
 
     # X_sample = StandardScaler().fit_transform(X_sample.T).T
-    scaler = StandardScaler().fit(X.T).T 
+    scaler = StandardScaler().fit(X.T) 
     X_sample = scaler.transform(X_sample.T).T 
     
     clf.fit(X_sample, y_sample) 
@@ -43,27 +44,23 @@ def get_cos(coefs):
     """ Returns the cosine of the angle alpha between vector coefs[0] (early delay) and coefs[1] (late delay) """
     alphas = [] 
     cos_alp=[]
-
-    # dum = np.ones(coefs.shape[1])
     
     for j in np.arange(0, coefs.shape[0]): 
         alpha = angle_between(coefs[0], coefs[j]) 
-        alphas.append(alpha)
+        alphas.append(alpha) 
         cos_alp.append(np.cos(alpha)) 
-
-    # for j in np.arange(0, coefs.shape[0]): 
-    #     cos_alp.append(np.cos(alphas[j]-alphas[0])) 
         
     return alphas, cos_alp 
 
-def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, IF_CLASSIFY, C=1e0, penalty='l2'): 
+def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, C=1e0, penalty='l2'): 
 
-    gv.n_boot = int(1e3) 
-    num_cores = multiprocessing.cpu_count() 
-    solver = 'liblinear' 
-    # clf = LogisticRegression(C=C, solver=solver, penalty=penalty,tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
+    gv.n_boot = int(1e0) 
+    num_cores = -int(multiprocessing.cpu_count()/2)
+    solver = 'liblinear'
+    
+    clf = LogisticRegression(C=C, solver=solver, penalty=penalty,tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
     # clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e6), fit_intercept=False) 
-    clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
+    # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
     
     NO_PCA = 1 
     if X_proj.shape[3]!=gv.n_neurons: 
@@ -129,13 +126,9 @@ def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, IF_CLASSIFY, C=1e0, penalty='l2'):
 
         X_MD_S1 = X_MD[n_trial,0] 
         X_MD_S2 = X_MD[n_trial,1] 
-
-        # print(gv.trial, 'X_MD_S1', X_MD.shape) 
         
         X_LD_S1 = X_LD[n_trial,0] 
         X_LD_S2 = X_LD[n_trial,1] 
-
-        # print(gv.trial, 'X_LD_S1', X_LD.shape) 
         
         coefs = [] 
         X_stim_S1_S2 = np.vstack([X_stim_S1, X_stim_S2]) 
@@ -149,20 +142,25 @@ def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, IF_CLASSIFY, C=1e0, penalty='l2'):
             X_epochs = [X_stim_S1_S2, X_ED_S1_S2 , X_MD_S1_S2 , X_LD_S1_S2 ] 
 
         coefs = np.empty((len(X_epochs), gv.n_boot, X_ED_S1_S2.shape[1])) 
-        for n_epochs, X in enumerate(X_epochs):
-            y = np.array([np.zeros(int(X.shape[0]/2)), np.ones(int(X.shape[0]/2))]).flatten() 
-            boot_coefs = Parallel(n_jobs=num_cores)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot) for i in range(gv.n_boot)) 
-            coefs[n_epochs] = np.array(boot_coefs) 
+        with parallel_backend('threading', n_jobs=-int(multiprocessing.cpu_count()/2)):
+            for n_epochs, X in enumerate(X_epochs): 
+                y = np.array([np.zeros(int(X.shape[0]/2)), np.ones(int(X.shape[0]/2))]).flatten()
+                boot_coefs = Parallel(n_jobs=num_cores)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot) for i in range(gv.n_boot)) 
+                coefs[n_epochs] = np.array(boot_coefs) 
         
         cos_samples = [] 
+        alpha_samples = [] 
         for boot_sample in range(coefs.shape[1]): 
-            alpha, cos_alp = get_cos(coefs[:,boot_sample,:]) 
+            alpha, cos_alp = get_cos(coefs[:,boot_sample,:])  
+            alpha_samples.append(alpha) 
             cos_samples.append(cos_alp) 
                 
         cos_samples_trials.append(cos_samples)
         cos_samples = np.asarray(cos_samples) 
+        alpha_samples = np.asarray(alpha_samples) 
         # print(cos_samples.shape)
             
+        # mean_cos =  np.mean( np.cos(alpha_samples), axis=0) 
         mean_cos = np.mean(cos_samples, axis=0) 
         # print(cos_alp.shape) 
         q1 = mean_cos - np.percentile(cos_samples, 25, axis=0) 
@@ -171,12 +169,7 @@ def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, IF_CLASSIFY, C=1e0, penalty='l2'):
         print('trial', gv.trial, 'cos', mean_cos, 'q1', q1, 'q3', q3) 
         plot.plot_cosine_bars(mean_cos, [], q1, q3) 
         
-        # alpha, cos_alp = get_cos(coefs) 
-        # print('trial', gv.trial, 'cos', cos_alp) 
-        # plot.plot_cosine_bars(cos_alp) 
-
     cos_samples_trials = np.asarray(cos_samples_trials)
-    # print(cos_samples_trials.shape)
 
     cols = [-4/10, -1/10, 2/10] 
     high = [1.3, 1.1] 
@@ -225,16 +218,15 @@ def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, IF_CLASSIFY, C=1e0, penalty='l2'):
     else: 
         figtitle = '%s_%s_cos_alpha_pca_laser_off' % (gv.mouse, gv.session) 
     
-    if IF_CLASSIFY:
-        gv.figdir = gv.figdir + '/clf/'
-        clf_name = clf.__class__.__name__ 
+    gv.figdir = gv.figdir + '/clf/'
+    clf_name = clf.__class__.__name__ 
         
-        if(clf_name == 'LogisticRegression'): 
-            clf_param = '/C_%.3f_penalty_%s_solver_%s/' % (C, penalty, solver) 
-            gv.figdir = gv.figdir + clf_name + clf_param 
-        else: 
-            clf_param = '/C_%.3f/' % C 
-            gv.figdir = gv.figdir + clf_name + clf_param 
+    if(clf_name == 'LogisticRegression'): 
+        clf_param = '/C_%.3f_penalty_%s_solver_%s/' % (C, penalty, solver) 
+        gv.figdir = gv.figdir + clf_name + clf_param 
+    else: 
+        clf_param = '/C_%.3f/' % C 
+        gv.figdir = gv.figdir + clf_name + clf_param 
 
     if IF_EDvsLD: 
         gv.figdir = gv.figdir + '/EDvsLD/'
