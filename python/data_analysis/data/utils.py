@@ -210,11 +210,11 @@ def get_bins(t_start=0):
         gv.t_delay = [ gv.time[bin] for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_LD[1]) ] 
         
     else:
-        gv.bins_BL = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_BL[1]-t_start) and (gv.time[bin]<=gv.t_BL[1]) ] 
+        gv.bins_BL = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_BL[0]) and (gv.time[bin]<=gv.t_BL[1]) ] 
     
         gv.bins_STIM = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_STIM[1]-t_start) and (gv.time[bin]<=gv.t_STIM[1]) ] 
     
-        gv.bins_ED = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_ED[1]-t_start) and (gv.time[bin]<=gv.t_ED[1]) ]
+        gv.bins_ED = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_ED[0]+t_start) ]
         
         gv.bins_DIST = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DIST[1]-t_start) and (gv.time[bin]<=gv.t_DIST[1]) ]
         

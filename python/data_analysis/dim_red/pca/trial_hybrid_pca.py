@@ -20,23 +20,28 @@ pal = ['r','b','y']
 gv.samples = ['S1', 'S2'] 
 pc_shift = 0 
 
-gv.IF_SAVE=0 
+gv.scriptdir = os.path.dirname(__file__) 
 
-gv.DENOISED=0 
-gv.DELAY_ONLY=0
-gv.ED_MD_LD = 0
+gv.IF_SAVE=1
+
+gv.DELAY_ONLY=0 
+gv.ED_MD_LD = 0 
 gv.DOWN_SAMPLING=0 
+gv.bootstrap_trials=0 
+
+gv.standardize = 1 
 
 gv.detrend = 0 
 POLY_DEG = 7 
 
 gv.correct_trial = 0  # 17-14-16 / 6 
 gv.laser_on = 0 
+gv.pca_concat = 0 
 
-gv.n_components = 50 #'mle' #75% => 11 C57/ChR - 18 Jaws # inflexion 2-4 
-gv.data_type= 'fluo' 
+gv.n_components = 150 #'mle' #75% => 11 C57/ChR - 18 Jaws # inflexion 2-4 
+gv.data_type= 'fluo' # 90% var 25-42-110 # 95% 43 # 75% 11
 
-for gv.mouse in [gv.mice[1]] : 
+for gv.mouse in [gv.mice[0]] : 
 
     data.get_sessions_mouse() 
     data.get_stimuli_times() 
@@ -71,7 +76,8 @@ for gv.mouse in [gv.mice[1]] :
         for n_trial, gv.trial in enumerate(gv.trials): 
             X_S1, X_S2 = data.get_S1_S2_trials(X, y) 
             data.get_trial_types(X_S1) 
-            
+
+            # compute DF over F0 
             X_S1 = pp.dFF0(X_S1) 
             X_S2 = pp.dFF0(X_S2) 
             
@@ -118,14 +124,18 @@ for gv.mouse in [gv.mice[1]] :
             X_avg[n_trial] = np.hstack( ( np.mean(X_S1, axis=0), np.mean(X_S2, axis=0) ) ) 
             
         print('X_trials', X_trials.shape)         
-
+        
         X_avg = np.hstack(X_avg)
         print('X_avg', X_avg.shape) 
-        
+
+        # standardize the trial averaged data 
         scaler = StandardScaler(with_mean=True, with_std=True) 
-        X_avg = scaler.fit_transform(X_avg.T).T 
-        
-        pca = PCA(n_components=gv.n_components)  
+
+        scaler.fit(X_avg.T) 
+        X_avg = scaler.transform(X_avg.T).T 
+
+        # PCA the trial averaged data
+        pca = PCA(n_components=gv.n_components) 
         X_avg = pca.fit_transform(X_avg.T).T 
         
         # X_avg = X_avg.reshape(gv.n_components, len(gv.trials), len(gv.samples), gv.trial_size)
@@ -149,5 +159,7 @@ for gv.mouse in [gv.mice[1]] :
         plt.plot(explained_variance,'-o') 
         plt.xlabel('components')
         plt.ylabel('explained variance') 
-        # figdir = pl.figDir(scriptdir) 
-        # pl.save_fig(figname)         
+        figdir = pl.figDir('pca') 
+        pl.save_fig(figname)         
+
+        

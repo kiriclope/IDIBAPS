@@ -18,25 +18,31 @@ def K_fold_clf(clf, X_t_train, X_t_test, y, cv):
         X_train, y_train = X_t_train[idx_train], y[idx_train] 
         X_test, y_test = X_t_test[idx_test], y[idx_test] 
 
-        scaler =  StandardScaler().fit(X_train) 
-        X_train = scaler.transform(X_train) 
+        if gv.standardize:
+            scaler =  StandardScaler().fit(X_train) 
+            X_train = scaler.transform(X_train)
+            X_test = scaler.transform(X_test) 
+        
         clf.fit(X_train, y_train) 
         
-        X_test = scaler.transform(X_test) 
         scores.append(clf.score(X_test, y_test)) 
         
     return np.mean(scores) 
     
 def mne_cross_temp_clf( X, y, clf=None, cv=10, scoring='accuracy'):
+    num_cores = -int(3*multiprocessing.cpu_count()/4) 
 
     print('clf', clf.__class__.__name__ )
     if(clf==None): 
         pipe = make_pipeline(StandardScaler(), LogisticRegression(C=1,solver='liblinear',penalty='l1')) 
     else:
-        pipe = make_pipeline(StandardScaler(), clf) 
-        
-    time_gen = GeneralizingEstimator(pipe, n_jobs=-1, scoring=scoring, verbose=False) 
-    scores = cross_val_multiscore(time_gen, X, y, cv=cv, n_jobs=-1) 
+        if gv.standardize:
+            pipe = make_pipeline(StandardScaler(), clf)
+        else:
+            pipe = clf 
+    print('standardize', gv.standardize)
+    time_gen = GeneralizingEstimator(pipe, n_jobs=num_cores, scoring=scoring, verbose=False) 
+    scores = cross_val_multiscore(time_gen, X, y, cv=cv, n_jobs=num_cores) 
     scores = np.mean(scores, axis=0) 
     scores_std= np.std(scores, axis=0) 
 
@@ -44,18 +50,18 @@ def mne_cross_temp_clf( X, y, clf=None, cv=10, scoring='accuracy'):
 
 def cross_temp_clf_par(clf, X, y, cv=10): 
 
-    num_cores = -int(multiprocessing.cpu_count()/2) 
+    num_cores = -int(3*multiprocessing.cpu_count()/4) 
 
     def loop(t_train, t_test, clf, X, y, cv): 
-        X_t_train = X[:,:,t_train]         
+        X_t_train = X[:,:,t_train] 
         X_t_test = X[:,:,t_test]
         
         score = K_fold_clf(clf, X_t_train,  X_t_test, y, cv) 
         return score 
     
-    scores = Parallel(n_jobs=num_cores, verbose=True)(delayed(loop)(t_train, t_test, clf, X, y, cv)
-                                                      for t_train in range(0, X.shape[2])
-                                                      for t_test in range(0, X.shape[2]))    
+    scores = Parallel(n_jobs=num_cores, verbose=True)(delayed(loop)(t_train, t_test, clf, X, y, cv) 
+                                                      for t_train in range(0, X.shape[2]) 
+                                                      for t_test in range(0, X.shape[2]) ) 
     scores = np.asarray(scores) 
     scores = scores.reshape( X.shape[2], X.shape[2] ) 
     return scores 
@@ -94,8 +100,6 @@ def cross_temp_plot_diag(scores,scores_std):
 
 def cross_temp_plot_mat(scores, IF_EPOCHS=0, IF_MEAN=0):
 
-    duration = scores.shape[0]/gv.frame_rate 
-
     figtitle = '%s_session_%s_trial_%s_cross_temp_decoder' % (gv.mouse,gv.session,gv.trial)
     ax = plt.figure(figtitle).add_subplot() 
 
@@ -124,7 +128,7 @@ def cross_temp_plot_mat(scores, IF_EPOCHS=0, IF_MEAN=0):
         ax.set_xticklabels(labels) ; 
 
         ax.set_yticks(yticks) ; 
-        ax.set_yticklabels(labels) ;
+        ax.set_yticklabels(labels) ; 
 
     else:
 

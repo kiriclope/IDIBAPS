@@ -91,3 +91,16 @@ t_ED_MD_LD = []
 ED_MD_LD = 0
 bins_stim_delay = []
 t_stim_delay = []
+
+global scriptdir, figdir, filedir
+scriptdir = ''
+figdir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/figs' 
+filedir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/data'  
+
+global standardize
+standardize = 0
+
+global pca_concat, detrend, bootstrap_trials
+pca_concat = 0 
+detrend = 0
+bootstrap_trials=0

@@ -16,10 +16,18 @@ import data.preprocessing as pp
 from plotting import *
 
 pal = ['r','b','y']
-n_components=3
-gv.trials = ['ND','D1','D2'] 
+pal = ['r','b','y'] 
+gv.samples = ['S1', 'S2'] 
+pc_shift = 0 
 
-for gv.mouse in [gv.mice[1]] : 
+gv.DELAY_ONLY=0
+gv.pca_concat = 1
+
+n_components= 160 # 90% 100 
+gv.standardize=1 
+gv.IF_SAVE = 1
+
+for gv.mouse in [gv.mice[0]] : 
 
     data.get_sessions_mouse() 
     data.get_stimuli_times() 
@@ -30,73 +38,78 @@ for gv.mouse in [gv.mice[1]] :
         print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
         
         data.get_delays_times() 
-        data.get_frame_rate() 
         data.get_bins(t_start=0) 
 
-        # F0 = np.mean(X[:,:,gv.bins_baseline],axis=2)
-        # F0 = F0[:,:, np.newaxis]
+        if gv.DELAY_ONLY: 
+            gv.bin_start = gv.bins_delay[0] 
+            gv.t_start = gv.t_ED[0] 
+            gv.trial_size = len(gv.bins_delay) 
+            gv.time = gv.t_delay
         
-        F0 = np.mean(np.mean(X[:,:,gv.bins_baseline],axis=2), axis=0)
-        F0 = F0[np.newaxis,:, np.newaxis]         
-        X = (X -F0) / (F0 + gv.eps) 
-        
-        trials = []
+        trials = [] 
         for gv.trial in gv.trials:
-            X_S1, X_S2 = data.get_S1_S2_trials(X, y) 
+            X_S1, X_S2 = data.get_S1_S2_trials(X, y)            
             data.get_trial_types(X_S1)
             
-            trial_type = ['ND'] * gv.n_trials + ['D1'] * gv.n_trials + ['D2'] * gv.n_trials 
+            X_S1 =pp.dFF0(X_S1)
+            X_S2 =pp.dFF0(X_S2)
+            
+            if gv.DELAY_ONLY: 
+                X_S1 = X_S1[:,:, gv.bins_delay] 
+                X_S2 = X_S2[:,:, gv.bins_delay] 
 
             print('X_S1', X_S1.shape, 'X_S2', X_S2.shape)
 
             X_S1_S2 = np.hstack( (np.hstack(X_S1), np.hstack(X_S2)) ) 
-            print('X_S1_S2', X_S1_S2.shape)
+            print('X_S1_S2', X_S1_S2.shape) 
 
             trials.append(X_S1_S2)
             
-        Xl = np.hstack(trials) 
-        # Xl = pp.z_score(Xl) 
-        Xl = pp.normalize(Xl) 
-        print('Xl', Xl.shape)
+        X_concat = np.hstack(trials) 
+        X_concat = pp.z_score(X_concat) 
+        # X_concat = pp.normalize(X_concat) 
+        print('X_concat', X_concat.shape)
         
         pca = PCA(n_components=n_components)
-        Xl_p = pca.fit_transform(Xl.T).T
+        X_concat = pca.fit_transform(X_concat.T).T
         explained_variance = pca.explained_variance_ratio_ 
         gv.n_components = pca.n_components_ 
-        print('n_pc', gv.n_components,'explained_variance', explained_variance, 'total' , np.cumsum(explained_variance)[-1]*100) 
+        print('n_pc', gv.n_components,'explained_variance', explained_variance[0:3], 'total' , np.cumsum(explained_variance)[-1]*100) 
         
-        gt = {comp : {t_type : [] for t_type in gv.trials} for comp in range(n_components)}
+        X_proj = np.empty( ( len(gv.trials), len(gv.samples), int( gv.n_trials/len(gv.samples) ), n_components , gv.trial_size) ) 
+        for i in range( len(gv.trials) ): 
+            for j in range( len(gv.samples) ) : 
+                for k in range( int( gv.n_trials/len(gv.samples) ) ) : 
+                    for l in range(n_components) : 
+                        m = i*len(gv.samples)* int( gv.n_trials/len(gv.samples) ) + j * int( gv.n_trials/len(gv.samples) )  + k 
+                        X_proj[i,j,k,l] = X_concat[l, gv.trial_size * m: gv.trial_size * (m + 1)].flatten() 
+            
+        print(X_proj.shape)        
 
-        for comp in range(n_components):
-            for i, t_type in enumerate(trial_type):
-                t = Xl_p[comp, gv.trial_size * i: gv.trial_size * (i + 1)]
-                gt[comp][t_type].append(t)
-
-        X_proj = []
-        for comp in range(n_components):
-            for t_type in gv.trials: 
-                gt[comp][t_type] = np.vstack(gt[comp][t_type]).transpose() 
-                gt[comp][t_type] = gt[comp][t_type].reshape(gv.trial_size, len(gv.samples), int(gv.n_trials/len(gv.samples))) 
-                X_proj.append(gt[comp][t_type])
-
-        X_proj=np.asarray(X_proj).reshape( len(gv.trials), n_components, gv.trial_size, len(gv.samples), int(gv.n_trials/len(gv.samples)))
-        X_proj = np.moveaxis(X_proj, 0,4) 
-        X_proj = np.moveaxis(X_proj, 1,4) 
-        print(X_proj.shape)
+        # if gv.laser_on:
+        #     figname = '%s_%s_pca_laser_on_%d' % (gv.mouse, gv.session, pc_shift)
+        # else:
+        #     figname = '%s_%s_pca_laser_off_%d' % (gv.mouse, gv.session, pc_shift)
         
-        f, axes = plt.subplots(1, 3, figsize=[10, 2.8], sharey=True, sharex=True) 
-        x = gv.time
-        for comp in range(3):
-            ax = axes[comp]
-            for t, t_type in enumerate(gv.trials):
-                for i  in range(2):
-                    y = np.mean(gt[comp][t_type][:,i,:],axis=1) 
-                    ax.plot(x, y, color=pal[t]) 
-                    ci = stats.t.interval(0.95, len(y)-1, loc=np.mean(y), scale=stats.sem(y)) 
-                    ax.fill_between(x, y-ci[0], y+ci[1] , color=pal[t], alpha=.1) 
-                add_stim_to_plot(ax) 
-                ax.set_xlim([0, gv.t_test[1]+1])
-            ax.set_ylabel('PC {}'.format(comp+1))
-            axes[1].set_xlabel('Time (s)')
-            sns.despine(right=True, top=True)
-            add_orientation_legend(axes[2])
+        # plt.figure(figname, figsize=[10, 2.8])    
+        # x = gv.time 
+        # for n_pc in range(np.amin([gv.n_components,3])): 
+        #     ax = plt.figure(figname).add_subplot(1, 3, n_pc+1) 
+        #     for i, trial in enumerate(gv.trials): 
+        #         for j, sample in enumerate(gv.samples): 
+        #             dum = X_proj[i,j,:,n_pc+pc_shift,:].transpose() 
+        #             y = np.mean( dum, axis=1) 
+        #             y = gaussian_filter1d(y, sigma=1) 
+                    
+        #             ax.plot(x, y, color=pal[i]) 
+        #             ci = pp.conf_inter(dum) 
+        #             ax.fill_between(x, ci[0], ci[1] , color=pal[i], alpha=.1) 
+                    
+        #         # add_stim_to_plot(ax) 
+        #         ax.set_xlim([0, gv.t_test[1]+1]) 
+                    
+        #     ax.set_ylabel('PC {}'.format(n_pc+pc_shift+1)) 
+        #     ax.set_xlabel('Time (s)') 
+        #     sns.despine(right=True, top=True)
+        #     if n_pc == np.amin([gv.n_components,3])-1: 
+        #         add_orientation_legend(ax) 

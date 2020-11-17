@@ -5,8 +5,8 @@ shade_alpha = 0.2
 lines_alpha = 0.8
 pal = ['r','b','y']
 
-def figDir(scriptdir=''):
-
+def figDir(scriptdir):
+    gv.scriptdir= scriptdir
     gv.figdir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/figs'
 
     # if gv.DF_ONLY:
@@ -14,11 +14,11 @@ def figDir(scriptdir=''):
     # else:
     #     gv.figdir = gv.figdir + '/DFoF0'
 
-    if gv.DENOISED:
-        gv.figdir = gv.figdir + '/denoised'
+    # if gv.DENOISED:
+    #     gv.figdir = gv.figdir + '/denoised'
         
     if gv.DELAY_ONLY:
-        gv.figdir = gv.figdir + '/delay'
+        gv.figdir = gv.figdir + '/delay_only'
         
     # if gv.AVG_BL_TRIALS: 
     #     gv.figdir = gv.figdir + '/avg_F0_all'
@@ -29,22 +29,28 @@ def figDir(scriptdir=''):
     # if gv.normFluo:
     #     gv.figdir = gv.figdir + '/norm_Fluo'
     
-    # if gv.laser_on: 
-    #     gv.figdir = gv.figdir + '/laser_on'
-    # else:
-    #     gv.figdir = gv.figdir + '/laser_off'
+    if gv.laser_on: 
+        gv.figdir = gv.figdir + '/laser_on'
+    else:
+        gv.figdir = gv.figdir + '/laser_off'
 
-    # if gv.detrend :
-    #     gv.figdir = gv.figdir + '/detrend' 
-    
-    # if 'cross_temp' in scriptdir:
-    #     gv.figdir = gv.figdir + '/decode/cross_temp'
-
-    # if 'pca' in scriptdir:
-    #     gv.figdir = gv.figdir + '/dim_red/pca/n_comp_%d' % gv.n_components
+    if gv.detrend :
+        gv.figdir = gv.figdir + '/detrend' 
         
-    # if 'tca' in scriptdir:
-    #     gv.figdir = gv.figdir + '/dim_red/tca/n_comp_%d' % gv.n_components
+    if 'cross_temp' in gv.scriptdir:
+        gv.figdir = gv.figdir + '/decode/cross_temp'
+
+    if 'pca' in gv.scriptdir:
+        if gv.pca_concat:
+            gv.figdir = gv.figdir + '/dim_red/pca_concat/n_comp_%d' % gv.n_components 
+        else:        
+            gv.figdir = gv.figdir + '/dim_red/pca/n_comp_%d' % gv.n_components
+
+    if not gv.standardize :
+        gv.figdir = gv.figdir + '/no_z_score' 
+            
+    if 'tca' in gv.scriptdir:
+        gv.figdir = gv.figdir + '/dim_red/tca/n_comp_%d' % gv.n_components
 
     if not os.path.isdir(gv.figdir):
         os.makedirs(gv.figdir)
@@ -141,6 +147,26 @@ def plot_cosine_bars(cos_alp, mean_cos=[], q1=[], q3=[], IF_SHUFFLE=0):
 
 def save_fig(figname):
     plt.figure(figname)
+    if not os.path.isdir(gv.figdir):
+        os.makedirs(gv.figdir)
+    
     if gv.IF_SAVE:
         plt.savefig(gv.figdir + '/' + figname +'.svg',format='svg')
         print('saved to', gv.figdir + '/' + figname + '.svg')
+
+def save_dat(array, filename):
+    if not os.path.isdir(gv.filedir):
+        os.makedirs(gv.filedir)
+        
+    with open(gv.filedir + '/' + filename + '.pkl','wb') as f:
+        pickle.dump(array, f) 
+        print('saved to', gv.filedir + '/' + filename + '.pkl' )
+
+def open_dat(filename):
+    if not os.path.isdir(gv.filedir):
+        os.makedirs(gv.filedir)
+        
+    with open(gv.filedir + '/' + filename + '.pkl','rb') as f:
+        print('opening', gv.filedir + '/' + filename + '.pkl' )
+        return pickle.load(f) 
+

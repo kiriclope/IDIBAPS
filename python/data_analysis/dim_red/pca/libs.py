@@ -3,6 +3,7 @@ from importlib import reload
 
 import numpy as np
 import seaborn as sns
+import pandas as pd
 
 import matplotlib
 matplotlib.use('GTK3cairo')
@@ -22,7 +23,8 @@ from sklearn.decomposition import PCA, SparsePCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis 
-from sklearn.model_selection import cross_validate
+from sklearn.model_selection import cross_validate, GridSearchCV
+from sklearn.pipeline import make_pipeline, Pipeline
 
 import warnings
 warnings.filterwarnings("ignore")
