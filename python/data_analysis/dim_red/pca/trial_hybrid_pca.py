@@ -41,7 +41,7 @@ gv.pca_concat = 0
 gv.n_components = 150 #'mle' #75% => 11 C57/ChR - 18 Jaws # inflexion 2-4 
 gv.data_type= 'fluo' # 90% var 25-42-110 # 95% 43 # 75% 11
 
-for gv.mouse in [gv.mice[0]] : 
+for gv.mouse in [gv.mice[1]] : 
 
     data.get_sessions_mouse() 
     data.get_stimuli_times() 

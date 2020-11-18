@@ -1,9 +1,6 @@
 from libs import * 
 sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis')
 
-# import pyximport
-# pyximport.install(reload_support=True)
-
 from scipy.spatial import distance 
 
 import data.constants as gv 
@@ -12,19 +9,64 @@ import data.preprocessing as pp
 
 from selectinf.algorithms import lasso, cv
 import regreg.api as rr
+from sklearn.model_selection import train_test_split
+import statsmodels.api as sm 
 
 pal = ['r','b','y']
 
+def get_X_y_trials(n_trial, X_trials): 
+        
+    if X_trials.shape[3]!=gv.n_neurons: 
+        X_trials = X_trials[:,:,:,0:gv.n_components,:] 
+    
+    gv.AVG_EPOCHS = 0 
+    gv.trial_size = X_trials.shape[-1] 
+    
+    if gv.AVG_EPOCHS: 
+        gv.trial_size = len(['STIM','ED','MD','LD']) 
+    
+    y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
+    
+    X_S1 = X_trials[n_trial,0] 
+    X_S2 = X_trials[n_trial,1] 
+    X_S1_S2 = np.vstack((X_S1, X_S2)) 
+
+    return X_S1_S2, y
+
+def datasplit(X, y, C):
+
+    # split the data into two samples 
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42) 
+    print('X_train, y_train', X_train.shape, y_train.shape)
+    
+    # fit logistic lasso on the training set
+    model = sm.Logit(y_train, X_train)
+    results = model.fit_regularized(alpha=1/C) 
+    print(results.summary()) 
+
+    # perform inference on the test set
+    # y_pred = results.predict(X_test) 
+    predictions = result.get_prediction(X_test)
+    print(predictions.summary())
+    
 def selectInfCrossVal(X, y, K):
 
     loss = rr.glm.logistic(X,y) 
-    lam_seq = np.exp(np.linspace(np.log(1.e-6), np.log(1), 30)) * np.fabs(np.dot(X.T,y)).max() 
-
-    folds = np.arange(X.shape[0]) % K
+    # lam_seq = np.exp(np.linspace(np.log(1.e-6), np.log(1), 100)) * np.fabs(np.dot(X.T,y)).max() 
+    lam_seq = np.logspace(-2, 1, 100) 
+    
+    folds = np.arange(X.shape[0]) % K 
+    # folds = K 
     CV_compute = cv.CV(loss, folds, lam_seq) 
-    lam_CV, CV_val, SD_val, lam_CV_randomized, CV_val_randomized, SD_val_randomized = CV_compute.choose_lambda_CVr()
+    lam_CV, CV_val, SD_val, lam_CV_randomized, CV_val_randomized, SD_val_randomized = CV_compute.choose_lambda_CVr() 
 
-    return lam_CV
+    minimum_CV = np.min(CV_val)
+    lam_idx = list(lam_seq).index(lam_CV)
+    SD_min = SD_val[lam_idx]
+    lam_1SD = lam_seq[max([i for i in range(lam_seq.shape[0]) if CV_val[i] <= minimum_CV + SD_min])]
+    
+    print(lam_1SD, lam_CV, lam_CV_randomized) 
+    return lam_1SD
 
 def selectInfLogistic(X, y, C):
 
@@ -50,10 +92,10 @@ def selectInfLogistic(X, y, C):
     
 def avg_epochs(X):
     
-    X_STIM = np.mean(X[:,:,gv.bins_STIM[:]-gv.bin_start],axis=2) 
-    X_ED = np.mean(X[:,:,gv.bins_ED[:]-gv.bin_start],axis=2) 
-    X_MD = np.mean(X[:,:,gv.bins_MD[:]-gv.bin_start],axis=2) 
-    X_LD = np.mean(X[:,:,gv.bins_LD[:]-gv.bin_start],axis=2) 
+    X_STIM = np.mean(X[:,:,gv.bins_STIM[-3:]-gv.bin_start],axis=2) 
+    X_ED = np.mean(X[:,:,gv.bins_ED[-3:]-gv.bin_start],axis=2) 
+    X_MD = np.mean(X[:,:,gv.bins_MD[-3:]-gv.bin_start],axis=2) 
+    X_LD = np.mean(X[:,:,gv.bins_LD[-3:]-gv.bin_start],axis=2) 
 
     # if gv.STIM_AND_DELAY: 
     #     X_STIM = np.mean(X[:,:,gv.bins_STIM-gv.bin_start],axis=-1) 
@@ -154,8 +196,10 @@ def selectInfCoefs(X_trials, C=1e0, K=5):
         for n_bins in range(gv.trial_size): 
             X = X_S1_S2[:,:,n_bins] 
             X = StandardScaler().fit_transform(X.T).T
-            
-            C = selectInfCrossVal(X, y, K)
+
+            if C==0: 
+                C = selectInfCrossVal(X, y, K)
+                
             idx_bin, coefs_bin, q1_bin, q3_bin = selectInfLogistic(X, y, C) 
 
             # print(coefs_bin.shape) 
