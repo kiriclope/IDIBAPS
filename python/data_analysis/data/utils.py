@@ -244,16 +244,16 @@ def get_X_y_epochs(X_S1_trials, X_S2_trials):
 
     X_S1 = [] 
     X_S2 = [] 
-
+    
     if 'all' in gv.epochs :
         X_S1=X_S1_trials
         X_S2=X_S2_trials
 
-    if 'Baseline' in gv.epochs: 
+    if 'BL' in gv.epochs: 
         X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_BL-gv.bin_start],axis=2)) 
         X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_BL-gv.bin_start],axis=2)) 
 
-    if 'Stim' in gv.epochs: 
+    if 'STIM' in gv.epochs: 
         X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_STIM-gv.bin_start],axis=2)) 
         X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_STIM-gv.bin_start],axis=2)) 
 
@@ -261,7 +261,7 @@ def get_X_y_epochs(X_S1_trials, X_S2_trials):
         X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_ED-gv.bin_start],axis=2))
         X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_ED-gv.bin_start],axis=2))
 
-    if 'Dist' in gv.epochs: 
+    if 'DIST' in gv.epochs: 
         X_S1.append(np.mean(X_S1_trials[:,:,gv.bins_DIST-gv.bin_start],axis=2)) 
         X_S2.append(np.mean(X_S2_trials[:,:,gv.bins_DIST-gv.bin_start],axis=2)) 
 

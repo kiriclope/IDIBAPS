@@ -18,9 +18,9 @@ from plotting import *
 from matplotlib.ticker import PercentFormatter
 
 pal = ['r','b','y']
-gv.data_type = 'rates'
+gv.data_type = 'fluo'
 
-for gv.mouse in [gv.mice[2]] : 
+for gv.mouse in [gv.mice[1]] : 
 
     data.get_sessions_mouse() 
     data.get_stimuli_times() 
@@ -58,9 +58,9 @@ for gv.mouse in [gv.mice[2]] :
             # X_S1 = np.delete(X_S1, idx) 
             # X_S2 = np.delete(X_S2, idx) 
             
-            sel_idx = (X_S1 - X_S2)/(X_S1 + X_S2+.000000001)
-            sel_idx = sel_idx.flatten()
-            print(sel_idx.shape)
+            sel_idx = (X_S1 - X_S2)/(X_S1 + X_S2 + gv.eps) 
+            sel_idx = sel_idx.flatten() 
+            print(sel_idx.shape) 
 
             figname = '%s_%s_selectivity_idx' % (gv.mouse, gv.session)
             ax = plt.figure(figname).add_subplot() 

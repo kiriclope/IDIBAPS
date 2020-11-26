@@ -3,35 +3,55 @@ sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python
 from scipy.spatial import distance 
 
 import data.constants as gv 
-import data.plotting as plot 
+import data.plotting as pl
+import data.preprocessing as pp 
 
 from joblib import Parallel, delayed, parallel_backend
 import multiprocessing 
+    
+def grid_search_cv_clf(loss, X, y, cv=10): 
+    
+    pipe = Pipeline([('scale', StandardScaler()), ('clf', loss)])
+    
+    param_grid = [{'clf': [loss], 'clf__C' : np.logspace(-4, 4, 1000)}] 
+    search = GridSearchCV(pipe, param_grid=param_grid, cv=cv, verbose=False, n_jobs=gv.num_cores) 
+    best_model = search.fit(X, y) 
+    
+    return best_model
 
-def bootstrap_clf_par(X, y, clf, dum): 
+def bootstrap_clf_par(X, y, clf, dum, cv): 
 
     if dum==1: 
         print('no boot') 
         idx_trials = np.arange(0, X.shape[0]) 
-    else: 
-        idx_trials = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)),
-                                  np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) ) 
-
+    else:
+        #standard bootstrap
+        idx_trials = np.random.randint(0, X.shape[0], X.shape[0])
+        #block bootstrap
+        # idx_trials = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)),
+        #                           np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) ) 
+        
     X_sample = X[idx_trials] 
     y_sample = y[idx_trials] 
 
+    # hierarchical bootstrap
     # for trial in idx_trials: 
     #     idx_neurons = np.random.randint(0, X.shape[1], X.shape[1])
     #     X_sample[trial] = X[trial, idx_neurons] 
-            
-    # X_sample = StandardScaler().fit_transform(X_sample.T).T
-    scaler = StandardScaler().fit(X.T) 
-    X_sample = scaler.transform(X_sample.T).T 
-    
-    clf.fit(X_sample, y_sample) 
-    coefs_samples = clf.coef_.flatten() 
-    
-    return coefs_samples 
+
+    # scaler = StandardScaler().fit(X) 
+    # X_sample = scaler.transform(X_sample) 
+
+    if cv==0:
+        X_sample = StandardScaler().fit_transform(X_sample) 
+        clf.fit(X_sample, y_sample) 
+        coefs_samples = clf.coef_.flatten() 
+    else:
+        best_model = grid_search_cv_clf(clf, X_sample, y_sample, cv=cv)        
+        coefs_samples = best_model.best_estimator_['clf'].coef_.flatten() 
+        # C = best_model.best_estimator_['clf__C']
+        
+    return coefs_samples
 
 def unit_vector(vector): 
     """ Returns the unit vector of the vector.  """ 
@@ -44,205 +64,174 @@ def angle_between(v1, v2):
     v2_u = unit_vector(v2) 
     return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)) 
 
+def cos_between(v1, v2): 
+    """ Returns the angle in radians between vectors 'v1' and 'v2':: """ 
+    v1_u = unit_vector(v1) 
+    v2_u = unit_vector(v2) 
+    return np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)
+
 def get_cos(coefs): 
     """ Returns the cosine of the angle alpha between vector coefs[0] (early delay) and coefs[1] (late delay) """ 
-    alphas = [] 
-    cos_alp=[]
-    
-    for j in np.arange(0, coefs.shape[0]): 
-        alpha = angle_between(coefs[0], coefs[j]) 
-        alphas.append(alpha) 
-        cos_alp.append(np.cos(alpha)) 
-        
-    return alphas, cos_alp 
+    cos_alp=[] 
+    for j in np.arange(0, coefs.shape[0]):  
+        cos_alp.append( cos_between(coefs[0], coefs[j]) )         
+    return cos_alp
 
-def EDvsLD(X_proj, IF_CONCAT, IF_EDvsLD, C=1e0, penalty='l2', solver = 'liblinear'): 
+def bootCoefs(X_proj, C=1e0, penalty='l2', solver='liblinear', loss='squared_hinge', cv=10, l1_ratio=None): 
 
     gv.n_boot = int(1e3) 
-    num_cores = -int(3*multiprocessing.cpu_count()/4) 
+    gv.num_cores = int(1*multiprocessing.cpu_count()/2) 
 
-    print(gv.n_boot) 
-    # clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-3, max_iter=int(1e3), fit_intercept=bool(not gv.standardize), n_jobs=num_cores) 
-    # clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e8), fit_intercept=bool(not gv.standardize) )
+    clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
+                             fit_intercept=bool(not gv.standardize), n_jobs=gv.num_cores, l1_ratio=l1_ratio) 
+
+    # clf = LogisticRegressionCV(solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
+    #                            fit_intercept=bool(not gv.standardize), n_jobs=2) 
     
-    clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
+    # clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e8), fit_intercept=bool(not gv.standardize) ) 
+    # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
+    gv.clf_name = clf.__class__.__name__ 
+    if 'CV' in 'gv.clf_name': 
+        cv=0
     
-    NO_PCA = 1 
+    print('bootstrap samples', gv.n_boot, 'clf', gv.clf_name) 
+    
+    gv.IF_PCA = 0
     if X_proj.shape[3]!=gv.n_neurons: 
-        NO_PCA = 0 
         X_proj = X_proj[:,:,:,0:gv.n_components,:] 
-    print(X_proj.shape) 
-        
-    if IF_CONCAT:
-        print('Concatenated Stim and ED')
-    if IF_EDvsLD:
-        print('angle btw ED and other epochs')
-        
-    if IF_EDvsLD: 
+        gv.IF_PCA = 1 
+
+    if gv.EDvsLD: 
         gv.epochs = ['ED', 'MD', 'LD'] 
-    else: 
-        gv.epochs = ['Stim', 'ED', 'MD', 'LD'] 
-
-
-    if gv.ED_MD_LD :
-        X_ED = np.mean(X_proj[:,:,:,:,0:len(gv.bins_ED)],axis=-1) 
-        X_MD = np.mean(X_proj[:,:,:,:,len(gv.bins_ED):len(gv.bins_ED)+len(gv.bins_MD)],axis=-1) 
-        X_LD = np.mean(X_proj[:,:,:,:,len(gv.bins_ED)+len(gv.bins_MD):len(gv.bins_ED)+len(gv.bins_MD)+len(gv.bins_LD)],axis=-1) 
-        X_stim = X_ED 
+        print('angle btw ED and other epochs')
     else:
-        X_ED = np.mean(X_proj[:,:,:,:,gv.bins_ED[-3:]-gv.bin_start],axis=-1) 
-        X_MD = np.mean(X_proj[:,:,:,:,gv.bins_MD[-3:]-gv.bin_start],axis=-1) 
-        X_LD = np.mean(X_proj[:,:,:,:,gv.bins_LD[-3:]-gv.bin_start],axis=-1) 
+        gv.epochs = ['Stim', 'ED', 'MD', 'LD'] 
+        print('angle btw STIM and other epochs')
+        
+    coefs = np.empty((len(gv.trials), len(gv.epochs), gv.n_boot, X_proj.shape[3])) 
     
-    if gv.DELAY_ONLY: 
-        X_stim = X_ED 
-    else: 
-        X_stim = np.mean(X_proj[:,:,:,:,gv.bins_STIM[-3:]-gv.bin_start],axis=-1) 
-    
-    if IF_CONCAT:
-        X_stim_S1 = []
-        X_stim_S2 = []
-
-        X_ED_S1 = []
-        X_ED_S2 = [] 
-        for i in range(X_proj.shape[0]): 
-            X_stim_S1.append(X_stim[i,0]) 
-            X_stim_S2.append(X_stim[i,1]) 
-
-            X_ED_S1.append(X_ED[i,0]) 
-            X_ED_S2.append(X_ED[i,1]) 
-
-        X_stim_S1 = np.vstack(np.asarray(X_stim_S1)) 
-        X_stim_S2 = np.vstack(np.asarray(X_stim_S2)) 
-
-        X_ED_S1 = np.vstack(np.asarray(X_ED_S1)) 
-        X_ED_S2 = np.vstack(np.asarray(X_ED_S2)) 
-
-    cos_samples_trials = [] 
-    dist_samples_trials = [] 
     for n_trial, gv.trial in enumerate(gv.trials): 
-
-        if not IF_CONCAT: 
-            X_stim_S1 = X_stim[n_trial,0] 
-            X_stim_S2 = X_stim[n_trial,1] 
-
-            X_ED_S1 = X_ED[n_trial,0]        
-            X_ED_S2 = X_ED[n_trial,1] 
-
-        X_MD_S1 = X_MD[n_trial,0] 
-        X_MD_S2 = X_MD[n_trial,1] 
+        X_S1 = X_proj[n_trial,0] 
+        X_S2 = X_proj[n_trial,1]
+        X_S1_S2 = np.vstack((X_S1, X_S2)) 
         
-        X_LD_S1 = X_LD[n_trial,0] 
-        X_LD_S2 = X_LD[n_trial,1] 
+        X_S1_S2 = pp.avg_epochs(X_S1_S2) 
+        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
-        coefs = [] 
-        X_stim_S1_S2 = np.vstack([X_stim_S1, X_stim_S2]) 
-        X_ED_S1_S2 = np.vstack([X_ED_S1, X_ED_S2]) 
-        X_MD_S1_S2 = np.vstack([X_MD_S1, X_MD_S2]) 
-        X_LD_S1_S2 = np.vstack([X_LD_S1, X_LD_S2]) 
-            
-        if IF_EDvsLD: 
-            X_epochs = [X_ED_S1_S2 , X_MD_S1_S2 , X_LD_S1_S2 ] 
-        else: 
-            X_epochs = [X_stim_S1_S2, X_ED_S1_S2 , X_MD_S1_S2 , X_LD_S1_S2 ] 
+        for n_epochs in range(X_S1_S2.shape[2]):
+            X = X_S1_S2[:,:,n_epochs] 
+            boot_coefs = Parallel(n_jobs=gv.num_cores, verbose=True)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot, cv) for _ in range(gv.n_boot)) 
+            coefs[n_trial, n_epochs] = np.array(boot_coefs) 
 
-        coefs = np.empty((len(X_epochs), gv.n_boot, X_ED_S1_S2.shape[1])) 
-        for n_epochs, X in enumerate(X_epochs): 
-            y = np.array([np.zeros(int(X.shape[0]/2)), np.ones(int(X.shape[0]/2))]).flatten() 
-            boot_coefs = Parallel(n_jobs=num_cores, verbose=True)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot) for i in range(gv.n_boot)) 
-            coefs[n_epochs] = np.array(boot_coefs) 
-        
-        cos_samples = [] 
-        alpha_samples = [] 
-        for boot_sample in range(coefs.shape[1]): 
-            alpha, cos_alp = get_cos(coefs[:,boot_sample,:])  
-            alpha_samples.append(alpha) 
-            cos_samples.append(cos_alp) 
-                
-        cos_samples_trials.append(cos_samples)
-        cos_samples = np.asarray(cos_samples) 
-        alpha_samples = np.asarray(alpha_samples) 
-            
-        # mean_cos =  np.mean( np.cos(alpha_samples), axis=0)
-        
-        # _, mean_cos = np.array( get_cos(np.mean(coefs, axis=1) ) ) 
-        # _, q1 = np.array( get_cos(np.percentile(coefs, 25, axis=1) ) ) 
-        # _, q3 = np.array( get_cos(np.percentile(coefs, 75, axis=1) ) ) 
+    return coefs 
 
-        # q1 = mean_cos - q1 
-        # q3 = q3 - mean_cos 
-        
-        mean_cos = np.mean(cos_samples, axis=0) 
-        q1 = mean_cos - np.percentile(cos_samples, 25, axis=0) 
-        q3 = np.percentile(cos_samples, 75, axis=0) - mean_cos 
-        
-        print('trial', gv.trial, 'cos', mean_cos, 'q1', q1, 'q3', q3) 
-        plot.plot_cosine_bars(mean_cos, [], q1, q3) 
-        
-    cos_samples_trials = np.asarray(cos_samples_trials)
+def cosVsEpochs(coefs):
 
-    cols = [-4/10, -1/10, 2/10] 
-    high = [1.3, 1.1] 
+    cos_boot = np.empty( (len(gv.trials), gv.n_boot, len(gv.epochs) ) ) 
+    
+    mean = np.empty((len(gv.trials), len(gv.epochs)))
+    upper = np.empty( (len(gv.trials), len(gv.epochs)) )
+    lower = np.empty((len(gv.trials), len(gv.epochs)))
+    
+    for n_trial, gv.trial in enumerate(gv.trials): 
+        for boot in range(coefs.shape[2]): 
+            cos_alp = get_cos(coefs[n_trial,:,boot,:]) # bins x neurons 
+            cos_boot[n_trial, boot] = np.array(cos_alp)
+        
+        mean[n_trial] = np.mean(cos_boot[n_trial], axis=0) 
+        lower[n_trial] = mean[n_trial] - np.percentile(cos_boot[n_trial], 25, axis=0) 
+        upper[n_trial] = np.percentile(cos_boot[n_trial], 75, axis=0) - mean[n_trial]
+        
+        print('trial', gv.trial, 'cos', mean[n_trial], 'lower', lower[n_trial], 'upper', upper[n_trial]) 
 
-    p_values = [] 
-    for i in range(1, cos_samples_trials.shape[2]): # epochs
-        for j in range(1, cos_samples_trials.shape[0]): # trials 
-            sample_1  = cos_samples_trials[0,:,i] 
-            sample_2  = cos_samples_trials[j,:,i]
-            t_score, p_value = stats.ttest_ind(sample_1, sample_2, equal_var=False)
+    return mean, lower, upper, cos_boot 
+
+def get_p_values(cos_boot):
+
+    p_values = np.empty( ( cos_boot.shape[0]-1, cos_boot.shape[2]-1) ) 
+    for n_trial in range(1, cos_boot.shape[0]): # trials 
+        for n_epoch in range(1, cos_boot.shape[2]): # epochs 
+            sample_1  = cos_boot[0,:,n_epoch] 
+            sample_2  = cos_boot[n_trial,:,n_epoch] 
+            t_score, p_value = stats.ttest_ind(sample_1, sample_2, equal_var=False) 
             # if t_score>0:
             #     p_value = p_value/2
             # else:
             #     p_value = 1-p_value/2
-            p_values.append(p_value) 
-            # print(gv.epochs[i], 'ND vs', gv.trials[j], 't_score', t_score, 'p_value', p_value) 
+            p_values[n_trial-1, n_epoch-1] = p_value 
+
+    return p_values
+
+def add_pvalue(p_values): 
+    cols = 0.25*np.arange(len(gv.trials)) 
+    high = [0.9, 0.8] 
+    print(cols)
+    for n_cols in range(1, len(cols)):        
+        for n_epoch in range(p_values.shape[1]):
             
-    p_values = np.asarray(p_values).reshape(len(gv.epochs)-1, 2)
+            plt.plot( [n_epoch + cols[0], n_epoch + cols[n_cols]] , [high[n_cols-1], high[n_cols-1]] , lw=.8, c='k') 
+            
+            if p_values[n_cols-1,n_epoch]<=.001: 
+                plt.text((2*n_epoch+cols[0]+cols[n_cols])*.5, high[n_cols-1]-.05, "***", ha='center', va='bottom', color='k', fontsize=8) 
+            elif p_values[n_cols-1,n_epoch]<=.01: 
+                plt.text((2*n_epoch+cols[0]+cols[n_cols])*.5, high[n_cols-1]-.05, "**", ha='center', va='bottom', color='k', fontsize=8) 
+            elif p_values[n_cols-1,n_epoch]<=.05: 
+                plt.text((2*n_epoch+cols[0]+cols[n_cols])*.5, high[n_cols-1]-.05, "*", ha='center', va='bottom', color='k', fontsize=8) 
+            elif p_values[n_cols-1,n_epoch]>.05: 
+                plt.text((2*n_epoch+cols[0]+cols[n_cols])*.5, high[n_cols-1], "ns", ha='center', va='bottom', color='k', fontsize=6) 
 
-    # cols = [-4/10, -1/10, 2/10] 
-    # high = [0.8, 0.6] 
-    for i in range(0,len(gv.epochs)-1): 
-        for j in range(1, len(cols)): 
-            plt.plot( [i+cols[0], i+cols[j]] , [high[j-1], high[j-1]] , lw=.8, c='k') 
-            if p_values[i,j-1]<=.001: 
-                plt.text((2*i+cols[0]+cols[j])*.5, high[j-1]-.05, "***", ha='center', va='bottom', color='k', fontsize=8) 
-            elif p_values[i,j-1]<=.01: 
-                plt.text((2*i+cols[0]+cols[j])*.5, high[j-1]-.05, "**", ha='center', va='bottom', color='k', fontsize=8) 
-            elif p_values[i,j-1]<=.05: 
-                plt.text((2*i+cols[0]+cols[j])*.5, high[j-1]-.05, "*", ha='center', va='bottom', color='k', fontsize=8) 
-            elif p_values[i,j-1]>.05: 
-                plt.text((2*i+cols[0]+cols[j])*.5, high[j-1], "ns", ha='center', va='bottom', color='k', fontsize=6) 
-
-    plt.ylim([-1, 1.5]) 
-
-    if NO_PCA: 
-        plot.figDir('') 
-    else: 
-        plot.figDir('pca') 
-        
-    if gv.laser_on: 
-        gv.figdir = gv.figdir + '/laser_on/' 
-        figtitle = '%s_%s_cos_alpha_pca_laser_on' % (gv.mouse, gv.session) 
-    else: 
-        figtitle = '%s_%s_cos_alpha_pca_laser_off' % (gv.mouse, gv.session) 
+def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr'): 
     
-    gv.figdir = gv.figdir + '/clf/'
-    clf_name = clf.__class__.__name__ 
-        
-    if(clf_name == 'LogisticRegression'): 
-        clf_param = '/C_%.3f_penalty_%s_solver_%s/' % (C, penalty, solver) 
-        gv.figdir = gv.figdir + clf_name + clf_param 
-    else: 
-        clf_param = '/C_%.3f/' % C 
-        gv.figdir = gv.figdir + clf_name + clf_param 
+    pl.figDir() 
+    
+    if 'LogisticRegression' in gv.clf_name:
+        clf_param = '/C_%.3f_penalty_%s_solver_%s/' % (C, penalty, solver)
+    elif gv.clf_name in 'LinearSVC':
+        clf_param = '/C_%.3f_penalty_%s_loss_%s/' % (C, penalty, loss)
+    elif gv.clf_name in 'LinearDiscriminantAnalysis':
+        clf_param = '/shrinkage_auto_solver_lsqr/'
 
-    if IF_EDvsLD: 
-        gv.figdir = gv.figdir + '/EDvsLD/'
-        
-    if IF_CONCAT:
-        gv.figdir = gv.figdir + '/concat_stim_ED/'
+    if cv!=0: 
+        gv.figdir = gv.figdir + '/gridsearchCV_%d' % cv 
 
+    gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param 
+    
     if not os.path.isdir(gv.figdir):
         os.makedirs(gv.figdir)
+
+def corrVsTime(coefs): 
+    
+    corr = np.empty( (len(gv.trials), coefs.shape[1], coefs.shape[1]) ) 
+    lower = np.empty( (len(gv.trials), coefs.shape[1], coefs.shape[1]) ) 
+    upper = np.empty( (len(gv.trials), coefs.shape[1], coefs.shape[1]) )
+    
+    corr_boot = np.empty( (len(gv.trials), gv.n_boot, coefs.shape[1], coefs.shape[1]) ) 
+    
+    for n_trial, gv.trial in enumerate(gv.trials): 
         
-    plot.save_fig(figtitle) 
+        for boot in range(gv.n_boot): 
+            corr_boot[n_trial, boot] = np.corrcoef(coefs[n_trial,:,boot,:]) # bins x coefficients 
+            
+        corr[n_trial] = np.mean(corr_boot[n_trial], axis=0) 
+        lower[n_trial] = corr[n_trial] - np.percentile(corr_boot[n_trial], 25, axis=0) 
+        upper[n_trial] = np.percentile(corr_boot[n_trial], 75, axis=0) - corr[n_trial]
+        
+    return corr, lower, upper 
+
+def EDvsLD(X_proj, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None):
+
+    coefs = bootCoefs(X_proj, C, penalty, solver, loss, cv, l1_ratio) 
+    mean, lower, upper, cos_boot = cosVsEpochs(coefs) 
+    p_values = get_p_values(cos_boot) 
+    
+    create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss) 
+    
+    pl.barCosAlp(mean, lower, upper) 
+    add_pvalue(p_values)
+    plt.ylim([0, 1]) 
+    
+    figtitle = '%s_%s_cos_alpha' % (gv.mouse, gv.session) 
+    pl.save_fig(figtitle) 
+
+    return coefs 
+

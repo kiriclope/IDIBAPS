@@ -21,7 +21,7 @@ import scipy.stats as stats
 from sklearn import svm
 from sklearn.decomposition import PCA, SparsePCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis 
 from sklearn.model_selection import cross_validate, GridSearchCV
 from sklearn.pipeline import make_pipeline, Pipeline

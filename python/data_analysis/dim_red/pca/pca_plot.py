@@ -1,5 +1,4 @@
-
-def pca():
+def pca(X_proj, pc_shift=0):
     
     if gv.laser_on:
         figname = '%s_%s_pca_laser_on_%d' % (gv.mouse, gv.session, pc_shift)

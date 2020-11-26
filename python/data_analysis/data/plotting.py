@@ -5,29 +5,14 @@ shade_alpha = 0.2
 lines_alpha = 0.8
 pal = ['r','b','y']
 
-def figDir(scriptdir):
-    gv.scriptdir= scriptdir
-    gv.figdir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/figs'
+def figDir():
+    gv.figdir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/figs/last/'
 
-    # if gv.DF_ONLY:
-    #     gv.figdir = gv.figdir + '/DF'
-    # else:
-    #     gv.figdir = gv.figdir + '/DFoF0'
-
-    # if gv.DENOISED:
-    #     gv.figdir = gv.figdir + '/denoised'
-        
+    if gv.trialsXepochs:
+        gv.figdir = gv.figdir + '/trialsXepochs' 
+    
     if gv.DELAY_ONLY:
-        gv.figdir = gv.figdir + '/delay_only'
-        
-    # if gv.AVG_BL_TRIALS: 
-    #     gv.figdir = gv.figdir + '/avg_F0_all'
-
-    # if gv.perF0: 
-    #     gv.figdir = gv.figdir + '/perF0'
-
-    # if gv.normFluo:
-    #     gv.figdir = gv.figdir + '/norm_Fluo'
+        gv.figdir = gv.figdir + '/delay_only'    
     
     if gv.laser_on: 
         gv.figdir = gv.figdir + '/laser_on'
@@ -36,25 +21,25 @@ def figDir(scriptdir):
 
     if gv.detrend :
         gv.figdir = gv.figdir + '/detrend' 
-        
-    if 'cross_temp' in gv.scriptdir:
-        gv.figdir = gv.figdir + '/decode/cross_temp'
 
-    if 'pca' in gv.scriptdir:
+    if gv.IF_PCA:
         if gv.pca_concat:
-            gv.figdir = gv.figdir + '/dim_red/pca_concat/n_comp_%d' % gv.n_components 
-        else:        
-            gv.figdir = gv.figdir + '/dim_red/pca/n_comp_%d' % gv.n_components
+            gv.figdir = gv.figdir + '/dim_red/pca/concat/explained_variance%.2f' % gv.explained_variance 
+        else: 
+            gv.figdir = gv.figdir + '/dim_red/pca/hybrid/explained_variance_%.2f' % gv.explained_variance
 
-    if not gv.standardize :
-        gv.figdir = gv.figdir + '/no_z_score' 
-            
-    if 'tca' in gv.scriptdir:
-        gv.figdir = gv.figdir + '/dim_red/tca/n_comp_%d' % gv.n_components
-
+    if gv.ED_MD_LD :
+        gv.figdir = gv.figdir + '/ED_MD_LD' 
+    elif gv.EDvsLD : 
+        gv.figdir = gv.figdir + '/EDvsLD/' 
+    else : 
+        gv.figdir = gv.figdir + '/stimVsDelay/' 
+        
     if not os.path.isdir(gv.figdir):
         os.makedirs(gv.figdir)
 
+    print(gv.figdir)
+    
 def add_stim_to_plot(ax, bin_start=0):
 
     ax.axvspan(gv.bins_ED[0]-bin_start, gv.bins_ED[-1]-bin_start, alpha=shade_alpha, color='gray') 
@@ -97,53 +82,28 @@ def add_orientation_legend(ax):
               frameon=False, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout(rect=[0,0,0.9,1])    
 
-def plot_cosine_bars(cos_alp, mean_cos=[], q1=[], q3=[], IF_SHUFFLE=0):
+def barCosAlp(mean, lower=None, upper=None):
 
-    # gv.epochs = ['STIM','ED','MD','LD']
-    
-    yerr = np.zeros(len(gv.epochs)-1) 
-    if len(q1)<2:
-        yerr = np.zeros(len(gv.epochs)-1) 
-    else:
-        yerr=np.array([q1[1:],q3[1:]]) 
-    
-    if gv.laser_on:
-        figtitle = '%s_%s_cos_alpha_pca_laser_on' % (gv.mouse, gv.session)
-    else:
-        figtitle = '%s_%s_cos_alpha_pca_laser_off' % (gv.mouse, gv.session)
-
-    ax = plt.figure(figtitle).add_subplot()
-    xticks = np.arange(0,len(gv.epochs)-1) 
-
-    # print(xticks.shape, cos_alp[1:].shape,yerr.shape)
-
-    if IF_SHUFFLE: 
-        width = 1/10. 
-    else: 
-        width = 2/10. 
         
-    if('ND' in gv.trial): 
-        ax.bar(xticks - 4/10, cos_alp[1:], width, yerr=yerr ,label=gv.trial, color='r') ; 
-        if IF_SHUFFLE: 
-            ax.bar(xticks - 3/10, mean_cos[1:], width, yerr=yerr, color='r', alpha=0.5) ; 
-        
-    if('D1' in gv.trial): 
-        ax.bar(xticks - 1/10, cos_alp[1:], width, yerr=yerr,label=gv.trial, color='b') ; 
-        if IF_SHUFFLE:
-            ax.bar(xticks, mean_cos[1:], width, yerr=yerr, color='b', alpha=0.5) ; 
+    labels = np.arange(len(gv.epochs)-1) 
+    width=0.25
+
+    figtitle = '%s_%s_cos_alpha' % (gv.mouse, gv.session)
+
+    ax = plt.figure(figtitle).add_subplot() 
+    
+    for n_trial, trial in enumerate(gv.trials): 
+        values = mean[n_trial][1:]
+        # if any(lower==None) :
+        #     ax.bar(labels + n_trial*width, values , color = pal[n_trial], width = width) 
+        # else:
+        error = np.array([ lower[n_trial][1:], upper[n_trial][1:] ] ) 
+        ax.bar(labels + n_trial*width, values , yerr=error,  color = pal[n_trial], width = width) 
             
-    if('D2' in gv.trial):
-        ax.bar(xticks + 2/10 , cos_alp[1:], width, yerr=yerr, label=gv.trial, color='y') ; 
-        if IF_SHUFFLE:
-            ax.bar(xticks + 3/10, mean_cos[1:], width, yerr=yerr, color='y', alpha=0.5) ;
-                    
-    plt.ylabel('cos($\\alpha$)') 
-    plt.xlabel('epochs') 
-    labels = gv.epochs ;
-    ax.set_xticks(xticks) ; 
-    ax.set_xticklabels(labels[1:]) ; 
-    ax.set_ylim([-1,1]) 
-    # ax.legend()
+    plt.xticks([i + width for i in range(len(gv.epochs)-1)], gv.epochs[1:]) 
+
+    plt.xlabel('Epochs') 
+    plt.ylabel('Cos($\\alpha$)') 
 
 def save_fig(figname):
     plt.figure(figname)

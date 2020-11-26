@@ -4,62 +4,86 @@ sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python
 import data.constants as gv 
 import data.utils as data 
 
-import data.plotting as plot 
+import data.plotting as pl 
+import data.preprocessing as pp 
 
 import decode.cross_temp.utils as decode 
 importlib.reload(decode) 
 
-def temporal_decoder(X_proj, IF_EPOCHS=0, C=1e0, penalty='l2', cv=8, my_decoder=0): 
+def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr'):    
+    pl.figDir() 
+    
+    if 'LogisticRegression' in gv.clf_name :
+        clf_param = '/C_%.3f_penalty_%s_solver_%s/' % (C, penalty, solver)    
+    elif gv.clf_name in 'LinearSVC':
+        clf_param = '/C_%.3f_penalty_%s_loss_%s/' % (C, penalty, loss)
+    elif gv.clf_name in 'LinearDiscriminantAnalysis':
+        clf_param = '/shrinkage_auto_solver_lsqr/'
 
-    NO_PCA=1 
-    if X_proj.shape[3]!=gv.n_neurons : 
-        NO_PCA=0 
-        X_proj = X_proj[:,:,:,0:gv.n_components,:] 
+    gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param 
+
+    if gv.my_decoder:
+        gv.figdir = gv.figdir + '/kfold_%d' % cv
+    else:
+        gv.figdir = gv.figdir + '/stratified_kfold_%d' % cv 
         
-    if IF_EPOCHS: 
-        gv.epochs = ['ED','MD','LD'] 
-    else: 
-        gv.epochs = ['all'] 
-    
-    gv.my_decoder= my_decoder 
-    # clf = LogisticRegression(C=C, solver='liblinear', penalty=penalty, tol=1e-6, max_iter=int(1e8), fit_intercept=bool(not gv.standardize)) 
-    clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e8), fit_intercept=bool(not gv.standardize)) 
-    # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
-    # clf = LinearDiscriminantAnalysis(tol=1e-6) 
-    
-    for i, gv.trial in enumerate(gv.trials): 
-        X_S1_trials = X_proj[i,0] 
-        X_S2_trials = X_proj[i,1] 
+    if gv.AVG_EPOCHS:            
+        gv.figdir = gv.figdir + '/avg_epochs'
+
+    if not os.path.isdir(gv.figdir):
+        os.makedirs(gv.figdir)
+        print('created: ', gv.figdir) 
         
-        X_trials, y_trials = data.get_X_y_epochs(X_S1_trials, X_S2_trials) 
-        print('trial:', gv.trial, 'X', X_trials.shape,'y', y_trials.shape) 
+def temporal_decoder(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio=None, loss='lsqr'): 
+
+    gv.AVG_EPOCHS=1
+    gv.trialsXepochs=1
+    gv.SELECTIVE=0
+
+    if gv.EDvsLD:
+        gv.epochs = ['ED','MD','LD']
+    else:
+        gv.epochs = ['STIM','ED','MD','LD']
+
+    gv.IF_PCA=0
+    if X_trials.shape[3]!=gv.n_neurons : 
+        gv.IF_PCA=1
+        X_trials = X_trials[:,:,:,0:gv.n_components,:] 
+    
+    # clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
+    #                          fit_intercept=bool(not gv.standardize), l1_ratio=l1_ratio)
+    
+    clf = LogisticRegressionCV(solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
+                               fit_intercept=bool(not gv.standardize), n_jobs=2) 
+    
+    # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto')
+    
+    gv.clf_name = clf.__class__.__name__ 
+    create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss) 
+    
+    for n_trial, gv.trial in enumerate(gv.trials): 
+        X_S1 = X_trials[n_trial,0] 
+        X_S2 = X_trials[n_trial,1]
+        
+        if gv.SELECTIVE: 
+            X_S1, X_S2, idx = pp.selectiveNeurons(X_S1, X_S2, .1) 
+            
+        X_S1_S2 = np.vstack((X_S1, X_S2)) 
+        
+        if gv.AVG_EPOCHS: 
+            X_S1_S2 = pp.avg_epochs(X_S1_S2) 
+            
+        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
+        
+        print('trial:', gv.trial, 'X', X_S1_S2.shape,'y', y.shape) 
         
         if gv.my_decoder: 
-            scores = decode.cross_temp_clf_par(clf, X_trials, y_trials, cv=cv) 
+            scores = decode.cross_temp_clf_par(clf, X_S1_S2, y, cv=cv) 
         else: 
-            scores, scores_std = decode.mne_cross_temp_clf(X_trials, y_trials, clf, cv=cv) 
-        
-        print('scores', scores.shape) 
-        decode.cross_temp_plot_mat(scores, IF_EPOCHS) 
+            scores, scores_std = decode.mne_cross_temp_clf(X_S1_S2, y, clf, cv=cv) 
+            
+        decode.cross_temp_plot_mat(scores, gv.AVG_EPOCHS) 
         
         figname = '%s_session_%s_trial_%s_cross_temp_decoder' % (gv.mouse,gv.session,gv.trial) 
+        pl.save_fig(figname) 
 
-        if NO_PCA: 
-            plot.figDir('cross_temp') 
-        else:
-            plot.figDir('pca_cross_temp') 
-
-        clf_name = clf.__class__.__name__ 
-        
-        if gv.my_decoder:
-            gv.figdir = gv.figdir + '/my_decoder' 
-
-        gv.figdir = gv.figdir + '/' + clf_name + '/C_%.2f_penalty_%s_cv_%d' % (C, penalty, cv) 
-        
-        if IF_EPOCHS:            
-            gv.figdir = gv.figdir + '/epochs'
-        
-        if not os.path.isdir(gv.figdir):
-            os.makedirs(gv.figdir)
-            
-        plot.save_fig(figname) 

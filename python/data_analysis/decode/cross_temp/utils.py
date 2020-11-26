@@ -30,7 +30,7 @@ def K_fold_clf(clf, X_t_train, X_t_test, y, cv):
     return np.mean(scores) 
     
 def mne_cross_temp_clf( X, y, clf=None, cv=10, scoring='accuracy'):
-    num_cores = -int(3*multiprocessing.cpu_count()/4) 
+    num_cores = int(1*multiprocessing.cpu_count()/8) 
 
     print('clf', clf.__class__.__name__ )
     if(clf==None): 
@@ -40,7 +40,7 @@ def mne_cross_temp_clf( X, y, clf=None, cv=10, scoring='accuracy'):
             pipe = make_pipeline(StandardScaler(), clf)
         else:
             pipe = clf 
-    print('standardize', gv.standardize)
+    print('standardize', gv.standardize) 
     time_gen = GeneralizingEstimator(pipe, n_jobs=num_cores, scoring=scoring, verbose=False) 
     scores = cross_val_multiscore(time_gen, X, y, cv=cv, n_jobs=num_cores) 
     scores = np.mean(scores, axis=0) 
@@ -50,7 +50,7 @@ def mne_cross_temp_clf( X, y, clf=None, cv=10, scoring='accuracy'):
 
 def cross_temp_clf_par(clf, X, y, cv=10): 
 
-    num_cores = -int(3*multiprocessing.cpu_count()/4) 
+    num_cores = -int(multiprocessing.cpu_count()/4) 
 
     def loop(t_train, t_test, clf, X, y, cv): 
         X_t_train = X[:,:,t_train] 
@@ -120,7 +120,7 @@ def cross_temp_plot_mat(scores, IF_EPOCHS=0, IF_MEAN=0):
     cbar.set_label('accuracy', rotation=90) 
 
     if(IF_EPOCHS or IF_MEAN):
-        labels = ['ED','MD','LD']
+        labels = gv.epochs
         xticks = np.arange(0,len(labels)) 
         yticks = np.arange(0,len(labels))
         

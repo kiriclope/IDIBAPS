@@ -7,21 +7,18 @@ from sklearn.preprocessing import PolynomialFeatures
 import scipy.signal
 
 def center(X):
-    # X: ndarray, shape (n_features, n_samples)
     scaler = StandardScaler(with_mean=True, with_std=False)
     Xc = scaler.fit_transform(X.T).T
     return Xc
 
 def z_score(X): 
-    # X: ndarray, shape (n_features, n_samples) 
     ss = StandardScaler(with_mean=True, with_std=True) 
-    # ss.fit(X[:,gv.bins_BL].T) 
-    # Xz = ss.transform(X.T).T 
-    Xz = ss.fit_transform(X.T).T 
+    ss.fit(X[:,gv.bins_BL].T) 
+    Xz = ss.transform(X.T).T
+    # Xz = ss.fit_transform(X) 
     return Xz 
 
 def normalize(X):
-    # X: ndarray, shape (n_features, n_samples)
     Xmin = np.amin(X, axis=1)
     Xmax = np.amax(X, axis=1)
     Xmin = Xmin[:,np.newaxis]
@@ -173,3 +170,53 @@ def detrend_data(X_trial, poly_fit=1, degree=7):
         
     # fit_values_trial = np.array(fit_values_trial)
     return fit_values_trial
+
+def avg_epochs(X):
+
+    if gv.ED_MD_LD:
+        X_ED = np.mean(X[:,:,0:len(gv.bins_ED)],axis=-1) 
+        X_MD = np.mean(X[:,:,len(gv.bins_ED):len(gv.bins_ED)+len(gv.bins_MD)],axis=-1) 
+        X_LD = np.mean(X[:,:,len(gv.bins_ED)+len(gv.bins_MD):len(gv.bins_ED)+len(gv.bins_MD)+len(gv.bins_LD)],axis=-1) 
+        X_STIM = X_ED
+        
+    elif gv.trialsXepochs: 
+        X_STIM = np.hstack(X[:,:,gv.bins_STIM[:]-gv.bin_start]).T
+        X_ED = np.hstack(X[:,:,gv.bins_ED[:]-gv.bin_start]).T 
+        X_MD = np.hstack(X[:,:,gv.bins_MD[:]-gv.bin_start]).T 
+        X_LD = np.hstack(X[:,:,gv.bins_LD[:]-gv.bin_start]).T         
+    else:
+        X_STIM = np.mean(X[:,:,gv.bins_STIM[:]-gv.bin_start],axis=2) 
+        X_ED = np.mean(X[:,:,gv.bins_ED[:]-gv.bin_start],axis=2) 
+        X_MD = np.mean(X[:,:,gv.bins_MD[:]-gv.bin_start],axis=2) 
+        X_LD = np.mean(X[:,:,gv.bins_LD[:]-gv.bin_start],axis=2)
+        
+    if len(gv.epochs)==3:
+        X_epochs = np.array([X_ED, X_MD, X_LD])
+    else:
+        X_epochs = np.array([X_STIM, X_ED, X_MD, X_LD])
+        
+    X_epochs = np.moveaxis(X_epochs,0,2) 
+    return X_epochs 
+
+def selectiveNeurons(X_S1, X_S2, Threshold=.01):
+    X_S1n = X_S1 
+    X_S2n = X_S2 
+        
+    for i in range(X_S1n.shape[0]): 
+        # X_S1n[i] = normalize(X_S1n[i]) 
+        # X_S2n[i] = normalize(X_S2n[i]) 
+        X_S1n[i] = z_score(X_S1n[i]) 
+        X_S2n[i] = z_score(X_S2n[i]) 
+        
+    sel_idx = (X_S1n - X_S2n)/(X_S1n + X_S2n + gv.eps) 
+    
+    if gv.ED_MD_LD: 
+        sel_idx = np.mean(sel_idx, axis=-1) 
+    else:
+        sel_idx = np.mean(sel_idx[:,:,gv.bins_STIM-gv.bin_start], axis=-1) 
+        
+    idx = np.where(abs(sel_idx)<=Threshold) 
+    X_S1 = np.delete(X_S1, idx, axis=1) 
+    X_S2 = np.delete(X_S2, idx, axis=1)     
+    
+    return X_S1, X_S2, idx

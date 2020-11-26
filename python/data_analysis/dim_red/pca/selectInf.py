@@ -1,8 +1,6 @@
 from libs import * 
 sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis')
 
-from scipy.spatial import distance 
-
 import data.constants as gv 
 import data.plotting as pl 
 import data.preprocessing as pp 
@@ -23,7 +21,7 @@ def get_X_y_trials(n_trial, X_trials):
     gv.trial_size = X_trials.shape[-1] 
     
     if gv.AVG_EPOCHS: 
-        gv.trial_size = len(['STIM','ED','MD','LD']) 
+        gv.trial_size = len(['ED','MD','LD']) 
     
     y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
     
@@ -53,7 +51,7 @@ def selectInfCrossVal(X, y, K):
 
     loss = rr.glm.logistic(X,y) 
     # lam_seq = np.exp(np.linspace(np.log(1.e-6), np.log(1), 100)) * np.fabs(np.dot(X.T,y)).max() 
-    lam_seq = np.logspace(-2, 1, 100) 
+    lam_seq = np.logspace(-2, 2, 100) 
     
     folds = np.arange(X.shape[0]) % K 
     # folds = K 
@@ -84,25 +82,25 @@ def selectInfLogistic(X, y, C):
     
     variable = df['variable']
     beta = df['lasso'] 
-    q1 = df['lower_confidence'] 
-    q3 = df['upper_confidence'] 
-    # P = df['pval'] 
+    lower = df['lower_confidence'] 
+    upper = df['upper_confidence'] 
+    # p_value = df['pval'] 
 
-    return variable, beta, q1, q3
-    
+    return variable, beta, lower, upper
+
 def avg_epochs(X):
-    
-    X_STIM = np.mean(X[:,:,gv.bins_STIM[-3:]-gv.bin_start],axis=2) 
-    X_ED = np.mean(X[:,:,gv.bins_ED[-3:]-gv.bin_start],axis=2) 
-    X_MD = np.mean(X[:,:,gv.bins_MD[-3:]-gv.bin_start],axis=2) 
-    X_LD = np.mean(X[:,:,gv.bins_LD[-3:]-gv.bin_start],axis=2) 
 
-    # if gv.STIM_AND_DELAY: 
-    #     X_STIM = np.mean(X[:,:,gv.bins_STIM-gv.bin_start],axis=-1) 
-    #     X_epochs = np.array([X_STIM, X_ED, X_MD, X_LD]) 
-    # elif gv.DELAY_ONLY: 
-    X_epochs = np.array([X_STIM, X_ED, X_MD, X_LD]) 
-        
+    if not gv.ED_MD_LD:
+        X_ED = np.mean(X[:,:,gv.bins_ED[:]-gv.bin_start],axis=2) 
+        X_MD = np.mean(X[:,:,gv.bins_MD[:]-gv.bin_start],axis=2) 
+        X_LD = np.mean(X[:,:,gv.bins_LD[:]-gv.bin_start],axis=2) 
+    else:
+        X_ED = np.mean(X[:,:,0:len(gv.bins_ED)],axis=-1) 
+        X_MD = np.mean(X[:,:,len(gv.bins_ED):len(gv.bins_ED)+len(gv.bins_MD)],axis=-1) 
+        X_LD = np.mean(X[:,:,len(gv.bins_ED)+len(gv.bins_MD):len(gv.bins_ED)+len(gv.bins_MD)+len(gv.bins_LD)],axis=-1) 
+        X_STIM = X_ED 
+    
+    X_epochs = np.array([X_ED, X_MD, X_LD])        
     X_epochs = np.moveaxis(X_epochs,0,2) 
     return X_epochs 
 
@@ -174,7 +172,7 @@ def selectInfCoefs(X_trials, C=1e0, K=5):
     gv.trial_size = X_trials.shape[-1] 
     
     if gv.AVG_EPOCHS: 
-        gv.trial_size = len(['STIM','ED','MD','LD']) 
+        gv.trial_size = len(['ED','MD','LD']) 
         
     coefs = np.zeros( (len(gv.trials), gv.trial_size,  X_trials.shape[3]) ) 
     q1 = np.zeros( (len(gv.trials), gv.trial_size,  X_trials.shape[3]) ) 
@@ -195,13 +193,12 @@ def selectInfCoefs(X_trials, C=1e0, K=5):
 
         for n_bins in range(gv.trial_size): 
             X = X_S1_S2[:,:,n_bins] 
-            X = StandardScaler().fit_transform(X.T).T
+            X = StandardScaler().fit_transform(X)
 
-            if C==0: 
-                C = selectInfCrossVal(X, y, K)
-                
+            C = selectInfCrossVal(X, y, K)
+            
             idx_bin, coefs_bin, q1_bin, q3_bin = selectInfLogistic(X, y, C) 
-
+            
             # print(coefs_bin.shape) 
             
             for idx in range(len(idx_bin)):
@@ -235,7 +232,7 @@ def selectInfAngle(coefs, q1, q3):
 def selectInfCorr(coefs,C=1e0): 
     
     corrCoef = np.empty( (len(gv.trials), gv.trial_size, gv.trial_size) ) 
-
+    
     for n_trial, gv.trial in enumerate(gv.trials): 
         
         corrCoef[n_trial] = np.corrcoef(coefs[n_trial,:,:]) # bins x coefficients 
@@ -246,7 +243,7 @@ def selectInfCorr(coefs,C=1e0):
         
             im = ax.imshow(corrCoef[n_trial], cmap='jet', vmin=0.0, vmax=1.0, origin='lower') 
             
-            labels = ['STIM','ED','MD','LD']
+            labels = gv.epochs
             xticks = np.arange(0,len(labels)) 
             yticks = np.arange(0,len(labels))
         
@@ -274,8 +271,11 @@ def selectInfCorr(coefs,C=1e0):
         ax.grid(False) 
         cbar = plt.colorbar(im, ax=ax) 
         cbar.set_label('corr', rotation=90) 
-            
+        
         figdir = pl.figDir('pca') 
         pl.save_fig(figtitle) 
-       
-    return corrCoef
+        
+    # return corrCoef
+
+def barCos(alpha, lower, upper):    
+    return 0

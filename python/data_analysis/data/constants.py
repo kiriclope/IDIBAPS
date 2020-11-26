@@ -1,4 +1,5 @@
 import numpy as np 
+import multiprocessing 
 
 global mouse, mice, session, sessions, trial, trials 
 mouse = []
@@ -100,7 +101,29 @@ filedir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_ana
 global standardize
 standardize = 0
 
-global pca_concat, detrend, bootstrap_trials
+global IF_PCA, pca_concat, detrend, bootstrap_trials
+IF_PCA = 0 
 pca_concat = 0 
 detrend = 0
 bootstrap_trials=0
+
+global num_cores
+num_cores = -int(multiprocessing.cpu_count()/2) 
+
+global SELECTIVE
+SELECTIVE=0
+
+global explained_variance
+explained_variance = 0.1
+
+global clf_name
+clf_name = ''
+
+global trialsXepochs
+trialsXepochs=0
+
+global EDvsLD
+EDvsLD=0
+
+global my_decoder
+my_decoder=0
