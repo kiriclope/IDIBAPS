@@ -11,7 +11,7 @@ def synthetic_data(prop_ortho):
     print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
 
     data.get_delays_times() 
-    data.get_bins(t_start=0.0) 
+    data.get_bins(t_start=1.0) 
 
     n_ortho = int(prop_ortho * gv.n_neurons) 
     print('n_ortho', n_ortho) 

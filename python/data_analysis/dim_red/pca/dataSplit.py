@@ -10,6 +10,41 @@ import multiprocessing
 
 from sklearn.model_selection import train_test_split 
 
+def get_X_y_trials(n_trial, X_trials): 
+        
+    if X_trials.shape[3]!=gv.n_neurons: 
+        X_trials = X_trials[:,:,:,0:gv.n_components,:] 
+    
+    gv.AVG_EPOCHS = 0 
+    gv.trial_size = X_trials.shape[-1] 
+    
+    if gv.AVG_EPOCHS: 
+        gv.trial_size = len(['ED','MD','LD']) 
+    
+    y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
+    
+    X_S1 = X_trials[n_trial,0] 
+    X_S2 = X_trials[n_trial,1] 
+    X_S1_S2 = np.vstack((X_S1, X_S2)) 
+
+    return X_S1_S2, y
+
+def datasplit(X, y, C):
+
+    # split the data into two samples 
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42) 
+    print('X_train, y_train', X_train.shape, y_train.shape)
+    
+    # fit logistic lasso on the training set
+    model = sm.Logit(y_train, X_train)
+    results = model.fit_regularized(alpha=1/C) 
+    print(results.summary()) 
+
+    # perform inference on the test set
+    # y_pred = results.predict(X_test) 
+    predictions = result.get_prediction(X_test)
+    print(predictions.summary())
+
 def avg_epochs(X):
     
     X_STIM = np.mean(X[:,:,gv.bins_STIM[:]-gv.bin_start],axis=2) 

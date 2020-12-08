@@ -5,38 +5,49 @@ from scipy.spatial import distance
 import data.constants as gv 
 import data.plotting as pl
 import data.preprocessing as pp 
+import data.angle as agl
+import data.progressbar as pg
 
 from joblib import Parallel, delayed, parallel_backend
 import multiprocessing 
     
 def grid_search_cv_clf(loss, X, y, cv=10): 
     
-    pipe = Pipeline([('scale', StandardScaler()), ('clf', loss)])
+    pipe = Pipeline([('scale', StandardScaler()), ('clf', loss)]) 
     
     param_grid = [{'clf': [loss], 'clf__C' : np.logspace(-4, 4, 1000)}] 
     search = GridSearchCV(pipe, param_grid=param_grid, cv=cv, verbose=False, n_jobs=gv.num_cores) 
     best_model = search.fit(X, y) 
     
-    return best_model
+    return best_model 
 
 def bootstrap_clf_par(X, y, clf, dum, cv): 
+    # note: joblib messes up my global variables ... 
 
     if dum==1: 
         print('no boot') 
         idx_trials = np.arange(0, X.shape[0]) 
     else:
         #standard bootstrap
-        idx_trials = np.random.randint(0, X.shape[0], X.shape[0])
-        #block bootstrap
+        idx_trials = np.random.randint(0, X.shape[0], X.shape[0]) 
+        #block bootstrap 
         # idx_trials = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)),
-        #                           np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) ) 
+        #                           np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) )
+        #trialxepochs
+        # X is (trials x times , neurons) and we want to sample over trials
+        # so we pick n_trials with replacement ie if trial k, then idx_k = [k*gv.bins_ED, (k+1)*gv.bins_ED]
+        # idx = np.random.randint(0, 40, 40) 
+        # idx_trials = np.array( [np.arange(k*7, (k+1)*7) for k in idx ] ).flatten()
+        
+        # idx = np.random.randint(0, 32, 32) 
+        # idx_trials = np.array( [np.arange(k*6, (k+1)*6) for k in idx ] ).flatten()
         
     X_sample = X[idx_trials] 
     y_sample = y[idx_trials] 
 
-    # hierarchical bootstrap
+    # hierarchical bootstrap 
     # for trial in idx_trials: 
-    #     idx_neurons = np.random.randint(0, X.shape[1], X.shape[1])
+    #     idx_neurons = np.random.randint(0, X.shape[1], X.shape[1]) 
     #     X_sample[trial] = X[trial, idx_neurons] 
 
     # scaler = StandardScaler().fit(X) 
@@ -53,42 +64,18 @@ def bootstrap_clf_par(X, y, clf, dum, cv):
         
     return coefs_samples
 
-def unit_vector(vector): 
-    """ Returns the unit vector of the vector.  """ 
-    u = vector / (np.linalg.norm(vector) + gv.eps)
-    return u 
-
-def angle_between(v1, v2): 
-    """ Returns the angle in radians between vectors 'v1' and 'v2':: """ 
-    v1_u = unit_vector(v1) 
-    v2_u = unit_vector(v2) 
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)) 
-
-def cos_between(v1, v2): 
-    """ Returns the angle in radians between vectors 'v1' and 'v2':: """ 
-    v1_u = unit_vector(v1) 
-    v2_u = unit_vector(v2) 
-    return np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)
-
-def get_cos(coefs): 
-    """ Returns the cosine of the angle alpha between vector coefs[0] (early delay) and coefs[1] (late delay) """ 
-    cos_alp=[] 
-    for j in np.arange(0, coefs.shape[0]):  
-        cos_alp.append( cos_between(coefs[0], coefs[j]) )         
-    return cos_alp
-
 def bootCoefs(X_proj, C=1e0, penalty='l2', solver='liblinear', loss='squared_hinge', cv=10, l1_ratio=None): 
 
     gv.n_boot = int(1e3) 
-    gv.num_cores = int(1*multiprocessing.cpu_count()/2) 
+    gv.num_cores = 5 # int(1*multiprocessing.cpu_count()/2) 
 
-    clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
-                             fit_intercept=bool(not gv.standardize), n_jobs=gv.num_cores, l1_ratio=l1_ratio) 
+    # clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
+    #                          fit_intercept=bool(not gv.standardize), n_jobs=gv.num_cores, l1_ratio=l1_ratio) 
 
-    # clf = LogisticRegressionCV(solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
-    #                            fit_intercept=bool(not gv.standardize), n_jobs=2) 
+    clf = LogisticRegressionCV(Cs=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
+                               fit_intercept=bool(not gv.standardize), n_jobs=10) 
     
-    # clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e8), fit_intercept=bool(not gv.standardize) ) 
+    # clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e8), fit_intercept=bool(not gv.standardize) )
     # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
     gv.clf_name = clf.__class__.__name__ 
     if 'CV' in 'gv.clf_name': 
@@ -119,8 +106,11 @@ def bootCoefs(X_proj, C=1e0, penalty='l2', solver='liblinear', loss='squared_hin
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
         for n_epochs in range(X_S1_S2.shape[2]):
-            X = X_S1_S2[:,:,n_epochs] 
-            boot_coefs = Parallel(n_jobs=gv.num_cores, verbose=True)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot, cv) for _ in range(gv.n_boot)) 
+            X = X_S1_S2[:,:,n_epochs]
+            
+            with pg.tqdm_joblib(pg.tqdm(desc= gv.trial + ' ' + gv.epochs[n_epochs] , total=gv.n_boot)) as progress_bar: 
+            
+                boot_coefs = Parallel(n_jobs=gv.num_cores, verbose=False)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot, cv) for _ in range(gv.n_boot)) 
             coefs[n_trial, n_epochs] = np.array(boot_coefs) 
 
     return coefs 
@@ -135,7 +125,7 @@ def cosVsEpochs(coefs):
     
     for n_trial, gv.trial in enumerate(gv.trials): 
         for boot in range(coefs.shape[2]): 
-            cos_alp = get_cos(coefs[n_trial,:,boot,:]) # bins x neurons 
+            cos_alp = agl.get_cos(coefs[n_trial,:,boot,:], coefs[n_trial,0,boot,:]) # bins x neurons 
             cos_boot[n_trial, boot] = np.array(cos_alp)
         
         mean[n_trial] = np.mean(cos_boot[n_trial], axis=0) 
@@ -164,10 +154,10 @@ def get_p_values(cos_boot):
 
 def add_pvalue(p_values): 
     cols = 0.25*np.arange(len(gv.trials)) 
-    high = [0.9, 0.8] 
-    print(cols)
+    high = [1.0, 0.9] 
+
     for n_cols in range(1, len(cols)):        
-        for n_epoch in range(p_values.shape[1]):
+        for n_epoch in range(p_values.shape[1]): 
             
             plt.plot( [n_epoch + cols[0], n_epoch + cols[n_cols]] , [high[n_cols-1], high[n_cols-1]] , lw=.8, c='k') 
             
@@ -223,12 +213,13 @@ def EDvsLD(X_proj, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hing
     coefs = bootCoefs(X_proj, C, penalty, solver, loss, cv, l1_ratio) 
     mean, lower, upper, cos_boot = cosVsEpochs(coefs) 
     p_values = get_p_values(cos_boot) 
+    print('p_values', p_values) 
     
     create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss) 
     
     pl.barCosAlp(mean, lower, upper) 
-    add_pvalue(p_values)
-    plt.ylim([0, 1]) 
+    add_pvalue(p_values) 
+    plt.ylim([-.1, 1.1]) 
     
     figtitle = '%s_%s_cos_alpha' % (gv.mouse, gv.session) 
     pl.save_fig(figtitle) 

@@ -4,54 +4,18 @@ sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python
 import data.constants as gv 
 import data.plotting as pl 
 import data.preprocessing as pp 
+import data.angle as agl
 
 from selectinf.algorithms import lasso, cv
 import regreg.api as rr
 from sklearn.model_selection import train_test_split
 import statsmodels.api as sm 
 
-pal = ['r','b','y']
-
-def get_X_y_trials(n_trial, X_trials): 
-        
-    if X_trials.shape[3]!=gv.n_neurons: 
-        X_trials = X_trials[:,:,:,0:gv.n_components,:] 
-    
-    gv.AVG_EPOCHS = 0 
-    gv.trial_size = X_trials.shape[-1] 
-    
-    if gv.AVG_EPOCHS: 
-        gv.trial_size = len(['ED','MD','LD']) 
-    
-    y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
-    
-    X_S1 = X_trials[n_trial,0] 
-    X_S2 = X_trials[n_trial,1] 
-    X_S1_S2 = np.vstack((X_S1, X_S2)) 
-
-    return X_S1_S2, y
-
-def datasplit(X, y, C):
-
-    # split the data into two samples 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42) 
-    print('X_train, y_train', X_train.shape, y_train.shape)
-    
-    # fit logistic lasso on the training set
-    model = sm.Logit(y_train, X_train)
-    results = model.fit_regularized(alpha=1/C) 
-    print(results.summary()) 
-
-    # perform inference on the test set
-    # y_pred = results.predict(X_test) 
-    predictions = result.get_prediction(X_test)
-    print(predictions.summary())
-    
 def selectInfCrossVal(X, y, K):
 
     loss = rr.glm.logistic(X,y) 
-    # lam_seq = np.exp(np.linspace(np.log(1.e-6), np.log(1), 100)) * np.fabs(np.dot(X.T,y)).max() 
-    lam_seq = np.logspace(-2, 2, 100) 
+    lam_seq = np.exp(np.linspace(np.log(1.e-6), np.log(1), 100)) * np.fabs(np.dot(X.T,y)).max() 
+    # lam_seq = np.logspace(-2, 2, 100) 
     
     folds = np.arange(X.shape[0]) % K 
     # folds = K 
@@ -63,7 +27,7 @@ def selectInfCrossVal(X, y, K):
     SD_min = SD_val[lam_idx]
     lam_1SD = lam_seq[max([i for i in range(lam_seq.shape[0]) if CV_val[i] <= minimum_CV + SD_min])]
     
-    print(lam_1SD, lam_CV, lam_CV_randomized) 
+    print('lambdas', lam_1SD, lam_CV, lam_CV_randomized) 
     return lam_1SD
 
 def selectInfLogistic(X, y, C):
@@ -88,23 +52,7 @@ def selectInfLogistic(X, y, C):
 
     return variable, beta, lower, upper
 
-def avg_epochs(X):
-
-    if not gv.ED_MD_LD:
-        X_ED = np.mean(X[:,:,gv.bins_ED[:]-gv.bin_start],axis=2) 
-        X_MD = np.mean(X[:,:,gv.bins_MD[:]-gv.bin_start],axis=2) 
-        X_LD = np.mean(X[:,:,gv.bins_LD[:]-gv.bin_start],axis=2) 
-    else:
-        X_ED = np.mean(X[:,:,0:len(gv.bins_ED)],axis=-1) 
-        X_MD = np.mean(X[:,:,len(gv.bins_ED):len(gv.bins_ED)+len(gv.bins_MD)],axis=-1) 
-        X_LD = np.mean(X[:,:,len(gv.bins_ED)+len(gv.bins_MD):len(gv.bins_ED)+len(gv.bins_MD)+len(gv.bins_LD)],axis=-1) 
-        X_STIM = X_ED 
-    
-    X_epochs = np.array([X_ED, X_MD, X_LD])        
-    X_epochs = np.moveaxis(X_epochs,0,2) 
-    return X_epochs 
-
-def cosEDvsTime(alpha, q1_alpha, q3_alpha, sigma=1):
+def cosEDvsTime(alpha, lower_alpha, upper_alpha, sigma=1):
     figname = '%s_%s_cosEDvsTime' % (gv.mouse, gv.session) 
     ax = plt.figure(figname).add_subplot() 
     
@@ -112,10 +60,10 @@ def cosEDvsTime(alpha, q1_alpha, q3_alpha, sigma=1):
     for n_trial in range(len(gv.trials)):
 
         y = gaussian_filter1d( np.cos( alpha[n_trial] ), sigma )
-        plt.plot(x, y, '-', color=pal[n_trial]) 
-        q1 = gaussian_filter1d( np.cos( q1_alpha[n_trial] ) , sigma) 
-        q3 = gaussian_filter1d( np.cos( q3_alpha[n_trial] ), sigma) 
-        ax.fill_between(x, q1, q3 , color=pal[n_trial], alpha=.1) 
+        plt.plot(x, y, '-', color=gv.pal[n_trial]) 
+        lower = gaussian_filter1d( np.cos( lower_alpha[n_trial] ) , sigma) 
+        upper = gaussian_filter1d( np.cos( upper_alpha[n_trial] ), sigma) 
+        ax.fill_between(x, lower, upper , color=gv.pal[n_trial], alpha=.1) 
         
     plt.xlabel('time (s)') 
     plt.ylabel('cos($\\alpha$)') 
@@ -128,10 +76,10 @@ def cosEDvsTime(alpha, q1_alpha, q3_alpha, sigma=1):
     pl.save_fig(figname)         
 
 def cosVsEpochs(alpha, dum=0): 
-    ax = plt.figure('cosStimVsEpochs').add_subplot()
+    ax = plt.figure('cosStimVsEpochs').add_subplot() 
     
-    alphaSTIM = alpha[:,0]
-    # average over all trial types
+    alphaSTIM = alpha[:,0] 
+    # average over all trial types 
     if dum : 
         alpha_avg = np.mean(alpha[:,0], axis=0) 
         alphaSTIM = alpha_avg*np.ones(alpha.shape[1])
@@ -144,42 +92,33 @@ def cosVsEpochs(alpha, dum=0):
 
     plt.ylim([0,1.1]) 
     
-def unit_vector(vector): 
-    """ Returns the unit vector of the vector.  """ 
-    u = vector / ( np.linalg.norm(vector) + gv.eps ) 
-    return u 
-
-def angle_between(v1, v2): 
-    """ Returns the angle in radians between vectors 'v1' and 'v2':: """ 
-    v1_u = unit_vector(v1) 
-    v2_u = unit_vector(v2) 
-    return np.arccos( np.clip( np.dot(v1_u, v2_u), -1.0, 1.0) ) 
-
-def get_angle(coefs, v0): 
-
-    alpha=np.empty(coefs.shape[0])
-    for i in np.arange(0, coefs.shape[0]):     
-        alpha[i] = angle_between(v0, coefs[i]) 
-        
-    return alpha 
-
 def selectInfCoefs(X_trials, C=1e0, K=5): 
         
     if X_trials.shape[3]!=gv.n_neurons: 
         X_trials = X_trials[:,:,:,0:gv.n_components,:] 
     
-    gv.AVG_EPOCHS = 1 
     gv.trial_size = X_trials.shape[-1] 
     
-    if gv.AVG_EPOCHS: 
-        gv.trial_size = len(['ED','MD','LD']) 
+    gv.IF_PCA = 0
+    if X_trials.shape[3]!=gv.n_neurons: 
+        X_proj = X_trials[:,:,:,0:gv.n_components,:] 
+        gv.IF_PCA = 1 
         
-    coefs = np.zeros( (len(gv.trials), gv.trial_size,  X_trials.shape[3]) ) 
-    q1 = np.zeros( (len(gv.trials), gv.trial_size,  X_trials.shape[3]) ) 
-    q3 = np.zeros( (len(gv.trials), gv.trial_size,  X_trials.shape[3]) ) 
-      
-    y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
+    if gv.AVG_EPOCHS: 
+        
+        if gv.EDvsLD: 
+            gv.epochs = ['ED', 'MD', 'LD'] 
+            print('angle btw ED and other epochs')
+        else:
+            gv.epochs = ['Stim', 'ED', 'MD', 'LD'] 
+            print('angle btw STIM and other epochs') 
 
+    coefs = np.zeros( (len(gv.trials), len(gv.epochs),  X_trials.shape[3]) ) 
+    lower = np.zeros( (len(gv.trials), len(gv.epochs),  X_trials.shape[3]) ) 
+    upper = np.zeros( (len(gv.trials), len(gv.epochs),  X_trials.shape[3]) ) 
+    
+    # y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
+    
     for n_trial, gv.trial in enumerate(gv.trials): 
     
         X_S1 = X_trials[n_trial,0] 
@@ -187,47 +126,51 @@ def selectInfCoefs(X_trials, C=1e0, K=5):
         X_S1_S2 = np.vstack((X_S1, X_S2)) 
 
         if gv.AVG_EPOCHS: 
-            X_S1_S2 = avg_epochs(X_S1_S2) 
+            X_S1_S2 = pp.avg_epochs(X_S1_S2)
+            
+        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
 
         print('X_S1_S2', X_S1_S2.shape) 
 
-        for n_bins in range(gv.trial_size): 
+        for n_bins in range(X_S1_S2.shape[2]): 
             X = X_S1_S2[:,:,n_bins] 
             X = StandardScaler().fit_transform(X)
 
             C = selectInfCrossVal(X, y, K)
             
-            idx_bin, coefs_bin, q1_bin, q3_bin = selectInfLogistic(X, y, C) 
+            idx_bin, coefs_bin, lower_bin, upper_bin = selectInfLogistic(X, y, C) 
             
             # print(coefs_bin.shape) 
             
             for idx in range(len(idx_bin)):
-                coefs[n_trial, n_bins, idx] = coefs_bin[idx]
-                q1[n_trial, n_bins, idx] = q1_bin[idx] 
-                q3[n_trial, n_bins, idx] = q3_bin[idx] 
+                coefs[n_trial, n_bins, idx] = coefs_bin[idx] 
+                lower[n_trial, n_bins, idx] = lower_bin[idx] 
+                upper[n_trial, n_bins, idx] = upper_bin[idx] 
                 
-    return coefs, q1, q3
+    return coefs, lower, upper
 
-def selectInfAngle(coefs, q1, q3): 
+def selectInfCos(coefs, lower, upper): 
 
     gv.trial_size = coefs.shape[1]
     
-    alpha = np.empty( (len(gv.trials), gv.trial_size) ) 
-    q1_alpha = np.empty( (len(gv.trials), gv.trial_size) ) 
-    q3_alpha = np.empty( (len(gv.trials), gv.trial_size) ) 
+    cos = np.empty( (len(gv.trials), gv.trial_size) ) 
+    lower_cos = np.empty( (len(gv.trials), gv.trial_size) ) 
+    upper_cos = np.empty( (len(gv.trials), gv.trial_size) ) 
     
     for n_trial, gv.trial in enumerate(gv.trials): 
 
         if gv.AVG_EPOCHS: 
-            alpha[n_trial] = get_angle(coefs[n_trial], coefs[n_trial, 0] ) 
-            q1_alpha[n_trial] = get_angle(q1[n_trial], q1[n_trial, 0] ) 
-            q3_alpha[n_trial] = get_angle(q3[n_trial], q3[n_trial, 0] ) 
+            cos[n_trial] = agl.get_cos(coefs[n_trial], coefs[n_trial, 0] ) 
+            lower_cos[n_trial] = cos[n_trial] - agl.get_cos(lower[n_trial], lower[n_trial, 0] ) 
+            upper_cos[n_trial] = agl.get_cos(upper[n_trial], upper[n_trial, 0] ) - cos[n_trial]
         else:
-            alpha[n_trial] = get_angle(coefs[n_trial], np.mean( coefs[n_trial, gv.bins_STIM[:] ], axis=0) ) 
-            q1_alpha[n_trial] = get_angle(q1[n_trial], np.mean( q1[n_trial, gv.bins_STIM[:] ], axis=0) ) 
-            q3_alpha[n_trial] = get_angle(q3[n_trial], np.mean( q3[n_trial, gv.bins_STIM[:] ], axis=0) ) 
+            cos[n_trial] = agl.get_cos(coefs[n_trial], np.mean( coefs[n_trial, gv.bins_STIM[:] ], axis=0) ) 
+            lower_cos[n_trial] = cos[n_trial] - agl.get_cos(lower[n_trial], np.mean( lower[n_trial, gv.bins_STIM[:] ], axis=0) ) 
+            upper_cos[n_trial] = agl.get_cos(upper[n_trial], np.mean( upper[n_trial, gv.bins_STIM[:] ], axis=0) ) - cos[n_trial] 
             
-    return alpha, q1_alpha, q3_alpha 
+        print('trial', gv.trial, 'cos', cos[n_trial], 'lower', lower_cos[n_trial], 'upper', upper_cos[n_trial]) 
+            
+    return cos, lower_cos, upper_cos 
 
 def selectInfCorr(coefs,C=1e0): 
     
@@ -277,5 +220,10 @@ def selectInfCorr(coefs,C=1e0):
         
     # return corrCoef
 
-def barCos(alpha, lower, upper):    
-    return 0
+def selectInf(X_trials, C=1e0, K=5):
+    
+    coefs, lower, upper = selectInfCoefs(X_trials, C=C, K=K) 
+    mean, lower, upper = selectInfCos(coefs, lower, upper) 
+
+    pl.barCosAlp(mean, lower, upper) 
+    plt.ylim([-.1, 1.1]) 

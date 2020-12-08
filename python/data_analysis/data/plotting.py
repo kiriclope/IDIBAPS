@@ -3,7 +3,6 @@ from . import constants as gv
 
 shade_alpha = 0.2
 lines_alpha = 0.8
-pal = ['r','b','y']
 
 def figDir():
     gv.figdir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/figs/last/'
@@ -75,7 +74,7 @@ def hlines_delay(ax):
     ax.axhline(gv.t_LD[-1]-2, color='k', ls='--')
 
 def add_orientation_legend(ax):
-    custom_lines = [Line2D([0], [0], color=pal[k], lw=4) for
+    custom_lines = [Line2D([0], [0], color=gv.pal[k], lw=4) for
                     k in range(len(gv.trials))]
     labels = [t for t in gv.trials]
     ax.legend(custom_lines, labels,
@@ -95,10 +94,10 @@ def barCosAlp(mean, lower=None, upper=None):
     for n_trial, trial in enumerate(gv.trials): 
         values = mean[n_trial][1:]
         # if any(lower==None) :
-        #     ax.bar(labels + n_trial*width, values , color = pal[n_trial], width = width) 
+        #     ax.bar(labels + n_trial*width, values , color = gv.pal[n_trial], width = width) 
         # else:
         error = np.array([ lower[n_trial][1:], upper[n_trial][1:] ] ) 
-        ax.bar(labels + n_trial*width, values , yerr=error,  color = pal[n_trial], width = width) 
+        ax.bar(labels + n_trial*width, values , yerr=error,  color = gv.pal[n_trial], width = width) 
             
     plt.xticks([i + width for i in range(len(gv.epochs)-1)], gv.epochs[1:]) 
 
@@ -130,3 +129,28 @@ def open_dat(filename):
         print('opening', gv.filedir + '/' + filename + '.pkl' )
         return pickle.load(f) 
 
+def add_vlines(figname):
+    plt.figure(figname) 
+    plt.ahvline(y=gv.t_STIM[0]-2, c='k', ls='-') # sample onset
+
+    plt.ahvline(y=gv.t_ED[0]-2, c='k', ls='--') 
+    plt.ahvline(y=gv.t_ED[1]-2, c='k', ls='--') # DPA early delay
+    
+    plt.ahvline(y=gv.t_MD[0]-2, c='r', ls='--') #DRT delay
+    plt.ahvline(y=gv.t_MD[1]-2, c='r', ls='--') 
+        
+    plt.ahvline(y=gv.t_LD[0]-2, c='k', ls='--')
+    plt.ahvline(y=gv.t_LD[1]-2, c='k', ls='--') # DPA late delay
+
+def add_hlines(figname):
+    plt.figure(figname) 
+    plt.axvline(x=gv.t_STIM[0]-2, c='k', ls='-') # sample onset
+
+    plt.axvline(x=gv.t_ED[0]-2, c='k', ls='--') 
+    plt.axvline(x=gv.t_ED[1]-2, c='k', ls='--') # DPA early delay
+    
+    plt.axvline(x=gv.t_MD[0]-2, c='r', ls='--') #DRT delay
+    plt.axvline(x=gv.t_MD[1]-2, c='r', ls='--') 
+        
+    plt.axvline(x=gv.t_LD[0]-2, c='k', ls='--')
+    plt.axvline(x=gv.t_LD[1]-2, c='k', ls='--') # DPA late delay

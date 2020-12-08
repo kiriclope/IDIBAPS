@@ -37,24 +37,25 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr'):
 def temporal_decoder(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio=None, loss='lsqr'): 
 
     gv.AVG_EPOCHS=1
-    gv.trialsXepochs=1
-    gv.SELECTIVE=0
+    gv.SELECTIVE=0 
 
-    if gv.EDvsLD:
-        gv.epochs = ['ED','MD','LD']
+    gv.num_cores = 5 
+    
+    if gv.EDvsLD: 
+        gv.epochs = ['ED','MD','LD'] 
     else:
-        gv.epochs = ['STIM','ED','MD','LD']
+        gv.epochs = ['STIM','ED','MD','LD'] 
 
     gv.IF_PCA=0
     if X_trials.shape[3]!=gv.n_neurons : 
         gv.IF_PCA=1
         X_trials = X_trials[:,:,:,0:gv.n_components,:] 
     
-    # clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
-    #                          fit_intercept=bool(not gv.standardize), l1_ratio=l1_ratio)
+    clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-4, max_iter=int(1e6),
+                             fit_intercept=bool(not gv.standardize), l1_ratio=l1_ratio)
     
-    clf = LogisticRegressionCV(solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
-                               fit_intercept=bool(not gv.standardize), n_jobs=2) 
+    # clf = LogisticRegressionCV(solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
+    #                            fit_intercept=bool(not gv.standardize), n_jobs=gv.num_cores) 
     
     # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto')
     
@@ -69,6 +70,8 @@ def temporal_decoder(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1
             X_S1, X_S2, idx = pp.selectiveNeurons(X_S1, X_S2, .1) 
             
         X_S1_S2 = np.vstack((X_S1, X_S2)) 
+
+        print(X_S1_S2.shape)
         
         if gv.AVG_EPOCHS: 
             X_S1_S2 = pp.avg_epochs(X_S1_S2) 

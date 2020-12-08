@@ -21,22 +21,22 @@ pal = ['r','b','y']
 gv.samples = ['S1', 'S2'] 
 pc_shift = 0 
 
-gv.explained_variance = 0.90 
+gv.explained_variance = 0.90
 
 gv.scriptdir = os.path.dirname(__file__) 
 
 gv.IF_SAVE=1 
 gv.IF_PCA=1 
 
-gv.DELAY_ONLY=0 
+gv.DELAY_ONLY = 0 
 gv.ED_MD_LD = 0 
-gv.DOWN_SAMPLING=0 
+gv.DOWN_SAMPLING = 0 
 gv.bootstrap_trials=0 
 
-gv.trialsXepochs = 1
+gv.trialsXepochs = 1 
 
 gv.standardize = 1 
-SYN=0
+SYN=0 
 gv.detrend = 0 
 POLY_DEG = 7 
 
@@ -44,14 +44,14 @@ gv.correct_trial = 0  # 17-14-16 / 6
 gv.laser_on = 0 
 gv.pca_concat = 0 
 
-gv.n_components = 150 #'mle' #75% => 11 C57/ChR - 18 Jaws # inflexion 2-4 
+gv.n_components = 15 #'mle' #75% => 11 C57/ChR - 18 Jaws # inflexion 2-4 
 gv.data_type= 'fluo' # 90% var 25-42-110 # 95% 43 # 75% 11 
 
 def get_optimal_number_of_components(X): 
-    cov = np.dot(X,X.transpose())/float(X.shape[0])
+    cov = np.dot(X,X.transpose())/float(X.shape[0]) 
     U,s,v = np.linalg.svd(cov) 
 
-    S_nn = sum(s)
+    S_nn = sum(s) 
 
     for num_components in range(0,s.shape[0]):
         temp_s = s[0:num_components]
@@ -59,15 +59,15 @@ def get_optimal_number_of_components(X):
         if (1 - S_ii/float(S_nn)) <= 1-gv.explained_variance: 
             return num_components
 
-    return s.shape[0]
+    return s.shape[0] 
 
-for gv.mouse in [gv.mice[2]] : 
+for gv.mouse in [gv.mice[1]] : 
 
     data.get_sessions_mouse() 
     data.get_stimuli_times() 
     data.get_delays_times() 
     
-    for gv.session in [gv.sessions[-1]] : 
+    for gv.session in [gv.sessions[3]] : 
         X, y = data.get_fluo_data() 
         print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
         
@@ -158,6 +158,10 @@ for gv.mouse in [gv.mice[2]] :
         # standardize neurons/features across trials/samples
         scaler.fit(X_avg.T) 
         X_avg = scaler.transform(X_avg.T).T 
+
+        # sparse PCA
+        # pca = SparsePCA(n_components=gv.n_components) 
+        # X_avg = pca.fit_transform(X_avg.T).T
 
         # PCA the trial averaged data
         gv.n_components = get_optimal_number_of_components(X_avg) 

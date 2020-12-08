@@ -14,16 +14,20 @@ def center(X):
 def z_score(X): 
     ss = StandardScaler(with_mean=True, with_std=True) 
     ss.fit(X[:,gv.bins_BL].T) 
-    Xz = ss.transform(X.T).T
-    # Xz = ss.fit_transform(X) 
+    Xz = ss.transform(X.T).T 
+    # Xz = ss.fit_transform(X.T).T
     return Xz 
 
 def normalize(X):
-    Xmin = np.amin(X, axis=1)
-    Xmax = np.amax(X, axis=1)
+    Xmin = np.amin(X[:, gv.bins_STIM], axis=1) 
+    Xmax = np.amax(X[:, gv.bins_STIM], axis=1) 
+
+    # Xmin = np.amin(X, axis=1) 
+    # Xmax = np.amax(X, axis=1) 
+
     Xmin = Xmin[:,np.newaxis]
     Xmax = Xmax[:,np.newaxis]
-    return (X-Xmin)/(Xmax-Xmin+gv.eps)
+    return (X-Xmin)/(Xmax-Xmin+gv.eps) 
 
 def conf_inter(y):
     ci = []
@@ -180,21 +184,23 @@ def avg_epochs(X):
         X_STIM = X_ED
         
     elif gv.trialsXepochs: 
+        print('avg trials x epochs')
         X_STIM = np.hstack(X[:,:,gv.bins_STIM[:]-gv.bin_start]).T
         X_ED = np.hstack(X[:,:,gv.bins_ED[:]-gv.bin_start]).T 
         X_MD = np.hstack(X[:,:,gv.bins_MD[:]-gv.bin_start]).T 
-        X_LD = np.hstack(X[:,:,gv.bins_LD[:]-gv.bin_start]).T         
+        X_LD = np.hstack(X[:,:,gv.bins_LD[:]-gv.bin_start]).T 
     else:
+        print('avg over epochs')
         X_STIM = np.mean(X[:,:,gv.bins_STIM[:]-gv.bin_start],axis=2) 
         X_ED = np.mean(X[:,:,gv.bins_ED[:]-gv.bin_start],axis=2) 
         X_MD = np.mean(X[:,:,gv.bins_MD[:]-gv.bin_start],axis=2) 
-        X_LD = np.mean(X[:,:,gv.bins_LD[:]-gv.bin_start],axis=2)
+        X_LD = np.mean(X[:,:,gv.bins_LD[:]-gv.bin_start],axis=2) 
         
-    if len(gv.epochs)==3:
+    if len(gv.epochs)==3: 
         X_epochs = np.array([X_ED, X_MD, X_LD])
-    else:
-        X_epochs = np.array([X_STIM, X_ED, X_MD, X_LD])
-        
+    else: 
+        X_epochs = np.array([X_STIM, X_ED, X_MD, X_LD]) 
+
     X_epochs = np.moveaxis(X_epochs,0,2) 
     return X_epochs 
 

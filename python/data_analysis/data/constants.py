@@ -127,3 +127,6 @@ EDvsLD=0
 
 global my_decoder
 my_decoder=0
+
+global pal
+pal = ['r','b','y']

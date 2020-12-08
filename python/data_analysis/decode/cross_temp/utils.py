@@ -9,12 +9,14 @@ sys.path.append('../../')
 
 import data.constants as gv
 import data.plotting as pl
+import data.progressbar as pg 
 
 def K_fold_clf(clf, X_t_train, X_t_test, y, cv): 
     scores = [] 
-    folds = KFold(n_splits=cv, shuffle=True) 
+    # folds = KFold(n_splits=cv, shuffle=True) 
+    folds = StratifiedKFold(n_splits=cv, shuffle=True)
     
-    for idx_train, idx_test in folds.split(X_t_train): 
+    for idx_train, idx_test in folds.split(X_t_train, y): 
         X_train, y_train = X_t_train[idx_train], y[idx_train] 
         X_test, y_test = X_t_test[idx_test], y[idx_test] 
 
@@ -44,24 +46,24 @@ def mne_cross_temp_clf( X, y, clf=None, cv=10, scoring='accuracy'):
     time_gen = GeneralizingEstimator(pipe, n_jobs=num_cores, scoring=scoring, verbose=False) 
     scores = cross_val_multiscore(time_gen, X, y, cv=cv, n_jobs=num_cores) 
     scores = np.mean(scores, axis=0) 
-    scores_std= np.std(scores, axis=0) 
-
+    scores_std= np.std(scores, axis=0)
+    
     return scores, scores_std
 
 def cross_temp_clf_par(clf, X, y, cv=10): 
 
-    num_cores = -int(multiprocessing.cpu_count()/4) 
+    num_cores = 10 # int(multiprocessing.cpu_count()) 
 
     def loop(t_train, t_test, clf, X, y, cv): 
         X_t_train = X[:,:,t_train] 
-        X_t_test = X[:,:,t_test]
+        X_t_test = X[:,:,t_test] 
         
         score = K_fold_clf(clf, X_t_train,  X_t_test, y, cv) 
         return score 
-    
-    scores = Parallel(n_jobs=num_cores, verbose=True)(delayed(loop)(t_train, t_test, clf, X, y, cv) 
-                                                      for t_train in range(0, X.shape[2]) 
-                                                      for t_test in range(0, X.shape[2]) ) 
+    with pg.tqdm_joblib(pg.tqdm(desc="cross validation", total=int(X.shape[2]*X.shape[2]))) as progress_bar:    
+        scores = Parallel(n_jobs=num_cores, verbose=False)(delayed(loop)(t_train, t_test, clf, X, y, cv) 
+                                                          for t_train in range(0, X.shape[2]) 
+                                                          for t_test in range(0, X.shape[2]) ) 
     scores = np.asarray(scores) 
     scores = scores.reshape( X.shape[2], X.shape[2] ) 
     return scores 
