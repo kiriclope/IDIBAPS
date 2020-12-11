@@ -23,7 +23,7 @@ pc_shift = 0
 gv.pca_concat = 1
 
 gv.IF_PCA=1
-gv.explained_variance = 0.20
+gv.explained_variance = 0.5
 
 gv.DELAY_ONLY=0
 gv.ED_MD_LD=0

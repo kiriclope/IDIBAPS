@@ -1,6 +1,8 @@
 from libs import * 
 sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis') 
 
+from scipy.signal import savgol_filter
+
 import data.constants as gv 
 importlib.reload(gv) 
 
@@ -28,12 +30,12 @@ gv.scriptdir = os.path.dirname(__file__)
 gv.IF_SAVE=1 
 gv.IF_PCA=1 
 
+IF_DECONVOLVE = 0 
+
 gv.DELAY_ONLY = 0 
 gv.ED_MD_LD = 0 
 gv.DOWN_SAMPLING = 0 
-gv.bootstrap_trials=0 
-
-gv.trialsXepochs = 1 
+gv.bootstrap_trials=0  
 
 gv.standardize = 1 
 SYN=0 
@@ -61,7 +63,7 @@ def get_optimal_number_of_components(X):
 
     return s.shape[0] 
 
-for gv.mouse in [gv.mice[1]] : 
+for gv.mouse in [gv.mice[2]] : 
 
     data.get_sessions_mouse() 
     data.get_stimuli_times() 
@@ -72,8 +74,8 @@ for gv.mouse in [gv.mice[1]] :
         print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
         
         data.get_delays_times() 
-        data.get_bins(t_start=1) # .9 or 1 
-            
+        data.get_bins(t_start=0) # .9 or 1 
+        
         if gv.mouse in [gv.mice[0]]: 
             gv.n_trials = 40 
         else: 
@@ -107,10 +109,17 @@ for gv.mouse in [gv.mice[1]] :
 
             data.get_trial_types(X_S1) 
             
-            # compute DF over F0 
-            X_S1 = pp.dFF0(X_S1) 
-            X_S2 = pp.dFF0(X_S2) 
-            
+            # compute DF over F0
+            if not IF_DECONVOLVE:
+                X_S1 = pp.dFF0(X_S1) 
+                X_S2 = pp.dFF0(X_S2) 
+            else:
+                # X_S1 = pp.deconvolve_X(X_S1) 
+                # X_S2 = pp.deconvolve_X(X_S2) 
+                for trial in range(X_S1.shape[0]): 
+                    X_S1[trial] = pp.deconvolve_X(X_S1[trial]) 
+                    X_S2[trial] = pp.deconvolve_X(X_S2[trial]) 
+                
             if gv.DOWN_SAMPLING: 
                 X_S1 = pp.downsample(X_S1,1,2) 
                 X_S2 = pp.downsample(X_S2,1,2) 
@@ -140,7 +149,14 @@ for gv.mouse in [gv.mice[1]] :
                 X_trend = np.asarray(X_trend) 
                 
                 X_S2 = X_S2 - X_trend 
-                # X_S2 = X_S2 - X_trend[:,np.newaxis,:] 
+                # X_S2 = X_S2 - X_trend[:,np.newaxis,:]
+                
+            # for trial in range(X_S2.shape[0]): 
+            #     X_S1[trial] = savgol_filter(X_S1[trial], 17, polyorder = 7, deriv=0) 
+            #     X_S2[trial] = savgol_filter(X_S2[trial], 17, polyorder = 7, deriv=0) 
+            
+                # X_S1[trial] = savgol_filter(X_S1[trial], 17, polyorder=2, deriv=2) 
+                # X_S2[trial] = savgol_filter(X_S2[trial], 17, polyorder=2, deriv=2) 
             
             X_trials[n_trial,0] = X_S1
             X_trials[n_trial,1] = X_S2
@@ -178,7 +194,7 @@ for gv.mouse in [gv.mice[1]] :
         X_proj = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_components, gv.trial_size) ) 
         for i in range(X_trials.shape[0]): 
             for j in range(X_trials.shape[1]): 
-                for k in range(X_trials.shape[2]):  
+                for k in range(X_trials.shape[2]): 
                     trial = scaler.transform(X_trials[i,j,k,:,:].T).T # neurons x time = features x samples 
                     X_proj[i,j,k] = pca.transform(trial.T).T 
                 

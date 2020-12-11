@@ -10,6 +10,7 @@ sys.path.append('../../')
 import data.constants as gv
 import data.plotting as pl
 import data.progressbar as pg 
+import data.preprocessing as pp 
 
 def K_fold_clf(clf, X_t_train, X_t_test, y, cv): 
     scores = [] 
@@ -19,18 +20,44 @@ def K_fold_clf(clf, X_t_train, X_t_test, y, cv):
     for idx_train, idx_test in folds.split(X_t_train, y): 
         X_train, y_train = X_t_train[idx_train], y[idx_train] 
         X_test, y_test = X_t_test[idx_test], y[idx_test] 
-
-        if gv.standardize:
-            scaler =  StandardScaler().fit(X_train) 
-            X_train = scaler.transform(X_train)
-            X_test = scaler.transform(X_test) 
+        
+        scaler =  StandardScaler().fit(X_train) 
+        X_train = scaler.transform(X_train) 
+        X_test = scaler.transform(X_test)  
         
         clf.fit(X_train, y_train) 
         
         scores.append(clf.score(X_test, y_test)) 
         
     return np.mean(scores) 
+
+def K_fold_clf_epochs(clf, X_t_train, X_t_test, y, cv): 
+    scores = [] 
+    # folds = KFold(n_splits=cv, shuffle=True) 
+    folds = StratifiedKFold(n_splits=cv, shuffle=True)
     
+    for idx_train, idx_test in folds.split(X_t_train[:,:,0], y): 
+        X_train, y_train = X_t_train[idx_train], y[idx_train] 
+        X_test, y_test = X_t_test[idx_test], y[idx_test] 
+        
+        X_train = np.hstack(X_train).T 
+        X_test = np.hstack(X_test).T 
+
+        y_train = np.array( [ y[idx]  for _ in range(6) for idx in idx_train ] ).flatten() 
+        y_test = np.array( [ y[idx]  for _ in range(6) for idx in idx_test ] ).flatten() 
+        
+        # print(X_train.shape, y_train.shape, X_test.shape, y_test.shape) 
+        
+        scaler =  StandardScaler().fit(X_train) 
+        X_train = scaler.transform(X_train) 
+        X_test = scaler.transform(X_test) 
+        
+        clf.fit(X_train, y_train) 
+        
+        scores.append(clf.score(X_test, y_test)) 
+        
+    return np.mean(scores) 
+
 def mne_cross_temp_clf( X, y, clf=None, cv=10, scoring='accuracy'):
     num_cores = int(1*multiprocessing.cpu_count()/8) 
 
@@ -59,13 +86,40 @@ def cross_temp_clf_par(clf, X, y, cv=10):
         X_t_test = X[:,:,t_test] 
         
         score = K_fold_clf(clf, X_t_train,  X_t_test, y, cv) 
-        return score 
-    with pg.tqdm_joblib(pg.tqdm(desc="cross validation", total=int(X.shape[2]*X.shape[2]))) as progress_bar:    
+        return score
+    
+    with pg.tqdm_joblib(pg.tqdm(desc="cross validation", total=int(X.shape[2]*X.shape[2]))) as progress_bar: 
         scores = Parallel(n_jobs=num_cores, verbose=False)(delayed(loop)(t_train, t_test, clf, X, y, cv) 
                                                           for t_train in range(0, X.shape[2]) 
                                                           for t_test in range(0, X.shape[2]) ) 
     scores = np.asarray(scores) 
     scores = scores.reshape( X.shape[2], X.shape[2] ) 
+    return scores 
+
+def cross_temp_clf_par_epochs(clf, X, y, cv=10): 
+
+    num_cores = 10 # int(multiprocessing.cpu_count()) 
+
+    def loop(t_train, t_test, clf, X, y, cv, bins_epochs):
+        
+        X_t_train = X[:,:, bins_epochs[t_train] ] 
+        X_t_test = X[:,:, bins_epochs[t_test] ] 
+        
+        score = K_fold_clf_epochs(clf, X_t_train,  X_t_test, y, cv) 
+        return score 
+
+    # scores = []
+    # for t_train in range(0, len(gv.epochs) ) :
+    #     for t_test in range(0, len(gv.epochs) ) :
+    #         scores.append( loop(t_train, t_test, clf, X, y, cv, gv.bins_epochs) )
+    
+    with pg.tqdm_joblib(pg.tqdm(desc="cross validation", total=int( len(gv.epochs)*len(gv.epochs) ) ) ) as progress_bar: 
+        scores = Parallel(n_jobs=num_cores, verbose=False)(delayed(loop)(t_train, t_test, clf, X, y, cv, gv.bins_epochs) 
+                                                           for t_train in np.arange(0, len(gv.epochs) ) 
+                                                           for t_test in np.arange(0, len(gv.epochs) ) ) 
+    
+    scores = np.asarray(scores) 
+    scores = scores.reshape( len(gv.epochs), len(gv.epochs) ) 
     return scores 
 
 def cross_temp_plot_diag(scores,scores_std): 

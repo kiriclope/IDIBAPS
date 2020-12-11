@@ -130,3 +130,7 @@ my_decoder=0
 
 global pal
 pal = ['r','b','y']
+
+global bins_epochs
+bins_epochs= []
+

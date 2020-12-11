@@ -8,6 +8,10 @@ import data.preprocessing as pp
 import data.angle as agl
 import data.progressbar as pg
 
+from pls import optimise_pls_cv 
+
+from sklearn.cross_decomposition import PLSRegression
+
 from joblib import Parallel, delayed, parallel_backend
 import multiprocessing 
     
@@ -29,18 +33,18 @@ def bootstrap_clf_par(X, y, clf, dum, cv):
         idx_trials = np.arange(0, X.shape[0]) 
     else:
         #standard bootstrap
-        idx_trials = np.random.randint(0, X.shape[0], X.shape[0]) 
-        #block bootstrap 
-        # idx_trials = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)),
-        #                           np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) )
-        #trialxepochs
-        # X is (trials x times , neurons) and we want to sample over trials
-        # so we pick n_trials with replacement ie if trial k, then idx_k = [k*gv.bins_ED, (k+1)*gv.bins_ED]
+        # idx_trials = np.random.randint(0, X.shape[0], X.shape[0]) 
+        # block bootstrap 
+        idx_trials = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)), 
+                                  np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) ) 
+        #trialxepochs 
+        # X is (trials x times , neurons) and we want to sample over trials 
+        # so we pick n_trials with replacement ie if trial k, then idx_k = [k*gv.bins_ED, (k+1)*gv.bins_ED] 
         # idx = np.random.randint(0, 40, 40) 
-        # idx_trials = np.array( [np.arange(k*7, (k+1)*7) for k in idx ] ).flatten()
+        # idx_trials = np.array( [np.arange(k*7, (k+1)*7) for k in idx ] ).flatten() 
         
         # idx = np.random.randint(0, 32, 32) 
-        # idx_trials = np.array( [np.arange(k*6, (k+1)*6) for k in idx ] ).flatten()
+        # idx_trials = np.array( [np.arange(k*6, (k+1)*6) for k in idx ] ).flatten() 
         
     X_sample = X[idx_trials] 
     y_sample = y[idx_trials] 
@@ -58,25 +62,30 @@ def bootstrap_clf_par(X, y, clf, dum, cv):
         clf.fit(X_sample, y_sample) 
         coefs_samples = clf.coef_.flatten() 
     else:
-        best_model = grid_search_cv_clf(clf, X_sample, y_sample, cv=cv)        
+        best_model = grid_search_cv_clf(clf, X_sample, y_sample, cv=cv) 
         coefs_samples = best_model.best_estimator_['clf'].coef_.flatten() 
         # C = best_model.best_estimator_['clf__C']
         
-    return coefs_samples
+    return coefs_samples 
 
-def bootCoefs(X_proj, C=1e0, penalty='l2', solver='liblinear', loss='squared_hinge', cv=10, l1_ratio=None): 
+def bootCoefs(X_proj, C=1e0, penalty='l2', solver='liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
 
-    gv.n_boot = int(1e3) 
-    gv.num_cores = 5 # int(1*multiprocessing.cpu_count()/2) 
+    gv.n_boot = int(1e0) 
+    gv.num_cores = 10 # int(1*multiprocessing.cpu_count()/2) 
 
-    # clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
-    #                          fit_intercept=bool(not gv.standardize), n_jobs=gv.num_cores, l1_ratio=l1_ratio) 
+    clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
+                             fit_intercept=bool(not gv.standardize), n_jobs=10, l1_ratio=l1_ratio) 
 
-    clf = LogisticRegressionCV(Cs=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
-                               fit_intercept=bool(not gv.standardize), n_jobs=10) 
+    # clf = LogisticRegressionCV(Cs=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
+    #                            fit_intercept=bool(not gv.standardize), n_jobs=10) 
     
     # clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e8), fit_intercept=bool(not gv.standardize) )
-    # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage='auto') 
+    # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage=shrinkage)
+
+    # clf = Lasso(alpha=1.0/C, fit_intercept=True, normalize=False, precompute=False, copy_X=True, max_iter=int(1e8), tol=1e-6, warm_start=False, positive=False, random_state=None, selection='cyclic') 
+
+    # clf = LassoCV(eps=0.001, n_alphas=100, alphas=None, fit_intercept=True, normalize=False, precompute='auto', max_iter=int(1e8), tol=1e-6, copy_X=True, cv=None, verbose=False, n_jobs=10, positive=False, random_state=None, selection='random') 
+    
     gv.clf_name = clf.__class__.__name__ 
     if 'CV' in 'gv.clf_name': 
         cv=0
@@ -100,18 +109,29 @@ def bootCoefs(X_proj, C=1e0, penalty='l2', solver='liblinear', loss='squared_hin
     for n_trial, gv.trial in enumerate(gv.trials): 
         X_S1 = X_proj[n_trial,0] 
         X_S2 = X_proj[n_trial,1]
-        X_S1_S2 = np.vstack((X_S1, X_S2)) 
+
+        # X_S1, X_S2, idx = pp.selectiveNeurons(X_S1, X_S2, .25) 
+        # print(X_S1.shape) 
         
+        X_S1_S2 = np.vstack((X_S1, X_S2)) 
         X_S1_S2 = pp.avg_epochs(X_S1_S2) 
+        
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
         for n_epochs in range(X_S1_S2.shape[2]):
-            X = X_S1_S2[:,:,n_epochs]
+            X = X_S1_S2[:,:,n_epochs] 
+
+            X = StandardScaler().fit_transform(X)
+            n_comp = optimise_pls_cv(X, y, 150) 
+            pls = PLSRegression(n_components=n_comp)            
+            X, _ = pls.fit_transform(X,y)
+            
+            print(X.shape, y.shape)
             
             with pg.tqdm_joblib(pg.tqdm(desc= gv.trial + ' ' + gv.epochs[n_epochs] , total=gv.n_boot)) as progress_bar: 
             
                 boot_coefs = Parallel(n_jobs=gv.num_cores, verbose=False)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot, cv) for _ in range(gv.n_boot)) 
-            coefs[n_trial, n_epochs] = np.array(boot_coefs) 
+            coefs[n_trial, n_epochs,:, 0:n_comp] = np.array(boot_coefs) 
 
     return coefs 
 
@@ -170,16 +190,21 @@ def add_pvalue(p_values):
             elif p_values[n_cols-1,n_epoch]>.05: 
                 plt.text((2*n_epoch+cols[0]+cols[n_cols])*.5, high[n_cols-1], "ns", ha='center', va='bottom', color='k', fontsize=6) 
 
-def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr'): 
+def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_ratio=0, shrinkage='auto'): 
     
     pl.figDir() 
-    
+    clf_param = ''
+
     if 'LogisticRegression' in gv.clf_name:
-        clf_param = '/C_%.3f_penalty_%s_solver_%s/' % (C, penalty, solver)
+        if 'liblinear' in solver:
+            clf_param = '/C_%.3f_penalty_%s_solver_%s/' % (C, penalty, solver)
+        if 'sag' in solver:
+            clf_param = '/C_%.3f_penalty_%s_solver_%s_l1_ratio_%.2f/' % (C, penalty, solver, l1_ratio)
+            
     elif gv.clf_name in 'LinearSVC':
         clf_param = '/C_%.3f_penalty_%s_loss_%s/' % (C, penalty, loss)
     elif gv.clf_name in 'LinearDiscriminantAnalysis':
-        clf_param = '/shrinkage_auto_solver_lsqr/'
+        clf_param = '/shrinkage_%s_solver_lsqr/' % shrinkage
 
     if cv!=0: 
         gv.figdir = gv.figdir + '/gridsearchCV_%d' % cv 
@@ -193,7 +218,7 @@ def corrVsTime(coefs):
     
     corr = np.empty( (len(gv.trials), coefs.shape[1], coefs.shape[1]) ) 
     lower = np.empty( (len(gv.trials), coefs.shape[1], coefs.shape[1]) ) 
-    upper = np.empty( (len(gv.trials), coefs.shape[1], coefs.shape[1]) )
+    upper = np.empty( (len(gv.trials), coefs.shape[1], coefs.shape[1]) ) 
     
     corr_boot = np.empty( (len(gv.trials), gv.n_boot, coefs.shape[1], coefs.shape[1]) ) 
     
@@ -208,21 +233,20 @@ def corrVsTime(coefs):
         
     return corr, lower, upper 
 
-def EDvsLD(X_proj, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None):
+def EDvsLD(X_proj, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'):
 
-    coefs = bootCoefs(X_proj, C, penalty, solver, loss, cv, l1_ratio) 
+    coefs = bootCoefs(X_proj, C, penalty, solver, loss, cv, l1_ratio, shrinkage) 
     mean, lower, upper, cos_boot = cosVsEpochs(coefs) 
     p_values = get_p_values(cos_boot) 
     print('p_values', p_values) 
     
-    create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss) 
+    create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss, l1_ratio=l1_ratio, shrinkage=shrinkage) 
     
     pl.barCosAlp(mean, lower, upper) 
     add_pvalue(p_values) 
-    plt.ylim([-.1, 1.1]) 
+    plt.ylim([-1.1, 1.1]) 
     
     figtitle = '%s_%s_cos_alpha' % (gv.mouse, gv.session) 
     pl.save_fig(figtitle) 
 
     return coefs 
-

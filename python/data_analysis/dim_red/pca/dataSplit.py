@@ -27,7 +27,7 @@ def get_X_y_trials(n_trial, X_trials):
     X_S2 = X_trials[n_trial,1] 
     X_S1_S2 = np.vstack((X_S1, X_S2)) 
 
-    return X_S1_S2, y
+    return X_S1_S2, y 
 
 def datasplit(X, y, C):
 

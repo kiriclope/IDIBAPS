@@ -1,8 +1,14 @@
 from .libs import * 
 from . import constants as gv
+from . import progressbar as pg
 
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
+
+sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/OASIS') 
+from oasis.functions import deconvolve 
+
+from joblib import Parallel, delayed, parallel_backend
 
 import scipy.signal
 
@@ -19,8 +25,8 @@ def z_score(X):
     return Xz 
 
 def normalize(X):
-    Xmin = np.amin(X[:, gv.bins_STIM], axis=1) 
-    Xmax = np.amax(X[:, gv.bins_STIM], axis=1) 
+    Xmin = np.amin(X[:, gv.bins_ED], axis=1) 
+    Xmax = np.amax(X[:, gv.bins_ED], axis=1) 
 
     # Xmin = np.amin(X, axis=1) 
     # Xmax = np.amax(X, axis=1) 
@@ -197,7 +203,7 @@ def avg_epochs(X):
         X_LD = np.mean(X[:,:,gv.bins_LD[:]-gv.bin_start],axis=2) 
         
     if len(gv.epochs)==3: 
-        X_epochs = np.array([X_ED, X_MD, X_LD])
+        X_epochs = np.array([X_ED, X_MD, X_LD]) 
     else: 
         X_epochs = np.array([X_STIM, X_ED, X_MD, X_LD]) 
 
@@ -223,6 +229,40 @@ def selectiveNeurons(X_S1, X_S2, Threshold=.01):
         
     idx = np.where(abs(sel_idx)<=Threshold) 
     X_S1 = np.delete(X_S1, idx, axis=1) 
-    X_S2 = np.delete(X_S2, idx, axis=1)     
+    X_S2 = np.delete(X_S2, idx, axis=1) 
     
     return X_S1, X_S2, idx
+
+def deconvolve_X(X):
+
+    F0 = np.mean(X[:,gv.bins_BL],axis=1) 
+    with pg.tqdm_joblib(pg.tqdm(desc='deconvolve', total=X.shape[0])) as progress_bar: 
+        result = Parallel(n_jobs=gv.num_cores)(delayed(deconvolve)(X[n_neuron], penalty=1, b=F0) for n_neuron in range(X.shape[0]) )
+
+    result = np.array(result).T
+    # print(result.shape)
+    X_deconv = np.stack(result[1])
+    # print(X_deconv.shape)
+    
+    # F0 = np.mean(X[:,:,gv.bins_BL],axis=2)     
+    # with pg.tqdm_joblib(pg.tqdm(desc='deconvolve', total=int( X.shape[0] * X.shape[1] ) )) as progress_bar: 
+    #     result = Parallel(n_jobs=gv.num_cores)(delayed(deconvolve)(X[trial, n_neuron], penalty=1, b=F0[trial, n_neuron] ) for trial in range(X.shape[0]) for n_neuron in range(X.shape[1]) ) 
+
+    # result = np.array(result).T
+    # result = np.array(result).reshape( (5, X.shape[0], X.shape[1]) )
+    # result = np.moveaxis(result, 1, 2)
+    # # print(result.shape)
+    
+    # X_deconv = np.stack( np.hstack(result[0]) ).reshape( (X.shape[0], X.shape[1], X.shape[2]) ) 
+    # # print(X_denoised.shape)
+
+    # X_spikes = np.stack( np.hstack(result[1]) ).reshape( (X.shape[0], X.shape[1], X.shape[2]) ) 
+    # print(X_denoised.shape)
+    
+    # X_denoised = np.empty( (X.shape[0], X.shape[1]) )
+    # X_spikes = np.empty( (X.shape[0], X.shape[1]) ) 
+
+    # for n_neuron in range(X.shape[0]):
+    #     X_denoised[n_neuron], X_spikes[n_neuron], F0, g, lam = deconvolve(X[n_neuron], penalty=1) 
+
+    return X_deconv

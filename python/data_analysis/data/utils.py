@@ -238,7 +238,7 @@ def get_bins(t_start=0):
     
     gv.bins_ED_MD_LD = np.hstack( (gv.bins_ED, gv.bins_MD, gv.bins_LD) ) 
     gv.t_ED_MD_LD = gv.time[gv.bins_ED_MD_LD] 
-
+    gv.bins_epochs = np.array( [gv.bins_ED, gv.bins_MD, gv.bins_LD] ) 
     
 def get_X_y_epochs(X_S1_trials, X_S2_trials): 
 
