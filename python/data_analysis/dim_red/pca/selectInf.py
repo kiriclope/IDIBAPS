@@ -14,37 +14,35 @@ import statsmodels.api as sm
 def selectInfCrossVal(X, y, K):
 
     loss = rr.glm.logistic(X,y) 
-    lam_seq = np.exp(np.linspace(np.log(1.e-6), np.log(1), 100)) * np.fabs(np.dot(X.T,y)).max() 
-    # lam_seq = np.logspace(-2, 2, 100) 
+    # lam_seq = np.exp(np.linspace(np.log(1.e-6), np.log(1), 100)) * np.fabs(np.dot(X.T,y)).max() 
+    lam_seq = np.logspace(-4, 4, 100) 
     
     folds = np.arange(X.shape[0]) % K 
     # folds = K 
     CV_compute = cv.CV(loss, folds, lam_seq) 
     lam_CV, CV_val, SD_val, lam_CV_randomized, CV_val_randomized, SD_val_randomized = CV_compute.choose_lambda_CVr() 
 
-    minimum_CV = np.min(CV_val)
-    lam_idx = list(lam_seq).index(lam_CV)
-    SD_min = SD_val[lam_idx]
-    lam_1SD = lam_seq[max([i for i in range(lam_seq.shape[0]) if CV_val[i] <= minimum_CV + SD_min])]
+    minimum_CV = np.min(CV_val) 
+    lam_idx = list(lam_seq).index(lam_CV) 
+    SD_min = SD_val[lam_idx] 
+    lam_1SD = lam_seq[max([i for i in range(lam_seq.shape[0]) if CV_val[i] <= minimum_CV + SD_min])] 
     
     print('lambdas', lam_1SD, lam_CV, lam_CV_randomized) 
     return lam_1SD
 
 def selectInfLogistic(X, y, C):
-
+    
     L = lasso.lasso.logistic(X, y, C) 
     L.fit()
-
+    
     Cst = L.constraints
-        
-    np.testing.assert_array_less( \
-        np.dot(L.constraints.linear_part, L.onestep_estimator),
-        L.constraints.offset)
+    
+    np.testing.assert_array_less( np.dot(L.constraints.linear_part, L.onestep_estimator), L.constraints.offset)
     
     df = L.summary(compute_intervals=True)
     df = df.reset_index(drop=True)
     
-    variable = df['variable']
+    variable = df['variable'] 
     beta = df['lasso'] 
     lower = df['lower_confidence'] 
     upper = df['upper_confidence'] 
@@ -92,7 +90,7 @@ def cosVsEpochs(alpha, dum=0):
 
     plt.ylim([0,1.1]) 
     
-def selectInfCoefs(X_trials, C=1e0, K=5): 
+def selectInfCoefs(X_trials, C=1e0, K=8): 
         
     if X_trials.shape[3]!=gv.n_neurons: 
         X_trials = X_trials[:,:,:,0:gv.n_components,:] 

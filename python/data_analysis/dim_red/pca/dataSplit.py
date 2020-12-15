@@ -10,6 +10,25 @@ import multiprocessing
 
 from sklearn.model_selection import train_test_split 
 
+def get_X_y_sessions_trials(n_trial, X_trials): 
+        
+    if X_trials.shape[3]!=gv.n_neurons: 
+        X_trials = X_trials[:,:,:,0:gv.n_components,:] 
+    
+    gv.AVG_EPOCHS = 0 
+    gv.trial_size = X_trials.shape[-1] 
+    
+    if gv.AVG_EPOCHS: 
+        gv.trial_size = len(['ED','MD','LD']) 
+    
+    y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
+    
+    X_S1 = X_trials[n_trial,0] 
+    X_S2 = X_trials[n_trial,1] 
+    X_S1_S2 = np.vstack((X_S1, X_S2)) 
+
+    return X_S1_S2, y 
+
 def get_X_y_trials(n_trial, X_trials): 
         
     if X_trials.shape[3]!=gv.n_neurons: 

@@ -63,7 +63,7 @@ def get_optimal_number_of_components(X):
 
     return s.shape[0] 
 
-for gv.mouse in [gv.mice[2]] : 
+for gv.mouse in [gv.mice[1]] : 
 
     data.get_sessions_mouse() 
     data.get_stimuli_times() 
@@ -163,7 +163,7 @@ for gv.mouse in [gv.mice[2]] :
             
             X_avg[n_trial] = np.hstack( ( np.mean(X_S1, axis=0), np.mean(X_S2, axis=0) ) ) 
             
-        print('X_trials', X_trials.shape)         
+        print('X_trials', X_trials.shape) 
         
         X_avg = np.hstack(X_avg)
         print('X_avg', X_avg.shape) 

@@ -190,13 +190,13 @@ def avg_epochs(X):
         X_STIM = X_ED
         
     elif gv.trialsXepochs: 
-        print('avg trials x epochs')
+        print(gv.trial,'avg trials x epochs')
         X_STIM = np.hstack(X[:,:,gv.bins_STIM[:]-gv.bin_start]).T
         X_ED = np.hstack(X[:,:,gv.bins_ED[:]-gv.bin_start]).T 
         X_MD = np.hstack(X[:,:,gv.bins_MD[:]-gv.bin_start]).T 
         X_LD = np.hstack(X[:,:,gv.bins_LD[:]-gv.bin_start]).T 
     else:
-        print('avg over epochs')
+        print(gv.trial,'avg over epochs')
         X_STIM = np.mean(X[:,:,gv.bins_STIM[:]-gv.bin_start],axis=2) 
         X_ED = np.mean(X[:,:,gv.bins_ED[:]-gv.bin_start],axis=2) 
         X_MD = np.mean(X[:,:,gv.bins_MD[:]-gv.bin_start],axis=2) 
@@ -241,7 +241,7 @@ def deconvolve_X(X):
 
     result = np.array(result).T
     # print(result.shape)
-    X_deconv = np.stack(result[1])
+    X_deconv = (np.stack(result[0])-F0[:, np.newaxis])/(F0[:, np.newaxis] + gv.eps) 
     # print(X_deconv.shape)
     
     # F0 = np.mean(X[:,:,gv.bins_BL],axis=2)     

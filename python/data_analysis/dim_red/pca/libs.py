@@ -19,6 +19,7 @@ from scipy.ndimage.filters import gaussian_filter1d
 import scipy.stats as stats
 
 from sklearn import svm
+from sklearn.ensemble import BaggingRegressor
 from sklearn.decomposition import PCA, SparsePCA
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV, Lasso, LassoCV, LassoLars, LassoLarsCV 
