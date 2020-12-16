@@ -1,5 +1,5 @@
 from libs import * 
-sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis') 
+sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis') 
 
 from scipy.signal import savgol_filter
 
@@ -23,17 +23,21 @@ pal = ['r','b','y']
 gv.samples = ['S1', 'S2'] 
 pc_shift = 0 
 
-gv.explained_variance = 0.90
+gv.explained_variance = 0.90 
 
 gv.scriptdir = os.path.dirname(__file__) 
 
 gv.IF_SAVE=1 
 gv.IF_PCA=1 
 
+gv.T_WINDOW = 0
+
 IF_DECONVOLVE = 0 
 
 gv.DELAY_ONLY = 0 
-gv.ED_MD_LD = 0 
+gv.ED_MD_LD = 0
+gv.EDvsLD = 1
+
 gv.DOWN_SAMPLING = 0 
 gv.bootstrap_trials=0  
 
@@ -63,18 +67,18 @@ def get_optimal_number_of_components(X):
 
     return s.shape[0] 
 
-for gv.mouse in [gv.mice[1]] : 
+for gv.mouse in [gv.mice[0]] : 
 
     data.get_sessions_mouse() 
     data.get_stimuli_times() 
     data.get_delays_times() 
     
-    for gv.session in [gv.sessions[3]] : 
+    for gv.session in [gv.sessions[4]] : 
         X, y = data.get_fluo_data() 
         print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
         
         data.get_delays_times() 
-        data.get_bins(t_start=0) # .9 or 1 
+        data.get_bins() # .9 or 1 
         
         if gv.mouse in [gv.mice[0]]: 
             gv.n_trials = 40 
@@ -200,14 +204,14 @@ for gv.mouse in [gv.mice[1]] :
                 
         print('X_proj', X_proj.shape) 
 
-        figname = '%s_%s_pca_scree_plot' % (gv.mouse, gv.session) 
-        plt.figure(figname) 
-        plt.plot(explained_variance,'-o') 
-        plt.xlabel('components')
-        plt.ylabel('explained variance') 
-        figdir = pl.figDir() 
-        pl.save_fig(figname)         
-
+        # figname = '%s_%s_pca_scree_plot' % (gv.mouse, gv.session) 
+        # plt.figure(figname) 
+        # plt.plot(explained_variance,'-o') 
+        # plt.xlabel('components')
+        # plt.ylabel('explained variance') 
+        # figdir = pl.figDir() 
+        # pl.save_fig(figname)         
+        
         # if gv.laser_on:
         #     figname = '%s_%s_pca_laser_on_%d' % (gv.mouse, gv.session, pc_shift)
         # else:
@@ -235,5 +239,3 @@ for gv.mouse in [gv.mice[1]] :
         #     sns.despine(right=True, top=True)
         #     # if n_pc == np.amin([gv.n_components,3])-1: 
         #         # add_orientation_legend(ax) 
-        
-        

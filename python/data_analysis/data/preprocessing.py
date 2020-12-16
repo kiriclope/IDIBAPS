@@ -5,7 +5,7 @@ from . import progressbar as pg
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 
-sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/OASIS') 
+sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/OASIS') 
 from oasis.functions import deconvolve 
 
 from joblib import Parallel, delayed, parallel_backend

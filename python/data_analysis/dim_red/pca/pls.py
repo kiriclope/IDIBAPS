@@ -89,9 +89,9 @@ def test_pls(X_trials, n_trial, n_comp):
             # X_epochs = savgol_filter(X_epochs, 17, polyorder=2, deriv=2) 
             X_epochs = StandardScaler().fit_transform(X_epochs) 
             y_cv, r2, mse, rpd = optimise_pls_cv(X_epochs, y, n_comp) 
-            r2s.append(r2)
-            mses.append(mse)
-            rpds.append(rpd)
+            r2s.append(r2) 
+            mses.append(mse) 
+            rpds.append(rpd) 
     
         # plot_metrics(mses, 'MSE', 'min')
         # plot_metrics(rpds, 'RPD', 'max')
@@ -124,18 +124,26 @@ def test_pls(X_trials, n_trial, n_comp):
 
 #         print('n_comp', np.argmax(r2s), np.argmax(mses), np.argmax(rpds))
         
-def optimise_pls_cv(X, y, n_comp_max):
+def optimise_pls_cv(X, y, n_comp_max, verbose=True):
     '''Run PLS including a variable number of components, up to n_comp,
        and calculate MSE '''
     
     mse = [] 
-    component = np.arange(1, n_comp_max) 
-    for i in pg.tqdm(component, desc='pls'): 
-        pls = PLSRegression(n_components=i) 
-        # Cross-validation 
-        y_cv = cross_val_predict(pls, X, y, cv=10) 
-        mse.append(mean_squared_error(y, y_cv)) 
-        
+    component = np.arange(3, n_comp_max)
+    if verbose:
+        for i in pg.tqdm(component, desc='pls'): 
+            pls = PLSRegression(n_components=i) 
+            # Cross-validation 
+            y_cv = cross_val_predict(pls, X, y, cv=10) 
+            mse.append(mean_squared_error(y, y_cv)) 
+        print("Suggested number of components: ", msemin+1) 
+    else:
+        for i in component: 
+            pls = PLSRegression(n_components=i) 
+            # Cross-validation 
+            y_cv = cross_val_predict(pls, X, y, cv=10) 
+            mse.append(mean_squared_error(y, y_cv)) 
+            
     #     comp = 100*(i+1)/n_comp_max 
     #     # Trick to update status on the same line
     #     stdout.write("\r pls %d %d%% completed" % (i, comp) )
@@ -154,6 +162,5 @@ def optimise_pls_cv(X, y, n_comp_max):
     
     # Calculate and print the position of minimum in MSE
     msemin = np.argmin(mse)
-    print("Suggested number of components: ", msemin+1)
     
     return msemin+1

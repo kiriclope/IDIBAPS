@@ -5,7 +5,7 @@ shade_alpha = 0.2
 lines_alpha = 0.8
 
 def figDir():
-    gv.figdir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/figs/last/'
+    gv.figdir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/figs/last/'
 
     if gv.trialsXepochs:
         gv.figdir = gv.figdir + '/trialsXepochs' 
@@ -33,6 +33,14 @@ def figDir():
         gv.figdir = gv.figdir + '/EDvsLD/' 
     else : 
         gv.figdir = gv.figdir + '/stimVsDelay/' 
+
+    if gv.BAYES_BOOTSTRAP:
+        gv.figdir = gv.figdir + '/bayes_boot/' 
+    elif gv.BOOTSTRAP:
+        gv.figdir = gv.figdir + '/bootstrap/' 
+
+    if gv.T_WINDOW!=0 :
+        gv.figdir = gv.figdir + '/t_window_%.1f/' % gv.T_WINDOW 
         
     if not os.path.isdir(gv.figdir):
         os.makedirs(gv.figdir)

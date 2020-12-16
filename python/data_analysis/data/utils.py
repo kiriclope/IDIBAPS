@@ -1,5 +1,6 @@
-from .libs import *
-from . import constants as gv
+from .libs import * 
+from . import constants as gv 
+from . import preprocessing as pp 
 
 def get_delays_times():
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
@@ -34,7 +35,7 @@ def get_sessions_mouse():
 def get_fluo_data():
 
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
-        data = loadmat('/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/DataForAlexandre/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat')
+        data = loadmat('/homecentral/alexandre.mahrach/IDIBAPS/DataForAlexandre/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat')
 
         if 'rates' in gv.data_type:
             X_data = np.rollaxis(data['S_dec'],1,0)
@@ -46,11 +47,11 @@ def get_fluo_data():
         gv.frame_rate = 6
     
     else:
-        data = loadmat('/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/DataForAlexandre/' + gv.mouse +  '/' + gv.session + '-C57-2-DualTaskAcrossDaySameROITrace' + '.mat')
-        data_labels = loadmat('/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/DataForAlexandre/' + gv.mouse + '/' + gv.session + '-C57-2-DualTask-SumFluoTraceFile' + '.mat')
+        data = loadmat('/homecentral/alexandre.mahrach/IDIBAPS/DataForAlexandre/' + gv.mouse +  '/' + gv.session + '-C57-2-DualTaskAcrossDaySameROITrace' + '.mat')
+        data_labels = loadmat('/homecentral/alexandre.mahrach/IDIBAPS/DataForAlexandre/' + gv.mouse + '/' + gv.session + '-C57-2-DualTask-SumFluoTraceFile' + '.mat')
         
-        X_data = np.rollaxis(data['SameAllCdf'],2,0)
-        # X_data = np.rollaxis(data['SamedFF0'],2,0)
+        X_data = np.rollaxis(data['SameAllCdf'],2,0) 
+        # X_data = np.rollaxis(data['SamedFF0'],2,0) 
         
         y_labels= data_labels['AllFileEvents'+gv.session][0][0][0].transpose() 
         gv.frame_rate = 7.5 
@@ -184,9 +185,9 @@ def get_trial_types(X_S1_trials):
     gv.n_trials = 2*X_S1_trials.shape[0]
     gv.trial_type = ['ND'] * gv.n_trials + ['D1'] * gv.n_trials + ['D2'] * gv.n_trials
 
-def get_bins(t_start=0):
+def get_bins():
 
-    if(t_start==0): 
+    if(gv.T_WINDOW==0): 
         gv.bins_BL = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_BL[0]) and (gv.time[bin]<=gv.t_BL[1])] 
     
         gv.bins_STIM = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_STIM[0]) and (gv.time[bin]<=gv.t_STIM[1]) ] 
@@ -212,25 +213,25 @@ def get_bins(t_start=0):
     else:
         gv.bins_BL = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_BL[0]) and (gv.time[bin]<=gv.t_BL[1]) ] 
     
-        gv.bins_STIM = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_STIM[1]-t_start) and (gv.time[bin]<=gv.t_STIM[1]) ] 
+        gv.bins_STIM = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_STIM[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_STIM[1]) ] 
     
-        gv.bins_ED = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_ED[0]+t_start) ]
+        gv.bins_ED = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_ED[0]+gv.T_WINDOW) ]
         
-        gv.bins_DIST = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DIST[1]-t_start) and (gv.time[bin]<=gv.t_DIST[1]) ]
+        gv.bins_DIST = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DIST[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_DIST[1]) ]
         
-        gv.bins_MD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_MD[1]-t_start) and (gv.time[bin]<=gv.t_MD[1]) ]
+        gv.bins_MD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_MD[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_MD[1]) ]
         
-        gv.bins_LD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-t_start) and (gv.time[bin]<=gv.t_LD[1]) ] 
+        gv.bins_LD = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_LD[1]) ] 
         
-        gv.bins_cue = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_cue[1]-t_start) and (gv.time[bin]<=gv.t_cue[1]) ] 
+        gv.bins_cue = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_cue[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_cue[1]) ] 
 
-        gv.bins_DRT_rwd = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DRT_reward[1]-t_start) and (gv.time[bin]<=gv.t_DRT_reward[1]) ] 
+        gv.bins_DRT_rwd = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DRT_reward[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_DRT_reward[1]) ] 
 
-        gv.bins_test = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_test[1]-t_start) and (gv.time[bin]<=gv.t_test[1]) ] 
+        gv.bins_test = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_test[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_test[1]) ] 
 
-        gv.bins_delay = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-t_start) and (gv.time[bin]<=gv.t_LD[1]) ] 
+        gv.bins_delay = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_LD[1]) ] 
 
-        gv.t_delay = [ gv.time[bin] for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-t_start) and (gv.time[bin]<=gv.t_LD[1]) ]
+        gv.t_delay = [ gv.time[bin] for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_LD[1]) ]
         
 
     # gv.bins_STIM_ED_MD_LD =  np.hstack( (gv.bins_STIM, gv.bins_ED, gv.bins_MD, gv.bins_LD) )
@@ -292,7 +293,7 @@ def get_X_y_epochs(X_S1_trials, X_S2_trials):
         X = np.concatenate([X_S1, X_S2], axis=0) 
     else: 
         X = np.concatenate([X_S1, X_S2], axis=1) 
-        X = np.rollaxis(X,2,1).transpose() 
+        X = np.rollaxis(X,2,1).transpospe() 
         
     y_S1 = np.repeat(0, int(X_S1_trials.shape[0])) 
     y_S2 = np.repeat(1, int(X_S2_trials.shape[0]))
@@ -318,3 +319,33 @@ def get_X_y_trials(X_data, y_labels):
     
     return X_trials, y_trials
 
+def get_X_y_mouse_session():
+    
+    X, y = get_fluo_data() 
+    print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
+    
+    get_delays_times() 
+    get_bins() # .9 or 1 
+        
+    if gv.mouse in [gv.mice[0]]: 
+        gv.n_trials = 40 
+    else: 
+        gv.n_trials = 32 
+        
+    X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) ) 
+
+    for n_trial, gv.trial in enumerate(gv.trials):
+
+        X_S1, X_S2 = get_S1_S2_trials(X, y) 
+        get_trial_types(X_S1) 
+            
+        # compute DF over F0
+        X_S1 = pp.dFF0(X_S1) 
+        X_S2 = pp.dFF0(X_S2) 
+                
+        X_trials[n_trial,0] = X_S1
+        X_trials[n_trial,1] = X_S2
+            
+    print('X_trials', X_trials.shape) 
+
+    return X_trials

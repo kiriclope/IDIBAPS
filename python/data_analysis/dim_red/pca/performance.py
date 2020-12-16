@@ -1,6 +1,6 @@
 from libs import * 
 
-sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis') 
+sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis') 
 
 import data.constants as gv 
 import data.utils as data 
@@ -64,15 +64,16 @@ for gv.mouse in gv.mice :
     figtitle = '%s_performance' % (gv.mouse)
     ax = plt.figure(figtitle).add_subplot() 
     
-    days = np.arange( len(gv.sessions) ) 
+    days = np.arange(1, len(gv.sessions)+1 ) 
     plt.plot(days, perf[0], color=pal[0]) 
     plt.plot(days, perf[1], color=pal[1]) 
     plt.plot(days, perf[2], color=pal[2])
     ax.set_title(gv.mouse)
     plt.xlabel('days')
     plt.ylabel('performance')
-    plt.ylim([50,100])
-    plt.xlim([0,5])
+    plt.ylim([30,100])
+    plt.xlim([1,6])
+    plt.xticks(days)
     
     pl.figDir() 
     pl.save_fig(figtitle) 

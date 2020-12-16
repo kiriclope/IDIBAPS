@@ -1,5 +1,5 @@
 from libs import * 
-sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis') 
+sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/IDIBAPS/python/data_analysis') 
 
 import data.constants as gv 
 import data.utils as data 

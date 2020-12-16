@@ -95,8 +95,8 @@ t_stim_delay = []
 
 global scriptdir, figdir, filedir
 scriptdir = ''
-figdir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/figs' 
-filedir = '/homecentral/alexandre.mahrach/gdrive/postdoc_IDIBAPS/python/data_analysis/data'  
+figdir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/figs' 
+filedir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/data' 
 
 global standardize
 standardize = 0
@@ -134,3 +134,9 @@ pal = ['r','b','y']
 global bins_epochs
 bins_epochs= []
 
+global BAYES_BOOTSTRAP, BOOTSTRAP
+BAYES_BOOTSTRAP = 1 
+BOOTSTRAP = 0
+
+global T_WINDOW
+T_WINDOW = 0 
