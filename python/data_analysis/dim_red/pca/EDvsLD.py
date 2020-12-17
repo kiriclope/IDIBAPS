@@ -14,8 +14,10 @@ importlib.reload(fac)
 fac.SetPlotParams() 
 
 from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical
-from pls import optimise_pls_cv 
+from pls import pls_cv_mse 
 from spls import *
+
+from spca import supervisedPCA
 
 from bayesian_bootstrap import bootstrap as bayes 
 
@@ -38,12 +40,6 @@ def t_test(x,y,alternative='both-sided'):
             pval = 1.0 - double_p/2.
     return pval
 
-def pls_transform(X,y,verbose):
-    n_comp = optimise_pls_cv(X, y, 2*X.shape[0], verbose=verbose) 
-    pls = PLSRegression(n_components=n_comp) 
-    X, _ = pls.fit_transform(X,y) 
-    return X, pls.coef_ 
-
 def grid_search_cv_clf(loss, X, y, cv=10): 
     
     pipe = Pipeline([('scale', StandardScaler()), ('clf', loss)]) 
@@ -54,17 +50,27 @@ def grid_search_cv_clf(loss, X, y, cv=10):
     
     return best_model 
 
-def bayesian_boot(clf, X, y, n_boot, n_jobs=1):
-    model = bayes.BayesianBootstrapBagging(clf, n_boot, X.shape[1], n_jobs=n_jobs) 
+def bayesian_boot(clf, X, y, n_boot, n_jobs=1, V=None):
+    pipe = Pipeline([('scale', StandardScaler()), ('clf', clf)]) 
+    model = bayes.BayesianBootstrapBagging(pipe, n_boot, X.shape[1], n_jobs=n_jobs) 
     model.fit(X, y) 
-    coefs = [ estimator.coef_.flatten() for estimator in model.base_models_ ] 
-    coefs = np.array(coefs) 
+    if V is not None:
+        coefs = [ V.dot(estimator[1].coef_.T).flatten() for estimator in model['clf'].base_models_ ] 
+    else:
+        coefs = [ estimator[1].coef_.flatten() for estimator in model['clf'].base_models_ ] 
+        
+    coefs = np.array(coefs)
     return coefs 
 
-def bagging_boot(clf, X, y, n_estimators):
-    model = BaggingRegressor(base_estimator=clf, n_estimators=n_estimators, n_jobs=gv.num_cores, bootstrap_features=False) 
+def bagging_boot(clf, X, y, n_estimators, V=None):
+    pipe = Pipeline([('scale', StandardScaler()), ('clf', clf)]) 
+    model = BaggingRegressor(base_estimator=pipe, n_estimators=n_estimators, n_jobs=gv.num_cores, bootstrap_features=False) 
     model.fit(X, y) 
-    coefs = [ estimator.coef_.flatten() for estimator in model.estimators_ ] 
+    if V is not None:
+        coefs = [ V.dot(estimator[1].coef_.T).flatten() for estimator in model.estimators_ ] 
+    else:
+        coefs = [ estimator[1].coef_.flatten() for estimator in model.estimators_ ] 
+
     coefs = np.array(coefs) 
     return coefs 
 
@@ -76,10 +82,10 @@ def bootstrap_clf_par(X, y, clf, dum, cv):
         idx_trials = np.arange(0, X.shape[0]) 
     else:
         #standard bootstrap
-        idx_trials = np.random.randint(0, X.shape[0], X.shape[0]) 
+        # idx_trials = np.random.randint(0, X.shape[0], X.shape[0]) 
         # block bootstrap 
-        # idx_trials = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)), 
-        #                           np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) ) 
+        idx_trials = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)), 
+                                  np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) ) 
         #trialxepochs 
         # X is (trials x times , neurons) and we want to sample over trials 
         # so we pick n_trials with replacement ie if trial k, then idx_k = [k*gv.bins_ED, (k+1)*gv.bins_ED] 
@@ -97,19 +103,19 @@ def bootstrap_clf_par(X, y, clf, dum, cv):
     #     idx_neurons = np.random.randint(0, X.shape[1], X.shape[1]) 
     #     X_sample[trial] = X[trial, idx_neurons] 
     
-    # scaler = StandardScaler().fit(X) 
-    # X_sample = scaler.transform(X_sample) 
+    scaler = StandardScaler().fit(X) 
+    X_sample = scaler.transform(X_sample) 
     
     if cv==0:
-        X_sample = StandardScaler().fit_transform(X_sample)
+        # X_sample = StandardScaler().fit_transform(X_sample)
 
-        _, coefs = pls_transform(X_sample, y_sample, verbose=False)        
-        # _, coefs = spls_cv(X_sample, y_sample, n_comp_max = X_sample.shape[0], n_jobs=5) 
-
-        coefs_samples = coefs.flatten() 
-
+        # _, coefs = pls_transform(X_sample, y_sample, verbose=False) 
+        _, coefs = spls_cv(X_sample, y_sample, n_comp_max = X_sample.shape[0], n_jobs=5)
+        
+        # coefs_samples = supervisedPCA.spca_cv(clf, X_sample, y_sample, cv=10, threshold_max=10, Cs=10).flatten() 
+        
         # clf.fit(X_sample, y_sample) 
-        # coefs_samples = clf.coef_.flatten() 
+        coefs_samples = clf.coef_.flatten() 
     else:
         best_model = grid_search_cv_clf(clf, X_sample, y_sample, cv=cv) 
         coefs_samples = best_model.best_estimator_['clf'].coef_.flatten() 
@@ -120,24 +126,31 @@ def bootstrap_clf_par(X, y, clf, dum, cv):
 def bootCoefs(X_proj, C=1e0, penalty='l2', solver='liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
 
     gv.n_boot = int(1e3) 
-    gv.num_cores = 56 # int(1*multiprocessing.cpu_count()/2) 
+    gv.num_cores = 50 # int(1*multiprocessing.cpu_count()/2) 
 
     # clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
-    #                          fit_intercept=bool(not gv.standardize), l1_ratio=l1_ratio) 
+    #                          fit_intercept=True, l1_ratio=l1_ratio, intercept_scaling=1) 
 
-    gv.num_cores = int(multiprocessing.cpu_count()/5) 
+    gv.num_cores = int(multiprocessing.cpu_count()/6) 
     clf = LogisticRegressionCV(Cs=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
-                               fit_intercept=bool(not gv.standardize), n_jobs=5) 
+                               fit_intercept=True, n_jobs=5 , intercept_scaling=1e3) 
     
-    # clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e8), fit_intercept=bool(not gv.standardize) ) 
+    # clf = svm.LinearSVC(C=C, penalty=penalty, loss='squared_hinge', dual=False, tol=1e-6, max_iter=int(1e8), fit_intercept=True ) 
     # clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage=shrinkage) 
    
     # clf = Lasso(alpha=1.0/C, fit_intercept=True, normalize=False, precompute=False, copy_X=True, max_iter=int(1e8), tol=1e-6, warm_start=False, positive=False, random_state=None, selection='cyclic') 
 
-    # clf = LassoCV(eps=0.001, n_alphas=100, alphas=None, fit_intercept=True, normalize=False, precompute='auto', max_iter=int(1e8), tol=1e-6, copy_X=True, cv=None, verbose=False, n_jobs=10, positive=False, random_state=None, selection='random') 
+    # gv.num_cores = int(multiprocessing.cpu_count()/6) 
+    # clf = LassoCV(eps=0.001, n_alphas=100, alphas=None, fit_intercept=True, normalize=False, precompute='auto', max_iter=int(1e8), tol=1e-6, copy_X=True, cv=None, verbose=False, n_jobs=5, positive=False, random_state=None, selection='random') 
 
-    # gv.num_cores = 4 
+    # gv.num_cores = int(multiprocessing.cpu_count()/6) 
+    # clf = LassoLarsCV(fit_intercept=False, verbose=False, max_iter=500, normalize=True, precompute='auto', cv=None, max_n_alphas=1000, n_jobs=5, eps=2.220446049250313e-16, copy_X=False, positive=True)
+
+    # gv.num_cores = int(multiprocessing.cpu_count()/6) 
     # clf = PLSRegression()
+
+    # clf = supervisedPCA(model=LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
+    #                     fit_intercept=True, l1_ratio=l1_ratio), threshold=1, n_components=1, verbose=False) 
     
     gv.clf_name = clf.__class__.__name__ 
     if 'CV' in 'gv.clf_name': 
@@ -166,30 +179,39 @@ def bootCoefs(X_proj, C=1e0, penalty='l2', solver='liblinear', loss='squared_hin
         # X_S1, X_S2, idx = pp.selectiveNeurons(X_S1, X_S2, .25) 
         # print(X_S1.shape) 
         
-        X_S1_S2 = np.vstack((X_S1, X_S2)) 
-        X_S1_S2 = pp.avg_epochs(X_S1_S2) 
-        
+        X_S1_S2 = np.vstack((X_S1, X_S2))
+        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
+
+        X_S1_S2 = pp.avg_epochs(X_S1_S2, y) 
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
         for n_epochs in range(X_S1_S2.shape[2]): 
-            X = X_S1_S2[:,:,n_epochs] 
-            # X = StandardScaler().fit_transform(X) 
+            X = X_S1_S2[:,:,n_epochs]
+            Vh = None
+            # X = StandardScaler().fit_transform(X)
+
+            if (penalty=='l2' or ('LDA' in gv.clf_name)):
+                # SVD trick from The elements of statistical learning Data Mining, ..., Friedman et al., 2009 
+                U, D, Vh = np.linalg.svd(X, full_matrices=False) 
+                X = (U*D[..., None, :]) 
+                print('X', X.shape, 'Vh', Vh.shape) 
+            
             # X = pls_transform(X, y) 
             # X = spls_cv(X, y, n_comp_max = X.shape[0]) 
             # # X = spls_red(X, y, n_comp=3, eta=.9) 
 
-            if 'PLS' in gv.clf_name:
-                with pg.tqdm_joblib(pg.tqdm(desc= gv.trial + ' ' + gv.epochs[n_epochs] , total=gv.n_boot)) as progress_bar:             
+            if ('PLS') in gv.clf_name:
+                with pg.tqdm_joblib(pg.tqdm(desc= 'bootstrap ' + gv.epochs[n_epochs] , total=gv.n_boot)) as progress_bar: 
                     boot_coefs = Parallel(n_jobs=gv.num_cores, verbose=False)(delayed(bootstrap_clf_par)(X, y, clf, gv.n_boot, cv) 
-                                                                              for _ in range(gv.n_boot))
+                                                                              for _ in range(gv.n_boot)) 
             else: 
-                X = StandardScaler().fit_transform(X) 
+                # X = StandardScaler().fit_transform(X) 
                 if gv.BAYES_BOOTSTRAP: 
-                    boot_coefs = bayesian_boot(clf, X, y, gv.n_boot, n_jobs=gv.num_cores) 
+                    boot_coefs = bayesian_boot(clf, X, y, gv.n_boot, n_jobs=gv.num_cores, V=Vh.T) 
                 else: 
-                    boot_coefs = bagging_boot(clf, X, y, gv.n_boot) 
+                    boot_coefs = bagging_boot(clf, X, y, gv.n_boot, Vh.T) 
             
-            coefs[n_trial, n_epochs,:, 0:X.shape[1]] = np.array(boot_coefs) 
+            coefs[n_trial, n_epochs,:, 0:np.array(boot_coefs).shape[1]] = np.array(boot_coefs)
             
     return coefs 
 
@@ -306,15 +328,22 @@ def EDvsLD(X_proj, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hing
 
 def loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'):
 
-    gv.T_WINDOW = 0.5
+    gv.T_WINDOW = 0.0 
     gv.IF_SAVE = 1 
     gv.EDvsLD = 1 
-    for gv.mouse in [gv.mice[1]] :
+    gv.SAVGOL = 0 
+
+    gv.BAYES_BOOTSTRAP=0 
+    gv.BOOTSTRAP=1 
+    gv.FEATSEL=0 
+    
+    for gv.mouse in [gv.mice[1]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in [gv.sessions[-1]] : 
-            X_trials = fct.get_X_y_mouse_session() 
-            EDvsLD(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage) 
-            # plt.close('all') 
+        for gv.session in [gv.sessions[-3]] : 
+            X_trials = fct.get_X_y_mouse_session()
+            print(X_trials.shape)
+            EDvsLD(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage)  
+            # # plt.close('all') 

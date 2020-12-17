@@ -140,3 +140,9 @@ BOOTSTRAP = 0
 
 global T_WINDOW
 T_WINDOW = 0 
+
+global SAVGOL
+SAVGOL=0
+
+global FEATSEL
+FEATSEL=0

@@ -8,7 +8,7 @@ from direpack.sprm._m_support_functions import Hampel
 
 def spls_cv(X, y, n_comp_max=3, etas=10, cv=10, n_jobs=1):
     HampelScore = make_scorer(robust_loss, greater_is_better=False, needs_proba=False, needs_threshold=False, lfun=mean_squared_error,fun=Hampel)
-    res_sprm_cv = GridSearchCV(sprm(verbose=False), cv=cv, param_grid={"n_components": np.arange(1, n_comp_max).tolist(), "eta": np.linspace(0, 1, etas).tolist()}, scoring=HampelScore, n_jobs=n_jobs) 
+    res_sprm_cv = GridSearchCV(snipls(verbose=False), cv=cv, param_grid={"n_components": np.arange(1, n_comp_max).tolist(), "eta": np.linspace(0, 1, etas).tolist()}, scoring=HampelScore, n_jobs=n_jobs) 
     
     res_sprm_cv.fit(X,y) 
     

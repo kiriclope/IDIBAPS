@@ -1,6 +1,7 @@
 from .libs import * 
 from . import constants as gv
 from . import progressbar as pg
+from . import featureSel as fs
 
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
@@ -181,7 +182,7 @@ def detrend_data(X_trial, poly_fit=1, degree=7):
     # fit_values_trial = np.array(fit_values_trial)
     return fit_values_trial
 
-def avg_epochs(X):
+def avg_epochs(X, y=None):
 
     if gv.ED_MD_LD:
         X_ED = np.mean(X[:,:,0:len(gv.bins_ED)],axis=-1) 
@@ -202,11 +203,31 @@ def avg_epochs(X):
         X_MD = np.mean(X[:,:,gv.bins_MD[:]-gv.bin_start],axis=2) 
         X_LD = np.mean(X[:,:,gv.bins_LD[:]-gv.bin_start],axis=2) 
         
-    if len(gv.epochs)==3: 
-        X_epochs = np.array([X_ED, X_MD, X_LD]) 
-    else: 
-        X_epochs = np.array([X_STIM, X_ED, X_MD, X_LD]) 
+    if gv.FEATSEL:
+        X_ED = fs.featSel.var_fit_transform(X_ED) 
+        X_MD = fs.featSel.var_fit_transform(X_MD) 
+        X_LD = fs.featSel.var_fit_transform(X_LD)
 
+        print(X_ED.shape, X_MD.shape, X_LD.shape)
+
+        # X_ED = fs.featSel.select_best(X_ED, y) 
+        # X_MD = fs.featSel.select_best(X_MD, y) 
+        # X_LD = fs.featSel.select_best(X_LD, y)
+        
+    if len(gv.epochs)==3: 
+        # X_epochs = np.array([X_ED, X_MD, X_LD]) 
+        X_epochs = np.empty( (3, X_ED.shape[0], np.amax([X_ED.shape[1], X_MD.shape[1], X_LD.shape[1]]) ) )
+        X_epochs[0,:,0:X_ED.shape[1]] = X_ED 
+        X_epochs[1,:,0:X_MD.shape[1]] = X_MD 
+        X_epochs[2,:,0:X_LD.shape[1]] = X_LD 
+    else: 
+        # X_epochs = np.array([X_STIM, X_ED, X_MD, X_LD]) 
+        X_epochs = np.empty( (4, X_ED.shape[0], np.amax([X_STIM.shape[1], X_ED.shape[1], X_MD.shape[1], X_LD.shape[1]]) ) )
+        X_epochs[0,:,0:X_STIM.shape[1]] = X_SIM
+        X_epochs[1,:,0:X_ED.shape[1]] = X_ED
+        X_epochs[2,:,0:X_MD.shape[1]] = X_MD
+        X_epochs[3,:,0:X_LD.shape[1]] = X_LD
+    
     X_epochs = np.moveaxis(X_epochs,0,2) 
     return X_epochs 
 
@@ -266,3 +287,14 @@ def deconvolve_X(X):
     #     X_denoised[n_neuron], X_spikes[n_neuron], F0, g, lam = deconvolve(X[n_neuron], penalty=1) 
 
     return X_deconv
+
+# def remove_outliers(X):
+#     ''' for each trial remove outlier neurons ''' 
+#     q25, q75 = np.percentile(X, 25, axis=-1), np.percentile(X, 75, axis=-1) 
+#     iqr = q75 - q25
+    
+#     cut_off = iqr * 1.5 
+#     lower, upper = q25 - cut_off, q75 + cut_off 
+    
+#     outliers = [neuron for neuron in X[] if x < lower or x > upper]
+#     outliers_removed = [x for x in X if x > lower and x < upper]

@@ -67,7 +67,7 @@ def get_optimal_number_of_components(X):
 
     return s.shape[0] 
 
-for gv.mouse in [gv.mice[0]] : 
+for gv.mouse in [gv.mice[1]] : 
 
     data.get_sessions_mouse() 
     data.get_stimuli_times() 

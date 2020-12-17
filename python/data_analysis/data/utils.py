@@ -1,6 +1,7 @@
 from .libs import * 
 from . import constants as gv 
 from . import preprocessing as pp 
+from . import featureSel as fs 
 
 def get_delays_times():
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
@@ -333,18 +334,24 @@ def get_X_y_mouse_session():
         gv.n_trials = 32 
         
     X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) ) 
-
+    
     for n_trial, gv.trial in enumerate(gv.trials):
-
+        
         X_S1, X_S2 = get_S1_S2_trials(X, y) 
         get_trial_types(X_S1) 
             
         # compute DF over F0
         X_S1 = pp.dFF0(X_S1) 
         X_S2 = pp.dFF0(X_S2) 
+
+        if gv.SAVGOL:
+            print('savgol_filter')
+            for trial in range(X_S2.shape[0]): 
+                X_S1[trial] = savgol_filter(X_S1[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
+                X_S2[trial] = savgol_filter(X_S2[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
                 
-        X_trials[n_trial,0] = X_S1
-        X_trials[n_trial,1] = X_S2
+        X_trials[n_trial,0] = X_S1 
+        X_trials[n_trial,1] = X_S2 
             
     print('X_trials', X_trials.shape) 
 

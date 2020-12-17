@@ -1,31 +1,27 @@
 import numpy as np                                                                                                                     
-import pandas as pd                                                                                                                    
-import statsmodels.api as sm                                                                                                           
-from sklearn.linear_model import LogisticRegression                                                                                    
+from sklearn.feature_selection import VarianceThreshold
 
-# split the data into two samples 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42) 
+class featSel():
 
-# 
+    def __init__(self):
+        self._X_feat = None
+        
+    def corrFit(self, X):
+        
+        corr = self.X.corr() 
+        
+        columns = np.full((corr.shape[0],), True, dtype=bool)
+        for i in range(corr.shape[0]):
+            for j in range(i+1, corr.shape[0]):
+                if corr.iloc[i,j] >= 0.9:
+                    if columns[j]:
+                        columns[j] = False
+                        
+        selected_columns = X.columns[columns] 
+        self._X_feat = X[selected_columns]
 
-n = 1000                                                                                                                               
-x = np.random.normal(size=(n, 3))                                                                                                      
-lp = x[:, 0] - x[:, 1] / 2                                                                                                             
-pr = 1 / (1 + np.exp(-lp))                                                                                                             
-y = (np.random.uniform(size=n) < pr).astype(np.int)                                                                                    
-df = pd.DataFrame({"y": y, "x1": x[:, 0], "x2": x[:, 1], "x3": x[:, 2]})                                                               
+        return self 
 
-alpha = 10                                                                                                                             
-
-model1 = sm.GLM.from_formula("y ~ x1 + x2 + x3", family=sm.families.Binomial(),                                                        
-            data=df)                                                                                                                   
-result1 = model1.fit_regularized(alpha=alpha/n, L1_wt=1)                                                                               
-
-model2 = sm.Logit.from_formula("y ~ x1 + x2 + x3", data=df)                                                                            
-result2 = model2.fit_regularized(alpha=alpha)                                                                                          
-
-x0 = np.concatenate((np.ones((n, 1)), x), axis=1)                                                                                      
-model3 = LogisticRegression(C=1/alpha, penalty='l1')                                                                                   
-result3 = model3.fit(x0, y)                                                                                                            
-
-print(result1.params, result2.params, result3.coef_)   
+    def varFit(self, X, threshold=0.1):
+        thresh_filter = VarianceThreshold(threshold)
+        self._X_feat = thresh_filter.fit_transform(X) 

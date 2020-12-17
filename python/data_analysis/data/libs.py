@@ -16,5 +16,6 @@ import random
 from scipy.io import loadmat
 from scipy.ndimage.filters import gaussian_filter1d
 import scipy.stats as stats
+from scipy.signal import savgol_filter
 
 from sklearn.preprocessing import StandardScaler 

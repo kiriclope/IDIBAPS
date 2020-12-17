@@ -41,6 +41,9 @@ def figDir():
 
     if gv.T_WINDOW!=0 :
         gv.figdir = gv.figdir + '/t_window_%.1f/' % gv.T_WINDOW 
+
+    if gv.SAVGOL :
+        gv.figdir = gv.figdir + '/savgol/'
         
     if not os.path.isdir(gv.figdir):
         os.makedirs(gv.figdir)

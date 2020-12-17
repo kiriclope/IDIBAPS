@@ -14,7 +14,6 @@ class supervisedPCA():
         self._X_transform = None
         self._dropouts = None
         self._pca = None
-        self._coef = None
         
     def fit(self, X, y):
         X_extra_dim = X[:, np.newaxis]  # Change dimension from (x,y) to (x,1,y)        
@@ -38,25 +37,27 @@ class supervisedPCA():
             
         self._X_transform = self._pca.fit_transform(X_extra_dim[:, 0, :]) 
         
-        self._model = self._model.fit(self._X_transform, y) 
-        self.coef_ = self._model.coef_ 
+        # X_red = self._pca.fit_transform(X_extra_dim[:, 0, :]) 
+        # self._X_transform = X_red
+        
+        self._model.fit(self._X_transform, y) 
         
         return self
-        
+    
     def spca_cv(self, X, y, cv=10, threshold_max=10, Cs=10): 
         mlhs = [] 
         thresholds = np.linspace(0, threshold_max, Cs) 
-        for self._threshold in ( pg.tqdm(thresholds, desc='spca_cv') if self._verbose else thresholds): 
-            self = self.fit(X, y) 
+        for self._threshold in ( pg.tqdm(thresholds, desc='spca_cv') if self._verbose else thresholds):
+            self.fit(X, y) 
             y_cv = cross_val_predict(self._model, self._X_transform, y, cv=cv) 
             mlhs.append(log_loss(y, y_cv)) 
 
-        mlh = np.argmax(mlhs) 
+        mlh = np.argmax(mlhs)
         
-        if self._verbose: 
-            print('threshold_opt', thresholds[mlh]) 
+        if self._verbose:
+            print('threshold_opt', thresholds[mlh])
             
         self._threshold = thresholds[mlh] 
-        self = self.fit(X, y) 
+        self.fit(X, y)
         
-        return self.coef_ 
+        return self 
