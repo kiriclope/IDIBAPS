@@ -105,7 +105,7 @@ def bayesian_bootstrap(X, statistic, n_replications, resample_size,low_mem=False
     return samples
 
 def bayesian_bootstrap_regression(X, y, statistic, n_replications, resample_size,low_mem=False, n_jobs=1):
-    """Simulate the posterior distribution of a statistic that uses dependent and independent variables.
+    """Simulate the posterior distribution of a statistic that uses dependent and independent variables. 
 
     Parameter X: The observed data, independent variables (matrix like)
 

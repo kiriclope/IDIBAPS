@@ -35,15 +35,23 @@ def figDir():
         gv.figdir = gv.figdir + '/stimVsDelay/' 
 
     if gv.BAYES_BOOTSTRAP:
-        gv.figdir = gv.figdir + '/bayes_boot/' 
-    elif gv.BOOTSTRAP:
-        gv.figdir = gv.figdir + '/bootstrap/' 
-
+        gv.figdir = gv.figdir + '/bayes_boot/'        
+    elif gv.BAGGING_BOOTSTRAP:
+        gv.figdir = gv.figdir + '/bagging_boot/' 
+    else:
+        gv.figdir = gv.figdir + '/my_boot/'
+        
     if gv.T_WINDOW!=0 :
         gv.figdir = gv.figdir + '/t_window_%.1f/' % gv.T_WINDOW 
 
     if gv.SAVGOL :
         gv.figdir = gv.figdir + '/savgol/'
+
+    if gv.TIBSHIRANI_TRICK:
+        gv.figdir = gv.figdir + '/tibshirani_trick/'
+
+    if gv.FEATURE_SELECTION:
+        gv.figdir = gv.figdir + '/feature_selection/'
         
     if not os.path.isdir(gv.figdir):
         os.makedirs(gv.figdir)

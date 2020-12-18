@@ -67,8 +67,8 @@ samples=['S1', 'S2']
 global data_type
 data_type = 'fluo' # 'rates'
 
-global n_boot
-n_boot = 10
+global n_boots
+n_boots = 10
 
 global correct_trial
 correct_trial = 0
@@ -117,7 +117,7 @@ global explained_variance
 explained_variance = 0.1
 
 global clf_name
-clf_name = ''
+clf_name = 'LogisticRegression' 
 
 global trialsXepochs
 trialsXepochs=0
@@ -134,9 +134,9 @@ pal = ['r','b','y']
 global bins_epochs
 bins_epochs= []
 
-global BAYES_BOOTSTRAP, BOOTSTRAP
-BAYES_BOOTSTRAP = 1 
-BOOTSTRAP = 0
+global BAYES_BOOTSTRAP, BAGGING_BOOTSTRAP
+BAYES_BOOTSTRAP = 0
+BAGGING_BOOTSTRAP = 1
 
 global T_WINDOW
 T_WINDOW = 0 
@@ -144,5 +144,8 @@ T_WINDOW = 0
 global SAVGOL
 SAVGOL=0
 
-global FEATSEL
-FEATSEL=0
+global FEATURE_SELECTION
+FEATURE_SELECTION=0
+
+global TIBSHIRANI_TRICK
+TIBSHIRANI_TRICK=0

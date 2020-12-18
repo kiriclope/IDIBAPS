@@ -1,4 +1,4 @@
-from libs import * 
+from .libs import * 
 sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis') 
 
 import data.constants as gv 
@@ -10,12 +10,14 @@ import data.progressbar as pg
 import data.fct_facilities as fac
 fac.SetPlotParams() 
 
+from models.glms import get_clf
+
 # from pls import pls_cv_mse 
 # from spls import *
 # from spca import supervisedPCA
 
-import bootstrap as bs 
-from statistics import t_test
+from .bootstrap import bootstrap 
+from .statistics import t_test 
 
 def is_pca(X_trials): 
     gv.IF_PCA = 0 
@@ -39,39 +41,15 @@ def SVD_trick(X):
     print('X', X.shape, 'Vh', Vh.shape) 
     return X, Vh
 
-def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None, l1_ratio=0, shrinkage='auto'): 
-    
-    if 'LogisticRegressionCV' in gv.clf_name:
-        clf = LogisticRegressionCV(Cs=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
-                                   fit_intercept=True, n_jobs=None , intercept_scaling=1e2 ) 
-        
-    elif 'LogisticRegression' in gv.clf_name:
-        clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
-                                 fit_intercept=True, l1_ratio=l1_ratio, intercept_scaling=1e2 ) 
-        
-    elif 'LDA' in gv.clf_name:        
-        clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage=shrinkage)
-        
-    elif 'PLS' in gv.clf_name:
-        gv.num_cores = int(multiprocessing.cpu_count()/6) 
-        clf = PLSRegression(scale=False)
-
-    elif 'ReLASSO' in gv.clf_name:
-        clf = relassoCV = RelaxedLassoLarsCV( fit_intercept=True, verbose=False, max_iter=500,
-                                              normalize=True, precompute='auto', cv=None, max_n_alphas=1000,
-                                              n_jobs=None, eps=np.finfo(np.float).eps, copy_X=True) 
-        
-    return clf
-
 def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty='l2', solver='liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
 
     gv.n_boots = int(1e3) 
     gv.num_cores =  int(multiprocessing.cpu_count()) - 1 
     
-    clf = get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage) 
+    get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage) 
     
     print('bootstrap samples', gv.n_boots, 'clf', gv.clf_name) 
-    boots_model = bs.bootstrap(clf, bootstrap_method=bootstrap_method, n_boots=gv.n_boots, n_jobs=gv.num_cores) 
+    boots_model = bootstrap(clf, bootstrap_method=bootstrap_method, n_boots=gv.n_boots, standardize=gv.standardize, n_jobs=gv.num_cores) 
 
     X_trials = is_pca(X_trials) 
     get_epochs() 
@@ -218,11 +196,9 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.EDvsLD = 1 
     gv.SAVGOL = 0 
     
-    gv.clf_name = 'LogisticRegressionCV'  
-    gv.clf_name = 'ReLASSO'
-    
+    gv.clf_name = 'ReLASSO' 
     gv.BAYES_BOOTSTRAP = 0 
-    gv.BAGGING_BOOTSTRAP = 1 
+    gv.BAGGING_BOOTSTRAP = 1  
     gv.FEATURE_SELECTION = 0 
     
     gv.TIBSHIRANI_TRICK = 0 

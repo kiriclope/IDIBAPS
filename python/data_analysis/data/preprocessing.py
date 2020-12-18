@@ -182,8 +182,22 @@ def detrend_data(X_trial, poly_fit=1, degree=7):
     # fit_values_trial = np.array(fit_values_trial)
     return fit_values_trial
 
-def avg_epochs(X, y=None):
+def avg_epochs(X, y=None, threshold=.1): 
 
+    if gv.FEATURE_SELECTION: 
+        X_avg = np.mean(X[:,:,gv.bins_ED_MD_LD],axis=-1) 
+        idx = fs.featSel.var_fit_transform(X_avg, threshold=threshold)
+        X_avg = np.delete(X_avg, idx, axis=1) 
+        X = np.delete(X, idx, axis=1)
+        
+        # idx = fs.featSel.select_best(X_avg, y, percentage=1-threshold) 
+        # X_avg = np.delete(X_avg, idx, axis=1) 
+        # X = np.delete(X, idx, axis=1) 
+        
+        # idx = fs.featSel.select_indep(X_avg, threshold=threshold) 
+        # X_avg = np.delete(X_avg, idx, axis=1) 
+        # X = np.delete(X, idx, axis=1)
+        
     if gv.ED_MD_LD:
         X_ED = np.mean(X[:,:,0:len(gv.bins_ED)],axis=-1) 
         X_MD = np.mean(X[:,:,len(gv.bins_ED):len(gv.bins_ED)+len(gv.bins_MD)],axis=-1) 
@@ -197,22 +211,22 @@ def avg_epochs(X, y=None):
         X_MD = np.hstack(X[:,:,gv.bins_MD[:]-gv.bin_start]).T 
         X_LD = np.hstack(X[:,:,gv.bins_LD[:]-gv.bin_start]).T 
     else:
-        print(gv.trial,'avg over epochs')
+        print(gv.trial,'avg over epochs') 
         X_STIM = np.mean(X[:,:,gv.bins_STIM[:]-gv.bin_start],axis=2) 
         X_ED = np.mean(X[:,:,gv.bins_ED[:]-gv.bin_start],axis=2) 
         X_MD = np.mean(X[:,:,gv.bins_MD[:]-gv.bin_start],axis=2) 
         X_LD = np.mean(X[:,:,gv.bins_LD[:]-gv.bin_start],axis=2) 
-        
-    if gv.FEATSEL:
-        X_ED = fs.featSel.var_fit_transform(X_ED) 
-        X_MD = fs.featSel.var_fit_transform(X_MD) 
-        X_LD = fs.featSel.var_fit_transform(X_LD)
 
-        print(X_ED.shape, X_MD.shape, X_LD.shape)
+    # if gv.FEATSEL:
+    #     X_ED = fs.featSel.var_fit_transform(X_ED) 
+    #     X_MD = fs.featSel.var_fit_transform(X_MD) 
+    #     X_LD = fs.featSel.var_fit_transform(X_LD)
 
-        # X_ED = fs.featSel.select_best(X_ED, y) 
-        # X_MD = fs.featSel.select_best(X_MD, y) 
-        # X_LD = fs.featSel.select_best(X_LD, y)
+    #     print(X_ED.shape, X_MD.shape, X_LD.shape)
+
+    # X_ED = fs.featSel.select_best(X_ED, y) 
+    # X_MD = fs.featSel.select_best(X_MD, y) 
+    # X_LD = fs.featSel.select_best(X_LD, y)
         
     if len(gv.epochs)==3: 
         # X_epochs = np.array([X_ED, X_MD, X_LD]) 
@@ -223,7 +237,7 @@ def avg_epochs(X, y=None):
     else: 
         # X_epochs = np.array([X_STIM, X_ED, X_MD, X_LD]) 
         X_epochs = np.empty( (4, X_ED.shape[0], np.amax([X_STIM.shape[1], X_ED.shape[1], X_MD.shape[1], X_LD.shape[1]]) ) )
-        X_epochs[0,:,0:X_STIM.shape[1]] = X_SIM
+        X_epochs[0,:,0:X_STIM.shape[1]] = X_STIM
         X_epochs[1,:,0:X_ED.shape[1]] = X_ED
         X_epochs[2,:,0:X_MD.shape[1]] = X_MD
         X_epochs[3,:,0:X_LD.shape[1]] = X_LD
