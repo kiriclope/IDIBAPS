@@ -10,21 +10,17 @@ import data.progressbar as pg
 import data.fct_facilities as fac
 fac.SetPlotParams() 
 
-# from pls import pls_cv_mse 
-# from spls import *
-# from spca import supervisedPCA
-
 import bootstrap as bs 
-from statistics import t_test
+from statistics import t_test 
 
 def is_pca(X_trials): 
     gv.IF_PCA = 0 
     if X_trials.shape[3]!=gv.n_neurons: 
         X_trials = X_trials[:,:,:,0:gv.n_components,:] 
         gv.IF_PCA = 1 
-    return X_trials
+    return X_trials 
 
-def get_epochs():
+def get_epochs(): 
     if gv.EDvsLD: 
         gv.epochs = ['ED', 'MD', 'LD'] 
         print('angle btw ED and other epochs') 
@@ -37,7 +33,7 @@ def SVD_trick(X):
     U, D, Vh = np.linalg.svd(X, full_matrices=False) 
     X = (U*D[..., None, :]) 
     print('X', X.shape, 'Vh', Vh.shape) 
-    return X, Vh
+    return X, Vh 
 
 def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None, l1_ratio=0, shrinkage='auto'): 
     
@@ -204,11 +200,11 @@ def plot_cos_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty='l2', 
     
     create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss, l1_ratio=l1_ratio, shrinkage=shrinkage) 
     
-    pl.barCosAlp(mean, lower, upper) 
+    pl.bar_trials_epochs(mean, lower, upper) 
     add_pvalue(p_values) 
     plt.ylim([-0.1, 1.1]) 
     
-    figtitle = '%s_%s_cos_alpha' % (gv.mouse, gv.session) 
+    figtitle = '%s_%s_bars_cos_alp' % (gv.mouse, gv.session) 
     pl.save_fig(figtitle) 
 
 def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
@@ -219,7 +215,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.SAVGOL = 0 
     
     gv.clf_name = 'LogisticRegressionCV'  
-    gv.clf_name = 'ReLASSO'
+    # gv.clf_name = 'ReLASSO'
     
     gv.BAYES_BOOTSTRAP = 0 
     gv.BAGGING_BOOTSTRAP = 1 
@@ -227,27 +223,27 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     
     gv.TIBSHIRANI_TRICK = 0 
     
-    for gv.mouse in gv.mice : 
-        fct.get_sessions_mouse() 
-        fct.get_stimuli_times() 
-        fct.get_delays_times() 
-        
-        for gv.session in gv.sessions : 
-            X_trials = fct.get_X_y_mouse_session() 
-            print(X_trials.shape)
-            
-            matplotlib.use('Agg') # so that fig saves when in the in the background 
-            plot_cos_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage) 
-            plt.close('all') 
-
-    # for gv.mouse in [gv.mice[1]] : 
+    # for gv.mouse in gv.mice : 
     #     fct.get_sessions_mouse() 
     #     fct.get_stimuli_times() 
     #     fct.get_delays_times() 
         
-    #     for gv.session in [gv.sessions[-1]] : 
+    #     for gv.session in gv.sessions : 
     #         X_trials = fct.get_X_y_mouse_session() 
     #         print(X_trials.shape)
-    #         matplotlib.use('GTK3cairo')
+            
+    #         matplotlib.use('Agg') # so that fig saves when in the in the background 
     #         plot_cos_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage) 
+    #         plt.close('all') 
+
+    for gv.mouse in [gv.mice[1]] : 
+        fct.get_sessions_mouse() 
+        fct.get_stimuli_times() 
+        fct.get_delays_times() 
+        
+        for gv.session in [gv.sessions[-1]] : 
+            X_trials = fct.get_X_y_mouse_session() 
+            print(X_trials.shape)
+            matplotlib.use('GTK3cairo')
+            plot_cos_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage) 
 

@@ -1,11 +1,12 @@
 import numpy as np 
 import multiprocessing 
 
-global mouse, mice, session, sessions, trial, trials 
+global mouse, mice, session, sessions, days, trial, trials 
 mouse = []
 mice = ['C57_2_DualTask','ChRM04','JawsM15'] 
 session = [] 
-sessions = [] 
+sessions = []
+days = [1,2,3,4,5,6]
 trial = 'ND' 
 trials = ['ND', 'D1', 'D2']
 
@@ -98,8 +99,8 @@ scriptdir = ''
 figdir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/figs' 
 filedir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/data' 
 
-global standardize
-standardize = 0
+global scaling
+scaling = None
 
 global IF_PCA, pca_concat, detrend, bootstrap_trials
 IF_PCA = 0 
@@ -149,3 +150,4 @@ FEATURE_SELECTION=0
 
 global TIBSHIRANI_TRICK
 TIBSHIRANI_TRICK=0
+

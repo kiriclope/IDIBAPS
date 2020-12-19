@@ -4,7 +4,7 @@ import data.progressbar as pg
 
 import numpy as np
 
-from sklearn.preprocessing import StandardScaler 
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import BaggingRegressor
 from sklearn.pipeline import Pipeline
 
@@ -14,10 +14,13 @@ from joblib import Parallel, delayed
 
 class bootstrap():
 
-    def __init__(self, clf, bootstrap_method='standard', n_boots=1000, standardize=True, n_jobs=1):
-        if standardize:
+    def __init__(self, clf, bootstrap_method='standard', n_boots=1000, scaling='standardize', n_jobs=1):
+        
+        if 'standardize' in scaling:
             self.pipe = Pipeline([('scale', StandardScaler()), ('clf', clf)]) 
-        else:
+        elif 'normalize' in scaling: 
+            self.pipe = Pipeline([('scale', MinMaxScaler()), ('clf', clf)]) 
+        else: 
             self.pipe = Pipeline([('clf', clf)]) 
             
         self.bootstrap_method = bootstrap_method
@@ -29,7 +32,7 @@ class bootstrap():
     def my_bootstrap_loop(self, X, y, Vh=None): 
         
         if 'standard' in self.bootstrap_method :
-            idx_trials = np.random.randint(0, X.shape[0], X.shape[0])
+            idx_trials = np.random.randint(0, X.shape[0], X.shape[0]) 
             
         if 'block' in self.bootstrap_method :
             idx_trials = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)), 

@@ -1,12 +1,17 @@
 from .libs import * 
 from . import constants as gv 
+from datetime import date
 
 shade_alpha = 0.2
 lines_alpha = 0.8
 
 def figDir():
-    gv.figdir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/figs/last/'
+    gv.figdir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/figs/'
 
+    today = date.today()
+    today = today.strftime("%d-%m-%y")    
+    gv.figdir = gv.figdir + today 
+    
     if gv.trialsXepochs:
         gv.figdir = gv.figdir + '/trialsXepochs' 
     
@@ -30,28 +35,24 @@ def figDir():
     if gv.ED_MD_LD :
         gv.figdir = gv.figdir + '/ED_MD_LD' 
     elif gv.EDvsLD : 
-        gv.figdir = gv.figdir + '/EDvsLD/' 
+        gv.figdir = gv.figdir + '/EDvsLD' 
     else : 
-        gv.figdir = gv.figdir + '/stimVsDelay/' 
+        gv.figdir = gv.figdir + '/stimVsDelay' 
 
-    if gv.BAYES_BOOTSTRAP:
-        gv.figdir = gv.figdir + '/bayes_boot/'        
-    elif gv.BAGGING_BOOTSTRAP:
-        gv.figdir = gv.figdir + '/bagging_boot/' 
-    else:
-        gv.figdir = gv.figdir + '/my_boot/'
-        
     if gv.T_WINDOW!=0 :
-        gv.figdir = gv.figdir + '/t_window_%.1f/' % gv.T_WINDOW 
+        gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW 
 
     if gv.SAVGOL :
-        gv.figdir = gv.figdir + '/savgol/'
+        gv.figdir = gv.figdir + '/savgol'
 
+    if gv.scaling is not None:
+        gv.figdir = gv.figdir + '/%s' % gv.scaling
+        
     if gv.TIBSHIRANI_TRICK:
-        gv.figdir = gv.figdir + '/tibshirani_trick/'
+        gv.figdir = gv.figdir + '/tibshirani_trick'
 
     if gv.FEATURE_SELECTION:
-        gv.figdir = gv.figdir + '/feature_selection/'
+        gv.figdir = gv.figdir + '/feature_selection'
         
     if not os.path.isdir(gv.figdir):
         os.makedirs(gv.figdir)
@@ -100,28 +101,33 @@ def add_orientation_legend(ax):
               frameon=False, loc='center left', bbox_to_anchor=(1, 0.5))
     plt.tight_layout(rect=[0,0,0.9,1])    
 
-def barCosAlp(mean, lower=None, upper=None):
-
-        
+def bar_trials_epochs(mean, lower=None, upper=None, var_name='cos_alp'):
+    
     labels = np.arange(len(gv.epochs)-1) 
     width=0.25
 
-    figtitle = '%s_%s_cos_alpha' % (gv.mouse, gv.session)
+    figtitle = '%s_%s_bars_%s' % (gv.mouse, gv.session, var_name)
 
     ax = plt.figure(figtitle).add_subplot() 
     
     for n_trial, trial in enumerate(gv.trials): 
         values = mean[n_trial][1:]
-        # if any(lower==None) :
-        #     ax.bar(labels + n_trial*width, values , color = gv.pal[n_trial], width = width) 
-        # else:
-        error = np.array([ lower[n_trial][1:], upper[n_trial][1:] ] ) 
-        ax.bar(labels + n_trial*width, values , yerr=error,  color = gv.pal[n_trial], width = width) 
-            
+        if lower is not None: 
+            error = np.array([ lower[n_trial][1:], upper[n_trial][1:] ] ) 
+            ax.bar(labels + n_trial*width, values , yerr=error,  color = gv.pal[n_trial], width = width) 
+        else:
+            ax.bar(labels + n_trial*width, values , color = gv.pal[n_trial], width = width)  
+
+    day = 'day %d' % list(gv.sessions).index(gv.session) 
+    ax.set_title(day)
+    
     plt.xticks([i + width for i in range(len(gv.epochs)-1)], gv.epochs[1:]) 
 
-    plt.xlabel('Epochs') 
-    plt.ylabel('Cos($\\alpha$)') 
+    plt.xlabel('Epochs')
+    if 'cos_alp' in var_name:
+        plt.ylabel('Cos($\\alpha$)')
+    else:
+        plt.ylabel('Corr')
 
 def save_fig(figname):
     plt.figure(figname)

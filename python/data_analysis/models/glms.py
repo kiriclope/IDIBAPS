@@ -3,15 +3,15 @@ sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis'
 
 import data.constants as gv 
 
-def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None, l1_ratio=0, shrinkage='auto', normalize=True): 
+def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None, l1_ratio=0, shrinkage='auto', normalize=True, fit_intercept=True, intercept_scaling=1e2): 
     
     if 'LogisticRegressionCV' in gv.clf_name:
         gv.clf = LogisticRegressionCV(Cs=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8), 
-                                   fit_intercept=True, n_jobs=None , intercept_scaling=1e2 ) 
+                                      fit_intercept=fit_intercept, n_jobs=None , intercept_scaling=intercept_scaling, cv=cv ) 
         
     elif 'LogisticRegression' in gv.clf_name:
         gv.clf = LogisticRegression(C=C, solver=solver, penalty=penalty, tol=1e-6, max_iter=int(1e8),
-                                    fit_intercept=True, l1_ratio=l1_ratio, intercept_scaling=1e2, cv=cv ) 
+                                    fit_intercept=fit_intercept, l1_ratio=l1_ratio, intercept_scaling=intercept_scaling ) 
         
     elif 'LDA' in gv.clf_name: 
         gv.clf = LinearDiscriminantAnalysis(tol=1e-6, solver='lsqr', shrinkage=shrinkage)
