@@ -78,7 +78,7 @@ for gv.mouse in [gv.mice[1]] :
         print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
         
         data.get_delays_times() 
-        data.get_bins() # .9 or 1 
+        data.get_bins(gv.T_WINDOW) # .9 or 1 
         
         if gv.mouse in [gv.mice[0]]: 
             gv.n_trials = 40 

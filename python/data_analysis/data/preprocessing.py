@@ -181,22 +181,27 @@ def detrend_data(X_trial, poly_fit=1, degree=7):
     # fit_values_trial = np.array(fit_values_trial)
     return fit_values_trial
 
-def avg_epochs(X, y=None, threshold=.1): 
+def feature_selection(method='variance'):
 
-    if gv.FEATURE_SELECTION: 
-        X_avg = np.mean(X[:,:,gv.bins_ED_MD_LD],axis=-1) 
-        idx = fs.featSel.var_fit_transform(X_avg, threshold=threshold)
+    X_avg = np.mean(X[:,:,gv.bins_ED_MD_LD],axis=-1) 
+
+    if 'variance' in method :
+        idx = fs.featSel.var_fit_transform(X_avg, threshold=threshold) 
         X_avg = np.delete(X_avg, idx, axis=1) 
         X = np.delete(X, idx, axis=1)
-        
-        # idx = fs.featSel.select_best(X_avg, y, percentage=1-threshold) 
-        # X_avg = np.delete(X_avg, idx, axis=1) 
-        # X = np.delete(X, idx, axis=1) 
-        
-        # idx = fs.featSel.select_indep(X_avg, threshold=threshold) 
-        # X_avg = np.delete(X_avg, idx, axis=1) 
-        # X = np.delete(X, idx, axis=1)
-        
+            
+    if 'mutual' in method:
+        idx = fs.featSel.select_best(X_avg, y, percentage=1-threshold) 
+        X_avg = np.delete(X_avg, idx, axis=1) 
+        X = np.delete(X, idx, axis=1)
+            
+    if 'correlation' in method:
+        idx = fs.featSel.select_indep(X_avg, threshold=threshold) 
+        X_avg = np.delete(X_avg, idx, axis=1) 
+        X = np.delete(X, idx, axis=1)
+
+def avg_epochs(X, y=None, threshold=.1): 
+    
     if gv.ED_MD_LD:
         X_ED = np.mean(X[:,:,0:len(gv.bins_ED)],axis=-1) 
         X_MD = np.mean(X[:,:,len(gv.bins_ED):len(gv.bins_ED)+len(gv.bins_MD)],axis=-1) 
@@ -216,20 +221,21 @@ def avg_epochs(X, y=None, threshold=.1):
         X_MD = np.mean(X[:,:,gv.bins_MD[:]-gv.bin_start],axis=2) 
         X_LD = np.mean(X[:,:,gv.bins_LD[:]-gv.bin_start],axis=2) 
 
-    # if gv.FEATSEL:
-    #     X_ED = fs.featSel.var_fit_transform(X_ED) 
-    #     X_MD = fs.featSel.var_fit_transform(X_MD) 
-    #     X_LD = fs.featSel.var_fit_transform(X_LD)
-
+    # if gv.FEATURE_SELECTION: 
+    #     idx = fs.featSel.var_fit_transform(X_ED, threshold) 
+    #     X_ED = np.delete(X_ED, idx, axis=1) 
+        
+    #     idx = fs.featSel.var_fit_transform(X_MD, threshold) 
+    #     X_MD = np.delete(X_MD, idx, axis=1) 
+        
+    #     idx = fs.featSel.var_fit_transform(X_LD, threshold) 
+    #     X_LD = np.delete(X_LD, idx, axis=1) 
+        
     #     print(X_ED.shape, X_MD.shape, X_LD.shape)
-
-    # X_ED = fs.featSel.select_best(X_ED, y) 
-    # X_MD = fs.featSel.select_best(X_MD, y) 
-    # X_LD = fs.featSel.select_best(X_LD, y)
         
     if len(gv.epochs)==3: 
         # X_epochs = np.array([X_ED, X_MD, X_LD]) 
-        X_epochs = np.empty( (3, X_ED.shape[0], np.amax([X_ED.shape[1], X_MD.shape[1], X_LD.shape[1]]) ) )
+        X_epochs = np.empty( (3, X_ED.shape[0], np.amax([X_ED.shape[1], X_MD.shape[1], X_LD.shape[1]]) ) ) 
         X_epochs[0,:,0:X_ED.shape[1]] = X_ED 
         X_epochs[1,:,0:X_MD.shape[1]] = X_MD 
         X_epochs[2,:,0:X_LD.shape[1]] = X_LD 

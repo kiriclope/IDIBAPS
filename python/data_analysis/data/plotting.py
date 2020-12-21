@@ -7,38 +7,35 @@ lines_alpha = 0.8
 
 def figDir():
     gv.figdir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/figs/'
-
+    
     today = date.today()
     today = today.strftime("%d-%m-%y")    
     gv.figdir = gv.figdir + today 
-    
-    if gv.trialsXepochs:
-        gv.figdir = gv.figdir + '/trialsXepochs' 
-    
-    if gv.DELAY_ONLY:
-        gv.figdir = gv.figdir + '/delay_only'    
-    
+        
     if gv.laser_on: 
         gv.figdir = gv.figdir + '/laser_on'
     else:
         gv.figdir = gv.figdir + '/laser_off'
-
+        
+    if gv.pca_method is not None: 
+        gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f' % (gv.pca_method, gv.explained_variance) 
+        if gv.ED_MD_LD :
+            gv.figdir = gv.figdir + '/ED_MD_LD' 
+        if gv.DELAY_ONLY:
+            gv.figdir = gv.figdir + '/delay_only'
+            
+    if gv.trialsXepochs: 
+        gv.figdir = gv.figdir + '/trialsXepochs' 
+    
+        
     if gv.detrend :
         gv.figdir = gv.figdir + '/detrend' 
-
-    if gv.IF_PCA:
-        if gv.pca_concat:
-            gv.figdir = gv.figdir + '/dim_red/pca/concat/explained_variance%.2f' % gv.explained_variance 
-        else: 
-            gv.figdir = gv.figdir + '/dim_red/pca/hybrid/explained_variance_%.2f' % gv.explained_variance
-
-    if gv.ED_MD_LD :
-        gv.figdir = gv.figdir + '/ED_MD_LD' 
-    elif gv.EDvsLD : 
-        gv.figdir = gv.figdir + '/EDvsLD' 
+        
+    if gv.EDvsLD : 
+        gv.figdir = gv.figdir + '/EDvsLD'
     else : 
         gv.figdir = gv.figdir + '/stimVsDelay' 
-
+        
     if gv.T_WINDOW!=0 :
         gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW 
 
@@ -118,7 +115,7 @@ def bar_trials_epochs(mean, lower=None, upper=None, var_name='cos_alp'):
         else:
             ax.bar(labels + n_trial*width, values , color = gv.pal[n_trial], width = width)  
 
-    day = 'day %d' % list(gv.sessions).index(gv.session) 
+    day = 'day %d' % (list(gv.sessions).index(gv.session) + 1 ) 
     ax.set_title(day)
     
     plt.xticks([i + width for i in range(len(gv.epochs)-1)], gv.epochs[1:]) 

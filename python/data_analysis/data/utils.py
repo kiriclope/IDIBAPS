@@ -351,8 +351,9 @@ def get_X_y_mouse_session():
                 X_S2[trial] = savgol_filter(X_S2[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
                 
         X_trials[n_trial,0] = X_S1 
-        X_trials[n_trial,1] = X_S2 
-            
-    print('X_trials', X_trials.shape) 
+        X_trials[n_trial,1] = X_S2
+        
+    y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten()     
+    print('X_trials', X_trials.shape, 'y', y.shape) 
 
-    return X_trials
+    return X_trials, y

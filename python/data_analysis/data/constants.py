@@ -68,8 +68,9 @@ samples=['S1', 'S2']
 global data_type
 data_type = 'fluo' # 'rates'
 
-global n_boots
+global n_boots, bootstrap_method 
 n_boots = 10
+bootstrap_method = 'bagging' 
 
 global correct_trial
 correct_trial = 0
@@ -102,9 +103,9 @@ filedir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/data'
 global scaling
 scaling = None
 
-global IF_PCA, pca_concat, detrend, bootstrap_trials
+global IF_PCA, pca_method, detrend, bootstrap_trials
 IF_PCA = 0 
-pca_concat = 0 
+pca_method = 'hybrid' 
 detrend = 0
 bootstrap_trials=0
 
@@ -134,10 +135,6 @@ pal = ['r','b','y']
 
 global bins_epochs
 bins_epochs= []
-
-global BAYES_BOOTSTRAP, BAGGING_BOOTSTRAP
-BAYES_BOOTSTRAP = 0
-BAGGING_BOOTSTRAP = 1
 
 global T_WINDOW
 T_WINDOW = 0 

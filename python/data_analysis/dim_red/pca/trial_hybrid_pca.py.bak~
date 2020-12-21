@@ -22,9 +22,9 @@ pal = ['r','b','y']
 gv.samples = ['S1', 'S2'] 
 pc_shift = 0 
 
-gv.IF_SAVE=1 
-gv.DELAY_ONLY=0 
-gv.DOWN_SAMPLING=0
+gv.IF_SAVE=0
+gv.DELAY_ONLY=0  
+gv.DOWN_SAMPLING=0 
 
 gv.n_components = 30 #'mle' #75% => 11 C57/ChR - 18 Jaws # inflexion 2-4 
 gv.correct_trial = 0  # 17-14-16 / 6 
@@ -58,54 +58,30 @@ for gv.mouse in [gv.mice[1]] :
         if gv.DELAY_ONLY: 
             gv.bin_start = gv.bins_delay[0] 
             gv.t_start = gv.t_ED[0] 
-        
-        if gv.AVG_BL_TRIALS: 
-            # compute F0 over all trials 
-            X = pp.dFF0(X) 
-        
-        # if IF_DETREND: 
-        #     X_trend = [] 
-        #     for n_trial in range(X.shape[0]): 
-        #         fit_values = detrend.detrend_data(X[n_trial], poly_fit=1, degree=POLY_DEG) 
-        #         X_trend.append(fit_values) 
-        #     X_trend = np.asarray(X_trend) 
-        #     X = X - X_trend[:,np.newaxis,:] 
-        
-        trials = [] 
+
+        if gv.mouse in [gv.mice[0]]:
+            gv.trial_size = 168
+            gv.n_trials = 40
+        else:
+            gv.trial_size = 121
+            gv.n_trials = 32
+            
+        X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) )
+
         trials_avg = [] 
-        for gv.trial in gv.trials: 
+        for n_trial, gv.trial in enumerate(gv.trials): 
             X_S1, X_S2 = data.get_S1_S2_trials(X, y) 
             data.get_trial_types(X_S1) 
             
             #compute F0 only on the given trial type, eventually average over all trials in trial. 
-            # if not gv.AVG_BL_TRIALS and not gv.perF0: 
-            #     X_S1 = pp.dFF0(X_S1) 
-            #     X_S2 = pp.dFF0(X_S2) 
-
-            # F0_S1 = pp.estimate_F0(X_S1[:,:,gv.bins_BL]).reshape(X_S1.shape[0], X_S1.shape[1], X_S1.shape[2]) 
-            # F0_S2 = pp.estimate_F0(X_S2[:,:,gv.bins_BL]).reshape(X_S2.shape[0], X_S2.shape[1], X_S2.shape[2]) 
-
-            X_S1 = pp.deconvDF(X_S1).reshape(X_S1.shape[0], X_S1.shape[1], X_S1.shape[2]) 
-            X_S2 = pp.deconvDF(X_S2).reshape(X_S2.shape[0], X_S2.shape[1], X_S2.shape[2]) 
+            X_S1 = pp.dFF0(X_S1) 
+            X_S2 = pp.dFF0(X_S2) 
             
-            if gv.DOWN_SAMPLING:
+            if gv.DOWN_SAMPLING: 
                 X_S1 = pp.downsample(X_S1,1,2) 
                 X_S2 = pp.downsample(X_S2,1,2) 
                 gv.trial_size = X_S1.shape[2] 
                 
-            if gv.perF0: 
-            # # compute F0 as 5th percentile of the baseline F distribution
-                F0_S1 = pp.findBaselineF0(X_S1[:,:], gv.frame_rate) 
-                X_S1 = (X_S1 - F0_S1)/(F0_S1 + gv.eps) 
-            
-                F0_S2 = pp.findBaselineF0(X_S2[:,:], gv.frame_rate) 
-                X_S2 = (X_S2 - F0_S2)/(F0_S2 + gv.eps) 
-                        
-            if gv.normFluo : 
-                for trial in range(X_S1.shape[0]): 
-                    X_S1[trial] = pp.z_score(X_S1[trial]) 
-                    X_S2[trial] = pp.z_score(X_S2[trial]) 
-            
             if gv.detrend: 
                 X_trend = [] 
                 for n_trial in range(X_S1.shape[0]): 
@@ -128,29 +104,22 @@ for gv.mouse in [gv.mice[1]] :
             if gv.DELAY_ONLY:
                 X_S1 = X_S1[:,:, gv.bins_delay] 
                 X_S2 = X_S2[:,:, gv.bins_delay]
-
-                # gv.n_trials = 2*X_S1.shape[0]
                 gv.trial_size = X_S1.shape[2]
+
+            X_trials[n_trial,0] = X_S1
+            X_trials[n_trial,1] = X_S2
             
-            X_S1_S2 = np.vstack((X_S1, X_S2)) 
+            print('X_S1', X_S1.shape, 'X_S2', X_S2.shape)
             
-            print('X_S1', X_S1.shape, 'X_S2', X_S2.shape) 
-            if 'all' in gv.samples: 
-                # concatenate S1 and S2 trials 
-                X_S1_S2_avg = np.mean(X_S1_S2, axis=0) 
-            else: 
-                # keep S1 and S2 trials separated 
-                X_S1_avg = np.mean(X_S1, axis=0) 
-                X_S2_avg = np.mean(X_S2, axis=0) 
-                X_S1_S2_avg = np.hstack((X_S1_avg, X_S2_avg)) 
+            # keep S1 and S2 trials separated 
+            X_S1_avg = np.mean(X_S1, axis=0) 
+            X_S2_avg = np.mean(X_S2, axis=0) 
+            X_S1_S2_avg = np.hstack((X_S1_avg, X_S2_avg)) 
             
-            print('X_S1_S2', X_S1_S2.shape) 
             print('X_S1_S2_avg', X_S1_S2_avg.shape) 
 
-            trials.append(X_S1_S2) 
             trials_avg.append(X_S1_S2_avg) 
         
-        X_trials = np.vstack(trials) 
         print('X_trials', X_trials.shape) 
         
         X_avg = np.hstack(trials_avg) 
@@ -168,11 +137,12 @@ for gv.mouse in [gv.mice[1]] :
         print('n_pc', gv.n_components,'explained_variance', explained_variance, 'total' , np.cumsum(explained_variance)[-1]) 
 
         projected_trials = [] 
+        # X_proj = np.empty((len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_components, gv.trial_size)) 
         for i in range(X_trials.shape[0]): 
             # scale every trial using the same scaling applied to the averages 
             trial = scaler.transform(X_trials[i,:,:].T).T 
             # project every trial using the pca fit on averages 
-            proj_trial = pca.transform(trial.T).T 
+            trial = pca.transform(trial.T).T 
             projected_trials.append(proj_trial) 
         
         X_proj = np.asarray(projected_trials) 

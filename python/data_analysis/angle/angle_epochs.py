@@ -10,16 +10,15 @@ import data.progressbar as pg
 import data.fct_facilities as fac 
 fac.SetPlotParams() 
 
-from models.glms import get_clf
+import warnings
+warnings.filterwarnings("ignore")
+
+from models.glms import get_clf 
+from dim_red.pca.pca_decomposition import pca_methods 
+from dim_red.spca import supervisedPCA_CV 
+
 from .bootstrap import bootstrap 
 from .statistics import t_test 
-
-def is_pca(X_trials): 
-    gv.IF_PCA = 0 
-    if X_trials.shape[3]!=gv.n_neurons: 
-        X_trials = X_trials[:,:,:,0:gv.n_components,:] 
-        gv.IF_PCA = 1 
-    return X_trials
 
 def get_epochs():
     if gv.EDvsLD: 
@@ -40,36 +39,27 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
     
     get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio,
             shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling= intercept_scaling) 
-    
-    print('bootstrap samples', gv.n_boots, 'clf', gv.clf_name, 'scaling', gv.scaling) 
-    
-    boots_model = bootstrap(gv.clf, bootstrap_method=bootstrap_method, n_boots=gv.n_boots, scaling=gv.scaling, n_jobs=gv.num_cores) 
 
-    X_trials = is_pca(X_trials) 
-    get_epochs() 
+    boots_model = bootstrap(gv.clf, bootstrap_method=bootstrap_method, n_boots=gv.n_boots, scaling=gv.scaling, n_jobs=gv.num_cores) 
+    
+    get_epochs()
     coefs = np.empty((len(gv.trials), len(gv.epochs), gv.n_boots, X_trials.shape[3])) 
     
     for n_trial, gv.trial in enumerate(gv.trials):         
         X_S1_S2 = np.vstack( ( X_trials[n_trial,0], X_trials[n_trial,1] ) ) 
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
-
+        
         X_S1_S2 = pp.avg_epochs(X_S1_S2, y) 
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
         for n_epochs in range(X_S1_S2.shape[2]): 
             X = X_S1_S2[:,:,n_epochs]
             Vh = None 
-
+            
             if gv.TIBSHIRANI_TRICK and (penalty=='l2' or 'LDA' in gv.clf_name or 'PLS' in gv.clf_name): 
-                X, Vh = SVD_trick(X) 
+                X, Vh = SVD_trick(X)
                 
-            if gv.BAYES_BOOTSTRAP: 
-                boots_coefs = boots_model.bayesian_bootstrap(X, y, Vh) 
-            elif gv.BAGGING_BOOTSTRAP: 
-                boots_coefs = boots_model.bagging_bootstrap(X, y, Vh) 
-            else: 
-                boots_coefs = boots_model.my_bootstrap(X, y, Vh) 
-                
+            boots_coefs = boots_model.get_coefs(X, y, Vh)
             coefs[n_trial, n_epochs,:, 0:boots_coefs.shape[1]] = boots_coefs 
             
     return coefs 
@@ -86,13 +76,13 @@ def get_cos_epochs(coefs):
         for boot in range(coefs.shape[2]): 
             cos_alp = agl.get_cos(coefs[n_trial,:,boot,:], coefs[n_trial,0,boot,:]) # bins x neurons 
             cos_boot[n_trial, boot] = np.array(cos_alp) 
-        
+            
         mean[n_trial] = np.mean(cos_boot[n_trial], axis=0) 
         lower[n_trial] = mean[n_trial] - np.percentile(cos_boot[n_trial], 25, axis=0) 
         upper[n_trial] = np.percentile(cos_boot[n_trial], 75, axis=0) - mean[n_trial]
         
         print('trial', gv.trial, 'cos', mean[n_trial], 'lower', lower[n_trial], 'upper', upper[n_trial]) 
-
+        
     return mean, lower, upper, cos_boot 
 
 def get_p_values(cos_boot):
@@ -132,33 +122,28 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
     if 'LogisticRegressionCV' in gv.clf_name:
         if 'liblinear' in solver:
             if cv is not None:
-                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_intercept_fit_%d_scaling_%d/' % (C, penalty, solver, cv, fit_intercept, intercept_scaling ) 
+                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_intercept_fit_%d_scaling_%d' % (C, penalty, solver, cv, fit_intercept, intercept_scaling ) 
             else: 
-                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d/' % (C, penalty, solver, 5) 
+                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, 5) 
         if 'sag' in solver:
             if cv is not None:
-                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f/' % (C, penalty, solver, cv, l1_ratio)
+                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f' % (C, penalty, solver, cv, l1_ratio[-1])
             else:
-                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f/' % (C, penalty, solver, 5, l1_ratio) 
+                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f' % (C, penalty, solver, 5, l1_ratio[-1]) 
     elif 'LogisticRegression' in gv.clf_name:
         if 'liblinear' in solver:
-            clf_param = '/C_%.3f_penalty_%s_solver_%s/' % (C, penalty, solver)
+            clf_param = '/C_%.3f_penalty_%s_solver_%s' % (C, penalty, solver)
         if 'sag' in solver:
-            clf_param = '/C_%.3f_penalty_%s_solver_%s_l1_ratio_%.2f/' % (C, penalty, solver, l1_ratio)        
+            clf_param = '/C_%.3f_penalty_%s_solver_%s_l1_ratio_%.2f' % (C, penalty, solver, l1_ratio)        
     elif gv.clf_name in 'LinearSVC':
-        clf_param = '/C_%.3f_penalty_%s_loss_%s/' % (C, penalty, loss)
-    elif gv.clf_name in 'LinearDiscriminantAnalysis':
-        clf_param = '/shrinkage_%s_solver_lsqr/' % shrinkage
+        clf_param = '/C_%.3f_penalty_%s_loss_%s' % (C, penalty, loss)
+    elif gv.clf_name in 'LDA': 
+        clf_param = '/shrinkage_%s_solver_lsqr' % shrinkage
     
     gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param 
-
-    if gv.BAYES_BOOTSTRAP:
-        gv.figdir = gv.figdir + '/bayes_boot'
-    elif gv.BAGGING_BOOTSTRAP:
-        gv.figdir = gv.figdir + '/bagging_boot' 
-    else:
-        gv.figdir = gv.figdir + '/my_boot' 
     
+    gv.figdir = gv.figdir + '/%s_boots' % gv.bootstrap_method 
+
     if not os.path.isdir(gv.figdir): 
         os.makedirs(gv.figdir) 
 
@@ -206,48 +191,64 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
     # figtitle = '%s_%s_bars_corr' % (gv.mouse, gv.session) 
     # pl.save_fig(figtitle) 
 
-def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=1e2, bootstrap_method='standard'): 
+def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=None): 
 
-    gv.n_boots = int(1e3) 
-    gv.num_cores =  int(multiprocessing.cpu_count()) - 1 
+    gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
+    gv.IF_SAVE = 1 
+    
+    # classification parameters 
+    gv.clf_name = 'LogisticRegressionCV' 
+    gv.TIBSHIRANI_TRICK = 0 
+    
+    # bootstrap parameters
+    gv.n_boots = int(1e3)
+    gv.bootstrap_method='block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
+    
+    # scaling 
     gv.scaling = 'standardize' # 'standardize' or 'normalize' or None 
     
+    # PCA parameters 
+    gv.explained_variance = 0.90 
+    gv.pca_method = 'supervised' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    
+    if gv.pca_method is not None:
+        if gv.pca_method in 'supervised':
+            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=20, Cs=20, verbose=True, n_jobs=gv.num_cores) 
+        else:
+            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance) 
+            
+    gv.ED_MD_LD = 0 
+    gv.DELAY_ONLY = 0 
+    
+    # preprocessing parameters 
     gv.T_WINDOW = 0.0 
-    gv.IF_SAVE = 1 
     gv.EDvsLD = 1 
     gv.SAVGOL = 0 
     
-    gv.clf_name = 'LogisticRegressionCV'
-    
-    gv.BAYES_BOOTSTRAP = 0 
-    gv.BAGGING_BOOTSTRAP = 0
-    bootstrap_method = bootstrap_method
-    
     gv.FEATURE_SELECTION = 0 
-    
-    gv.TIBSHIRANI_TRICK = 0 
-    
-    # for gv.mouse in gv.mice : 
-    #     fct.get_sessions_mouse() 
-    #     fct.get_stimuli_times() 
-    #     fct.get_delays_times() 
-    
-    #     for gv.session in gv.sessions : 
-    #         X_trials = fct.get_X_y_mouse_session() 
-    #         print(X_trials.shape)
-            
-    #         matplotlib.use('Agg') # so that fig saves when in the in the background 
-    #         plot_cos_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling) 
-    #         plt.close('all') 
-
+        
     for gv.mouse in [gv.mice[1]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in gv.sessions : 
-            X_trials = fct.get_X_y_mouse_session() 
-            print(X_trials.shape) 
-            matplotlib.use('GTK3cairo') 
-            plot_cos_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, bootstrap_method=bootstrap_method)
+        for gv.session in gv.sessions: 
+            X_trials, y = fct.get_X_y_mouse_session() 
+            if gv.pca_method is not None:
+                
+                if gv.ED_MD_LD: 
+                    X_trials = X_trials[:,:,:,:,gv.bins_ED_MD_LD] 
+                if gv.DELAY_ONLY: 
+                    X_trials = X_trials[:,:,:,:,gv.bins_delay] 
+                    gv.bin_start = gv.bins_delay[0] 
+                    
+                # X_trials = my_pca.fit_transform(X_trials, y) 
+                X_trials = my_pca.trial_hybrid(X_trials, y) 
+                
+            print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name, ', scaling:', gv.scaling,
+                  ', pca_method:', gv.pca_method, ', n_components', X_trials.shape[3]) 
             
+            # matplotlib.use('Agg') # so that fig saves when in the in the background 
+            matplotlib.use('GTK3cairo') 
+            plot_cos_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, bootstrap_method=gv.bootstrap_method) 
+            # plt.close('all') 
