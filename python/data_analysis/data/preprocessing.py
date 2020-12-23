@@ -31,11 +31,11 @@ def normalize(X):
     # Xmin = np.amin(X, axis=1) 
     # Xmax = np.amax(X, axis=1) 
 
-    Xmin = Xmin[:,np.newaxis]
-    Xmax = Xmax[:,np.newaxis]
+    Xmin = Xmin[:,np.newaxis] 
+    Xmax = Xmax[:,np.newaxis] 
     return (X-Xmin)/(Xmax-Xmin+gv.eps) 
 
-def conf_inter(y):
+def conf_inter(y): 
     ci = []
     for i in range(y.shape[0]):
         ci.append( stats.t.interval(0.95, y.shape[1]-1, loc=np.mean(y[i,:]), scale=stats.sem(y[i,:])) )

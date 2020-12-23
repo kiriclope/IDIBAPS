@@ -1,6 +1,7 @@
 import numpy as np 
 
 from sklearn.preprocessing import StandardScaler 
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_predict, GridSearchCV 
 from sklearn.metrics import mean_squared_error 
 from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical 
@@ -14,7 +15,7 @@ class plsCV():
         self.cv = cv
         self.max_comp = max_comp 
         self.n_jobs = n_jobs 
-        self.pls_method = pls.method 
+        self.pls_method = pls_method 
         
         self.clf = PLSRegression()
         # self.clf = PLSSVD()
@@ -25,15 +26,15 @@ class plsCV():
         
         self._coefs = None
         self._opt_n_comp = None
-        self._X_proj = None 
-        
-        self.pipe = Pipeline(steps=[('preprocessor', self.scaler), ('estimator', self.clf)]) 
-        param_grid = [{'estimator__n_components' : np.arange(0, self.max_comp)}] 
-        self.search = GridSearchCV(self.pipe, scoring='neg_mean_squared_error', param_grid=param_grid, cv=self.cv, verbose=False, n_jobs=self.n_jobs)
+        self._X_proj = None
+
+        self.pipe = Pipeline(steps=[('preprocessor', self.scaler), ('estimator', self.clf)])
+        self.search = None 
         
     def cross_val_mse(X, y): 
         '''Run PLS including a variable number of components, up to n_comp_max, and calculate MSE ''' 
-        mse = [] 
+        mse = []
+        
         n_components = np.arange(1, self.max_comp) 
         for n_comp in (pg.tqdm(n_components, desc='pls') if self.verbose else n_components): 
             pls = PLSRegression(n_components=n_comp) 
@@ -58,27 +59,40 @@ class plsCV():
         
         return self._opt_n_comp 
     
-    def fit(self, X, y):        
+    def fit(self, X, y):
+        if isinstance(self.max_comp, str):
+            self.max_comp = X.shape[1]
+            
+        # X=self.scaler.fit_transform(X)
         # self._opt_n_comp = self.cross_val_mse(X, y) 
         # self.clf=PLSRegression(n_components=self._opt_n_comp) 
         # self.X_proj = self.clf.fit(X,y) 
         # self._coefs = self.clf.coef_
         
-        search_result = self.search.fit(X, y) 
+        param_grid = [{'estimator__n_components' : np.arange(0, self.max_comp)}] 
+        search = GridSearchCV(self.pipe, scoring='neg_mean_squared_error', param_grid=self.param_grid, cv=self.cv, verbose=False, n_jobs=self.n_jobs)
+        
+        search_result = search.fit(X, y) 
         self._best_model = search_result.best_estimator_ 
         self._best_model.fit(X,y) 
         self._coefs = self._best_model.coef_ 
         
         return self
     
-    def fit_transform(self, X, y): 
+    def fit_transform(self, X, y):  
+        if isinstance(self.max_comp, str):
+            self.max_comp = X.shape[1]
+            
         # self._opt_n_comp = self.cross_val_mse(X, y) 
         # self.clf=PLSRegression(n_components=self._opt_n_comp) 
-        # self.X_proj = self.clf.fit_transform(X,y) 
+        # self.X_proj, _ = self.clf.fit_transform(X,y) 
         # self._coefs = self.clf.coef_
         
-        search_result = self.search.fit(X, y) 
+        param_grid = [{'estimator__n_components' : np.arange(0, self.max_comp)}] 
+        search = GridSearchCV(self.pipe, scoring='neg_mean_squared_error', param_grid=param_grid, cv=self.cv, verbose=False, n_jobs=self.n_jobs)
+        
+        search_result = search.fit(X, y) 
         self._best_model = search_result.best_estimator_ 
-        self._X_proj = self._best_model.fit_transform(X,y) 
+        self._X_proj, _ = self._best_model.fit_transform(X,y) 
         
         return self._X_proj 

@@ -19,13 +19,28 @@ fac.SetPlotParams()
 import warnings
 warnings.filterwarnings("ignore")
 
-from models.glms import get_clf 
-from dim_red.pca.pca_decomposition import pca_methods 
+import models.glms
+reload(models.glms)
+from models.glms import get_clf
+
+import dim_red.pca.pca_decomposition
+reload(dim_red.pca.pca_decomposition)
+from dim_red.pca.pca_decomposition import pca_methods
+
+import dim_red.spca
+reload(dim_red.spca)
 from dim_red.spca import supervisedPCA_CV 
+
+import dim_red.pls
+reload(dim_red.pls)
 from dim_red.pls import plsCV
 
+from . import bootstrap
+reload(bootstrap)
+from .bootstrap import bootstrap
 
-from .bootstrap import bootstrap 
+import statistics
+reload(statistics)
 from .statistics import t_test 
 
 def get_epochs():
@@ -44,6 +59,9 @@ def SVD_trick(X):
     return X, Vh 
 
 def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=True, intercept_scaling=1e2): 
+
+    if gv.pls_method is not None: 
+        my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=None) 
     
     get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio,
             shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling= intercept_scaling) 
@@ -62,7 +80,10 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
         
         for n_epochs in range(X_S1_S2.shape[2]): 
             X = X_S1_S2[:,:,n_epochs]
-            Vh = None 
+            Vh = None
+            
+            if gv.pls_method is not None:
+                X = my_pls.fit_transform(X, y) 
             
             if gv.TIBSHIRANI_TRICK and (penalty=='l2' or 'LDA' in gv.clf_name or 'PLS' in gv.clf_name): 
                 X, Vh = SVD_trick(X)
@@ -240,11 +261,11 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.DELAY_ONLY = 0 
     
     # PLS parameters 
-    gv.pls_max_comp = 100 
-    gv.pls_method = None # 'PLSRegression', 'PLSCanonical', 'PLSSVD' or None 
+    gv.pls_max_comp = 'full' 
+    gv.pls_method = 'PLSRegression' # 'PLSRegression', 'PLSCanonical', 'PLSSVD' or None 
     gv.pls_cv = 5 
     
-    if gv.pls_method is not None:
+    if gv.pls_method is not None: 
         gv.pca_method = None  # safety for dummies 
         gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=None) 
@@ -267,8 +288,8 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
                     
                 if gv.pca_method is not None:                 
                     X_trials = my_pca.fit_transform(X_trials, y)                 
-                elif gv.pls_method is not None : 
-                    X_trials = my_pls.fit_transform(X_trials, y)
+                # elif gv.pls_method is not None : 
+                #     X_trials = my_pls.fit_transform(X_trials, y)
                 
             print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name, ', scaling:', gv.scaling,
                   ', pca_method:', gv.pca_method, ', n_components', X_trials.shape[3]) 

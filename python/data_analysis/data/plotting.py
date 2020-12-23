@@ -8,7 +8,7 @@ lines_alpha = 0.8
 def figDir():
     
     today = date.today()
-    today = today.strftime("%d-%m-%y")    
+    today = today.strftime("/%d-%m-%y")
     gv.figdir = gv.figdir + today 
         
     if gv.laser_on: 
@@ -26,8 +26,12 @@ def figDir():
         if gv.DELAY_ONLY:
             gv.figdir = gv.figdir + '/delay_only'
             
-    if gv.pls_method is not None: 
-        gv.figdir = gv.figdir + '/dim_red/pls/%s/max_comp_%d_cv_%.2f' % (gv.pls_method, gv.pls_max_comp, gv.pls_cv) 
+    if gv.pls_method is not None:
+        if isinstance(gv.pls_max_comp, str):
+            gv.figdir = gv.figdir + '/dim_red/pls/%s/max_comp_%s_cv_%.2f' % (gv.pls_method, gv.pls_max_comp, gv.pls_cv)
+        else:
+            gv.figdir = gv.figdir + '/dim_red/pls/%s/max_comp_%d_cv_%.2f' % (gv.pls_method, gv.pls_max_comp, gv.pls_cv)
+            
         if gv.ED_MD_LD :
             gv.figdir = gv.figdir + '/ED_MD_LD' 
         if gv.DELAY_ONLY:

@@ -31,7 +31,7 @@ def SetPlotParams():
     plt.rcParams['xtick.major.size'] = 2
     plt.rcParams['ytick.major.size'] = 2
 
-    plt.rcParams['font.sans-serif'] = 'Arial'
+    # plt.rcParams['font.sans-serif'] = 'Arial'
 
 
 def SetPlotDim(x,y):
