@@ -36,7 +36,7 @@ def get_sessions_mouse():
 def get_fluo_data():
 
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
-        data = loadmat(gv.data_path + '/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat')
+        data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat')
 
         if 'rates' in gv.data_type:
             X_data = np.rollaxis(data['S_dec'],1,0)

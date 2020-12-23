@@ -83,6 +83,7 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
             Vh = None
             
             if gv.pls_method is not None:
+                print('pls decomposition') 
                 X = my_pls.fit_transform(X, y) 
             
             if gv.TIBSHIRANI_TRICK and (penalty=='l2' or 'LDA' in gv.clf_name or 'PLS' in gv.clf_name): 
@@ -151,21 +152,39 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
     if 'LogisticRegressionCV' in gv.clf_name:
         if 'liblinear' in solver:
             if cv is not None:
-                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_intercept_fit_%d_scaling_%d' % (C, penalty, solver, cv, fit_intercept, intercept_scaling ) 
+                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_intercept_fit_%d_scaling_%d' % (C, penalty, solver, cv)
+                if fit_intercept:
+                    clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
             else: 
                 clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, 5) 
+                if fit_intercept:
+                    clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
+                    
         if 'sag' in solver:
             if cv is not None:
                 clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f' % (C, penalty, solver, cv, l1_ratio[-1])
+                if fit_intercept:
+                    clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
             else:
                 clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f' % (C, penalty, solver, 5, l1_ratio[-1]) 
+                if fit_intercept:
+                    clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
+                    
     elif 'LogisticRegression' in gv.clf_name:
         if 'liblinear' in solver:
             clf_param = '/C_%.3f_penalty_%s_solver_%s' % (C, penalty, solver)
+            if fit_intercept:
+                clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
         if 'sag' in solver:
             clf_param = '/C_%.3f_penalty_%s_solver_%s_l1_ratio_%.2f' % (C, penalty, solver, l1_ratio)        
+            if fit_intercept:
+                clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
+                
     elif gv.clf_name in 'LinearSVC':
         clf_param = '/C_%.3f_penalty_%s_loss_%s' % (C, penalty, loss)
+        if fit_intercept:
+            clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
+            
     elif gv.clf_name in 'LDA': 
         clf_param = '/shrinkage_%s_solver_lsqr' % shrinkage
     
@@ -221,7 +240,7 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
     # pl.save_fig(figtitle) 
 
 def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=1e2): 
-
+    
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
     gv.IF_SAVE = 1 
     gv.correct_trial = 0 
@@ -233,7 +252,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     # bootstrap parameters
     gv.n_boots = int(1e3) 
     gv.bootstrap_method='block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
-
+    
     # preprocessing parameters 
     gv.T_WINDOW = 0.0 
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
@@ -246,23 +265,23 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     
     # PCA parameters 
     gv.explained_variance = 0.95 
-    gv.pca_method = None # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.pca_method = 'supervised' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     
     if gv.pca_method is not None: 
         print('pca decomposition') 
         gv.scaling = None # safety for dummies 
         
         if gv.pca_method in 'supervised': 
-            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=100, Cs=100, verbose=True, n_jobs=gv.num_cores) 
+            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=10, Cs=10, verbose=True, n_jobs=gv.num_cores) 
         else: 
-            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance)
+            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance) 
             
     gv.ED_MD_LD = 0 
     gv.DELAY_ONLY = 0 
     
     # PLS parameters 
-    gv.pls_max_comp = 'full' 
-    gv.pls_method = 'PLSRegression' # 'PLSRegression', 'PLSCanonical', 'PLSSVD' or None 
+    gv.pls_max_comp = 'full' # 'full', int or None 
+    gv.pls_method = None # 'PLSRegression', 'PLSCanonical', 'PLSSVD' or None 
     gv.pls_cv = 5 
     
     if gv.pls_method is not None: 
@@ -270,7 +289,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=None) 
     
-    for gv.mouse in gv.mice : 
+    for gv.mouse in [gv.mice[1]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
@@ -286,7 +305,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
                     X_trials = X_trials[:,:,:,:,gv.bins_delay] 
                     gv.bin_start = gv.bins_delay[0] 
                     
-                if gv.pca_method is not None:                 
+                if gv.pca_method is not None: 
                     X_trials = my_pca.fit_transform(X_trials, y)                 
                 # elif gv.pls_method is not None : 
                 #     X_trials = my_pls.fit_transform(X_trials, y)
@@ -294,8 +313,8 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
             print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name, ', scaling:', gv.scaling,
                   ', pca_method:', gv.pca_method, ', n_components', X_trials.shape[3]) 
             
-            matplotlib.use('Agg') # so that fig saves when in the in the background 
-            # matplotlib.use('GTK3cairo') 
+            # matplotlib.use('Agg') # so that fig saves when in the in the background 
+            matplotlib.use('GTK3cairo') 
             plot_cos_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, bootstrap_method=gv.bootstrap_method) 
-            plt.close('all') 
+            # plt.close('all') 
 

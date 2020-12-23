@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
+
 import numpy as np 
 
 from sklearn.preprocessing import StandardScaler 
@@ -33,7 +36,7 @@ class plsCV():
         
     def cross_val_mse(X, y): 
         '''Run PLS including a variable number of components, up to n_comp_max, and calculate MSE ''' 
-        mse = []
+        mse = [] 
         
         n_components = np.arange(1, self.max_comp) 
         for n_comp in (pg.tqdm(n_components, desc='pls') if self.verbose else n_components): 
@@ -95,4 +98,5 @@ class plsCV():
         self._best_model = search_result.best_estimator_ 
         self._X_proj, _ = self._best_model.fit_transform(X,y) 
         
-        return self._X_proj 
+        return self._X_proj
+

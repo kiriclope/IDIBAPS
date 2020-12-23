@@ -2,7 +2,7 @@ import numpy as np
 import multiprocessing 
 
 global path, scriptdir, figdir, filedir 
-path = '/home/leon/IDIBAPS/python/data_analysis' 
+path = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis' 
 figdir = path + '/figs' 
 filedir = path + '/data' 
 
