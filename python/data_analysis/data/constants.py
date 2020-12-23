@@ -1,11 +1,16 @@
 import numpy as np 
 import multiprocessing 
 
+global path, scriptdir, figdir, filedir 
+path = '/home/leon/Dropbox/IDIBAPS/python/data_analysis' 
+figdir = path + '/figs' 
+filedir = path + '/data' 
+
 global mouse, mice, session, sessions, days, trial, trials 
 mouse = []
 mice = ['C57_2_DualTask','ChRM04','JawsM15'] 
 session = [] 
-sessions = []
+sessions = [] 
 days = [1,2,3,4,5,6]
 trial = 'ND' 
 trials = ['ND', 'D1', 'D2']
@@ -94,11 +99,6 @@ t_ED_MD_LD = []
 ED_MD_LD = 0
 bins_stim_delay = []
 t_stim_delay = []
-
-global scriptdir, figdir, filedir
-scriptdir = ''
-figdir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/figs' 
-filedir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/data' 
 
 global scaling
 scaling = None

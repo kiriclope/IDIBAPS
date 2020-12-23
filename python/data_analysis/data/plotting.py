@@ -6,7 +6,6 @@ shade_alpha = 0.2
 lines_alpha = 0.8
 
 def figDir():
-    gv.figdir = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis/figs/'
     
     today = date.today()
     today = today.strftime("%d-%m-%y")    

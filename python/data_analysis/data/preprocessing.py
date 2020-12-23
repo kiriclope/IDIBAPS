@@ -6,7 +6,7 @@ from . import featureSel as fs
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 
-from oasis.functions import deconvolve 
+# from oasis.functions import deconvolve 
 
 from joblib import Parallel, delayed, parallel_backend
 
@@ -273,39 +273,39 @@ def selectiveNeurons(X_S1, X_S2, Threshold=.01):
     
     return X_S1, X_S2, idx
 
-def deconvolve_X(X):
+# def deconvolve_X(X):
 
-    F0 = np.mean(X[:,gv.bins_BL],axis=1) 
-    with pg.tqdm_joblib(pg.tqdm(desc='deconvolve', total=X.shape[0])) as progress_bar: 
-        result = Parallel(n_jobs=gv.num_cores)(delayed(deconvolve)(X[n_neuron], penalty=1, b=F0) for n_neuron in range(X.shape[0]) )
+#     F0 = np.mean(X[:,gv.bins_BL],axis=1) 
+#     with pg.tqdm_joblib(pg.tqdm(desc='deconvolve', total=X.shape[0])) as progress_bar: 
+#         result = Parallel(n_jobs=gv.num_cores)(delayed(deconvolve)(X[n_neuron], penalty=1, b=F0) for n_neuron in range(X.shape[0]) )
 
-    result = np.array(result).T
-    # print(result.shape)
-    X_deconv = (np.stack(result[0])-F0[:, np.newaxis])/(F0[:, np.newaxis] + gv.eps) 
-    # print(X_deconv.shape)
+#     result = np.array(result).T
+#     # print(result.shape)
+#     X_deconv = (np.stack(result[0])-F0[:, np.newaxis])/(F0[:, np.newaxis] + gv.eps) 
+#     # print(X_deconv.shape)
     
-    # F0 = np.mean(X[:,:,gv.bins_BL],axis=2)     
-    # with pg.tqdm_joblib(pg.tqdm(desc='deconvolve', total=int( X.shape[0] * X.shape[1] ) )) as progress_bar: 
-    #     result = Parallel(n_jobs=gv.num_cores)(delayed(deconvolve)(X[trial, n_neuron], penalty=1, b=F0[trial, n_neuron] ) for trial in range(X.shape[0]) for n_neuron in range(X.shape[1]) ) 
+#     # F0 = np.mean(X[:,:,gv.bins_BL],axis=2)     
+#     # with pg.tqdm_joblib(pg.tqdm(desc='deconvolve', total=int( X.shape[0] * X.shape[1] ) )) as progress_bar: 
+#     #     result = Parallel(n_jobs=gv.num_cores)(delayed(deconvolve)(X[trial, n_neuron], penalty=1, b=F0[trial, n_neuron] ) for trial in range(X.shape[0]) for n_neuron in range(X.shape[1]) ) 
 
-    # result = np.array(result).T
-    # result = np.array(result).reshape( (5, X.shape[0], X.shape[1]) )
-    # result = np.moveaxis(result, 1, 2)
-    # # print(result.shape)
+#     # result = np.array(result).T
+#     # result = np.array(result).reshape( (5, X.shape[0], X.shape[1]) )
+#     # result = np.moveaxis(result, 1, 2)
+#     # # print(result.shape)
     
-    # X_deconv = np.stack( np.hstack(result[0]) ).reshape( (X.shape[0], X.shape[1], X.shape[2]) ) 
-    # # print(X_denoised.shape)
+#     # X_deconv = np.stack( np.hstack(result[0]) ).reshape( (X.shape[0], X.shape[1], X.shape[2]) ) 
+#     # # print(X_denoised.shape)
 
-    # X_spikes = np.stack( np.hstack(result[1]) ).reshape( (X.shape[0], X.shape[1], X.shape[2]) ) 
-    # print(X_denoised.shape)
+#     # X_spikes = np.stack( np.hstack(result[1]) ).reshape( (X.shape[0], X.shape[1], X.shape[2]) ) 
+#     # print(X_denoised.shape)
     
-    # X_denoised = np.empty( (X.shape[0], X.shape[1]) )
-    # X_spikes = np.empty( (X.shape[0], X.shape[1]) ) 
+#     # X_denoised = np.empty( (X.shape[0], X.shape[1]) )
+#     # X_spikes = np.empty( (X.shape[0], X.shape[1]) ) 
 
-    # for n_neuron in range(X.shape[0]):
-    #     X_denoised[n_neuron], X_spikes[n_neuron], F0, g, lam = deconvolve(X[n_neuron], penalty=1) 
+#     # for n_neuron in range(X.shape[0]):
+#     #     X_denoised[n_neuron], X_spikes[n_neuron], F0, g, lam = deconvolve(X[n_neuron], penalty=1) 
 
-    return X_deconv
+#     return X_deconv
 
 # def remove_outliers(X):
 #     ''' for each trial remove outlier neurons ''' 

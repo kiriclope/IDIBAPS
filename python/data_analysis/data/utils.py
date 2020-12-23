@@ -36,7 +36,7 @@ def get_sessions_mouse():
 def get_fluo_data():
 
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
-        data = loadmat('/homecentral/alexandre.mahrach/IDIBAPS/DataForAlexandre/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat')
+        data = loadmat(gv.data_path + '/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat')
 
         if 'rates' in gv.data_type:
             X_data = np.rollaxis(data['S_dec'],1,0)
@@ -48,8 +48,8 @@ def get_fluo_data():
         gv.frame_rate = 6
     
     else:
-        data = loadmat('/homecentral/alexandre.mahrach/IDIBAPS/DataForAlexandre/' + gv.mouse +  '/' + gv.session + '-C57-2-DualTaskAcrossDaySameROITrace' + '.mat')
-        data_labels = loadmat('/homecentral/alexandre.mahrach/IDIBAPS/DataForAlexandre/' + gv.mouse + '/' + gv.session + '-C57-2-DualTask-SumFluoTraceFile' + '.mat')
+        data = loadmat(gv.path +  '/data/' + gv.mouse +  '/' + gv.session + '-C57-2-DualTaskAcrossDaySameROITrace' + '.mat') 
+        data_labels = loadmat(gv.path +  '/data/' + gv.mouse + '/' + gv.session + '-C57-2-DualTask-SumFluoTraceFile' + '.mat') 
         
         X_data = np.rollaxis(data['SameAllCdf'],2,0) 
         # X_data = np.rollaxis(data['SamedFF0'],2,0) 

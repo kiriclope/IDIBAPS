@@ -1,13 +1,19 @@
 from .libs import * 
-sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis') 
 
-import data.constants as gv 
+import data.constants as gv
+reload(gv)
 import data.utils as fct 
+reload(fct)
 import data.plotting as pl 
+reload(pl)
 import data.preprocessing as pp 
+reload(pp)
 import data.angle as agl 
+reload(agl)
 import data.progressbar as pg 
+reload(pg)
 import data.fct_facilities as fac 
+reload(fac)
 fac.SetPlotParams() 
 
 import warnings

@@ -12,7 +12,7 @@ from sklearn.ensemble import BaggingRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 
-from bayesian_bootstrap import bootstrap as bayes 
+# from bayesian_bootstrap import bootstrap as bayes 
 from joblib import Parallel, delayed
 
 class bootstrap():
@@ -82,16 +82,16 @@ class bootstrap():
             boots_coefs = Parallel(n_jobs=self.n_jobs)(delayed(self.my_bootstrap_loop)(X, y) for _ in range(self.n_boots) ) 
         self._coefs = np.array(boots_coefs) 
     
-    def bayesian_bootstrap(self, X, y): 
-        model = bayes.BayesianBootstrapBagging(self.pipe, self.n_boots, X.shape[1], n_jobs=self.n_jobs) 
-        model.fit(X, y) 
+    # def bayesian_bootstrap(self, X, y): 
+    #     model = bayes.BayesianBootstrapBagging(self.pipe, self.n_boots, X.shape[1], n_jobs=self.n_jobs) 
+    #     model.fit(X, y) 
         
-        if self.Vh is not None: 
-            coefs = [ self.Vh.T.dot(estimator[-1].coef_.flatten() ).flatten() for estimator in model.base_models_ ] 
-        else: 
-            coefs = [ estimator[-1].coef_.flatten() for estimator in model.base_models_ ] 
+    #     if self.Vh is not None: 
+    #         coefs = [ self.Vh.T.dot(estimator[-1].coef_.flatten() ).flatten() for estimator in model.base_models_ ] 
+    #     else: 
+    #         coefs = [ estimator[-1].coef_.flatten() for estimator in model.base_models_ ] 
             
-        self._coefs = np.array(coefs)
+    #     self._coefs = np.array(coefs)
 
     def bagging_bootstrap(self, X, y):
         model = BaggingRegressor(base_estimator=self.pipe, n_estimators=self.n_boots, n_jobs=self.n_jobs, bootstrap_features=False) 
@@ -109,8 +109,8 @@ class bootstrap():
         
         if self.bootstrap_method in 'bagging':
             self.bagging_bootstrap(X, y) 
-        elif self.bootstrap_method in 'bayesian':
-            self.bayesian_bootstrap(X, y)
+        # elif self.bootstrap_method in 'bayesian':
+        #     self.bayesian_bootstrap(X, y)
         else:
             self.my_bootstrap(X, y)
             
