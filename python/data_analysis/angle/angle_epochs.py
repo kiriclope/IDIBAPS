@@ -82,7 +82,7 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
             X = X_S1_S2[:,:,n_epochs]
             Vh = None
             
-            if gv.pls_method is not None:
+            if gv.pls_method is not None: 
                 print('pls decomposition') 
                 X = my_pls.fit_transform(X, y) 
             
