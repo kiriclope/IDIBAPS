@@ -18,10 +18,10 @@ def center(X):
     return Xc
 
 def z_score(X): 
-    ss = StandardScaler(with_mean=True, with_std=True) 
+    ss = StandardScaler() 
     ss.fit(X[:,gv.bins_BL].T) 
     Xz = ss.transform(X.T).T 
-    # Xz = ss.fit_transform(X.T).T
+    # Xz = ss.fit_transform(X.T).T 
     return Xz 
 
 def normalize(X):

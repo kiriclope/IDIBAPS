@@ -16,6 +16,8 @@ warnings.filterwarnings("ignore")
 from models.glms import get_clf 
 from dim_red.pca.pca_decomposition import pca_methods 
 from dim_red.spca import supervisedPCA_CV 
+from dim_red.pls import plsCV
+
 
 from .bootstrap import bootstrap 
 from .statistics import t_test 
@@ -39,7 +41,7 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
     
     get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio,
             shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling= intercept_scaling) 
-
+    
     boots_model = bootstrap(gv.clf, bootstrap_method=bootstrap_method, n_boots=gv.n_boots, scaling=gv.scaling, n_jobs=gv.num_cores) 
     
     get_epochs()
@@ -191,50 +193,65 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
     # figtitle = '%s_%s_bars_corr' % (gv.mouse, gv.session) 
     # pl.save_fig(figtitle) 
 
-def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=None): 
+def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=1e2): 
 
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
     gv.IF_SAVE = 1 
+    gv.correct_trial = 0 
     
     # classification parameters 
     gv.clf_name = 'LogisticRegressionCV' 
     gv.TIBSHIRANI_TRICK = 0 
     
     # bootstrap parameters
-    gv.n_boots = int(1e3)
+    gv.n_boots = int(1e3) 
     gv.bootstrap_method='block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
+
+    # preprocessing parameters 
+    gv.T_WINDOW = 0.0 
+    gv.EDvsLD = 1 # average over epochs ED, MD and LD 
+    gv.SAVGOL = 0 # sav_gol filter 
+    gv.Z_SCORE = 0 # z_score with BL mean and std 
+    gv.FEATURE_SELECTION = 0 
     
-    # scaling 
-    gv.scaling = 'standardize' # 'standardize' or 'normalize' or None 
+    # scaling before clf, when using pca use None 
+    gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
     # PCA parameters 
-    gv.explained_variance = 0.90 
-    gv.pca_method = 'supervised' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.explained_variance = 0.95 
+    gv.pca_method = None # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     
-    if gv.pca_method is not None:
-        if gv.pca_method in 'supervised':
-            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=20, Cs=20, verbose=True, n_jobs=gv.num_cores) 
-        else:
-            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance) 
+    if gv.pca_method is not None: 
+        print('pca decomposition') 
+        gv.scaling = None # safety for dummies 
+        
+        if gv.pca_method in 'supervised': 
+            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=100, Cs=100, verbose=True, n_jobs=gv.num_cores) 
+        else: 
+            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance)
             
     gv.ED_MD_LD = 0 
     gv.DELAY_ONLY = 0 
     
-    # preprocessing parameters 
-    gv.T_WINDOW = 0.0 
-    gv.EDvsLD = 1 
-    gv.SAVGOL = 0 
+    # PLS parameters 
+    gv.pls_max_comp = 100 
+    gv.pls_method = None # 'PLSRegression', 'PLSCanonical', 'PLSSVD' or None 
+    gv.pls_cv = 5 
     
-    gv.FEATURE_SELECTION = 0 
-        
-    for gv.mouse in [gv.mice[1]] : 
+    if gv.pls_method is not None:
+        gv.pca_method = None  # safety for dummies 
+        gv.scaling = None # safety for dummies 
+        my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=None) 
+    
+    for gv.mouse in gv.mice : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
         for gv.session in gv.sessions: 
             X_trials, y = fct.get_X_y_mouse_session() 
-            if gv.pca_method is not None:
+            
+            if (gv.pca_method is not None) or (gv.pls_method is not None): 
                 
                 if gv.ED_MD_LD: 
                     X_trials = X_trials[:,:,:,:,gv.bins_ED_MD_LD] 
@@ -242,13 +259,16 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
                     X_trials = X_trials[:,:,:,:,gv.bins_delay] 
                     gv.bin_start = gv.bins_delay[0] 
                     
-                # X_trials = my_pca.fit_transform(X_trials, y) 
-                X_trials = my_pca.trial_hybrid(X_trials, y) 
+                if gv.pca_method is not None:                 
+                    X_trials = my_pca.fit_transform(X_trials, y)                 
+                elif gv.pls_method is not None : 
+                    X_trials = my_pls.fit_transform(X_trials, y)
                 
             print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name, ', scaling:', gv.scaling,
                   ', pca_method:', gv.pca_method, ', n_components', X_trials.shape[3]) 
             
-            # matplotlib.use('Agg') # so that fig saves when in the in the background 
-            matplotlib.use('GTK3cairo') 
+            matplotlib.use('Agg') # so that fig saves when in the in the background 
+            # matplotlib.use('GTK3cairo') 
             plot_cos_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, bootstrap_method=gv.bootstrap_method) 
-            # plt.close('all') 
+            plt.close('all') 
+

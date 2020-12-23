@@ -17,6 +17,9 @@ def figDir():
     else:
         gv.figdir = gv.figdir + '/laser_off'
         
+    if gv.correct_trial :
+        gv.figdir = gv.figdir + '/correct_trials' 
+        
     if gv.pca_method is not None: 
         gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f' % (gv.pca_method, gv.explained_variance) 
         if gv.ED_MD_LD :
@@ -24,9 +27,15 @@ def figDir():
         if gv.DELAY_ONLY:
             gv.figdir = gv.figdir + '/delay_only'
             
+    if gv.pls_method is not None: 
+        gv.figdir = gv.figdir + '/dim_red/pls/%s/max_comp_%d_cv_%.2f' % (gv.pls_method, gv.pls_max_comp, gv.pls_cv) 
+        if gv.ED_MD_LD :
+            gv.figdir = gv.figdir + '/ED_MD_LD' 
+        if gv.DELAY_ONLY:
+            gv.figdir = gv.figdir + '/delay_only'
+            
     if gv.trialsXepochs: 
         gv.figdir = gv.figdir + '/trialsXepochs' 
-    
         
     if gv.detrend :
         gv.figdir = gv.figdir + '/detrend' 
@@ -40,8 +49,11 @@ def figDir():
         gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW 
 
     if gv.SAVGOL :
-        gv.figdir = gv.figdir + '/savgol'
+        gv.figdir = gv.figdir + '/savgol' 
 
+    if gv.Z_SCORE : 
+        gv.figdir = gv.figdir + '/z_score' 
+        
     if gv.scaling is not None:
         gv.figdir = gv.figdir + '/%s' % gv.scaling
         

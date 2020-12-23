@@ -68,7 +68,7 @@ def get_fluo_data():
 def which_trials(y_labels):
     y_trials = []
 
-    bool_correct = ( y_labels[2]==1 ) & ( y_labels[2]==4 ) 
+    bool_correct = ( y_labels[2]==1 ) | ( y_labels[2]==4 ) 
     if 'ND' in gv.trial:
         if 'S1' in gv.trial:
             if gv.laser_on:                
@@ -334,26 +334,42 @@ def get_X_y_mouse_session():
         gv.n_trials = 32 
         
     X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) ) 
-    
+
+    mins = [] 
     for n_trial, gv.trial in enumerate(gv.trials):
         
         X_S1, X_S2 = get_S1_S2_trials(X, y) 
         get_trial_types(X_S1) 
             
-        # compute DF over F0
+        # compute DF over F0 
         X_S1 = pp.dFF0(X_S1) 
         X_S2 = pp.dFF0(X_S2) 
-
-        if gv.SAVGOL:
-            print('savgol_filter')
+        
+        if gv.SAVGOL: 
+            print('savgol_filter') 
             for trial in range(X_S2.shape[0]): 
                 X_S1[trial] = savgol_filter(X_S1[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
                 X_S2[trial] = savgol_filter(X_S2[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
                 
-        X_trials[n_trial,0] = X_S1 
-        X_trials[n_trial,1] = X_S2
-        
-    y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten()     
-    print('X_trials', X_trials.shape, 'y', y.shape) 
+        if X_S1.shape[0]!=X_trials.shape[2] or X_S2.shape[0]!=X_trials.shape[2]: 
+            print('X_trials', X_trials.shape[2], 'X_S1', X_S1.shape[0], 'X_S2', X_S2.shape[0]) 
+            min_S1_S2 = np.amin([X_S1.shape[0], X_S2.shape[0]]) 
+        else:
+            min_S1_S2 = X_trials.shape[2]
+            
+        mins.append(min_S1_S2)
+            
+        if gv.Z_SCORE : 
+            for trial in range(min_S1_S2): 
+                X_S1[trial] = pp.z_score(X_S1[trial]) 
+                X_S2[trial] = pp.z_score(X_S2[trial]) 
+            
+        X_trials[n_trial,0, 0:X_S1.shape[0]] = X_S1 
+        X_trials[n_trial,1, 0:X_S2.shape[0]] = X_S2 
 
-    return X_trials, y
+    mins = np.amin(mins) 
+    y = np.array([np.zeros(mins), np.ones(mins)]).flatten() 
+    X_trials = X_trials[:,:,0:mins] 
+    print('X_trials', X_trials.shape, 'y', y.shape) 
+    
+    return X_trials, y 

@@ -148,3 +148,10 @@ FEATURE_SELECTION=0
 global TIBSHIRANI_TRICK
 TIBSHIRANI_TRICK=0
 
+global Z_SCORE
+Z_SCORE=0
+
+global pls_method, pls_max_comp, pls_cv
+pls_method = 'PLSRegression'
+pls_max_comp = 100
+pls_cv = 5

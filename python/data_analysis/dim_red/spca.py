@@ -35,7 +35,7 @@ class supervisedPCA():
         
         for n_components in range(0,s.shape[0]): 
             temp_s = s[0:n_components] 
-            S_ii = sum(temp_s)
+            S_ii = sum(temp_s) 
             if (1 - S_ii/float(S_nn)) <= 1 - self._explained_variance: 
                 return n_components 
             
@@ -50,6 +50,7 @@ class supervisedPCA():
         # Fit each feature with the target (predictor) and if the coefficient is less than the threshold, drop it 
         for i in range(0, X_extra_dim.shape[2]): # iterate over all the features 
             X_one_feature = X_extra_dim[:, :, i] # n_samples, 1, n_neurons
+            
             self._model.fit(X_one_feature, y) 
             
             if (all([abs(self._model.coef_[0]) < self._threshold])): # Return True if True for all values in the list 
@@ -57,12 +58,12 @@ class supervisedPCA():
                 
         if (len(self._dropouts) == X_extra_dim.shape[2]):  # all features have coef less than the threshold 
             warnings.warn('All features_coefs below threshold: %.2f, try a smaller threshold' % self._threshold ) 
-        else:
-            if(len(self._dropouts)>0): 
-                X_extra_dim = np.delete(X_extra_dim, self._dropouts,2) 
-                
+        elif(len(self._dropouts)>0): 
+            X_extra_dim = np.delete(X_extra_dim, self._dropouts, 2) 
+            
         self._n_components = self.get_optimal_number_of_components(X_extra_dim[:, 0, :]) # n_samples X n_features 
-        self._pca = PCA(n_components=self._n_components)
+        self._pca = PCA(n_components=self._n_components) 
+        
         self._X_proj = self._pca.fit_transform(X_extra_dim[:, 0, :]) # n_samples X n_features 
         # self._pca = self._pca.fit(X_extra_dim[:, 0, :]) 
         
@@ -83,7 +84,7 @@ class supervisedPCA():
     
 class supervisedPCA_CV(supervisedPCA):
     
-    def __init__(self, model=LogisticRegression(), explained_variance=0.9, cv=10, max_threshold=10, Cs=10, verbose=False, n_jobs=None): 
+    def __init__(self, model=LogisticRegression(), explained_variance=0.9, cv=5, max_threshold=100, Cs=100, verbose=False, n_jobs=None): 
         super().__init__(model=model, explained_variance=explained_variance, threshold=None, verbose=verbose) 
         
         self._Cs = Cs 
@@ -110,8 +111,6 @@ class supervisedPCA_CV(supervisedPCA):
             mlhs.append(log_loss(y, y_cv)) 
         mlh = np.argmax(mlhs) 
         
-        print(mlhs)
-        
         if self._verbose: 
             print('threshold_opt', thresholds[mlh]) 
             
@@ -129,12 +128,8 @@ class supervisedPCA_CV(supervisedPCA):
             print('n_components', self._n_components, 'pca', self._pca) 
         
         return self 
-    
-    def fit_transform(self, X, y): 
-        self.fit(X,y) 
-        return self._best_model._X_proj 
-    
-    def trial_hybrid(self, X_trials, y):  
+        
+    def trial_hybrid(self, X_trials, y): 
         
         X_avg = np.empty( (len(gv.trials), gv.n_neurons, len(gv.samples) * X_trials.shape[-1] ) ) 
         for n_trial in range(len(gv.trials)) : 
@@ -142,7 +137,7 @@ class supervisedPCA_CV(supervisedPCA):
             
         X_avg = np.hstack(X_avg) # n_features X n_trials
         y_avg = np.array([np.zeros(int(X_avg.shape[1]/2)), np.ones(int(X_avg.shape[1]/2))]).flatten() 
-
+        
         if self._verbose : 
             print('X_avg', X_avg.shape, 'y_avg', y_avg.shape) 
             
@@ -153,12 +148,6 @@ class supervisedPCA_CV(supervisedPCA):
         # supervised PCA the trial averaged data 
         self.fit(X_avg.T, y_avg) # n_trials X n_features
 
-        if (len(self._dropouts) == X_trials.shape[3]):  # all features have coef less than the threshold 
-            warnings.warn('All features_coefs below threshold: %.2f, try a smaller threshold' % self._threshold ) 
-        else:
-            if(len(self._dropouts)>0): 
-                X_trials = np.delete(X_trials, self._dropouts, 3) 
-        
         if self._verbose : 
             print('n_pc', self._n_components,'explained_variance', self._explained_variance, 'pca', self._pca) 
             
@@ -166,10 +155,20 @@ class supervisedPCA_CV(supervisedPCA):
         for i in range(X_trials.shape[0]): 
             for j in range(X_trials.shape[1]): 
                 for k in range(X_trials.shape[2]): 
+                    # scaling
                     trial = self.scaler.transform(X_trials[i,j,k,:,:].T).T # neurons x time = features x samples
+                    # remove dropouts
+                    if (len(self._dropouts) == X_trials.shape[3]):  # all features have coef less than the threshold 
+                        warnings.warn('All features_coefs below threshold: %.2f, try a smaller threshold' % self._threshold ) 
+                    elif(len(self._dropouts)>0): 
+                        trial = np.delete(trial, self._dropouts, 0)
+                    # decomposition 
                     X_proj[i,j,k] = self._pca.transform(trial.T).T 
                     
         if self._verbose:            
             print('X_proj', X_proj.shape) 
             
         return X_proj 
+
+    def fit_transform(self, X, y):
+        return self.trial_hybrid(X, y) 
