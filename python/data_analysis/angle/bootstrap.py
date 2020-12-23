@@ -7,7 +7,7 @@ warnings.filterwarnings("ignore")
 
 import numpy as np
 
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler 
 from sklearn.ensemble import BaggingRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
@@ -16,9 +16,9 @@ from bayesian_bootstrap import bootstrap as bayes
 from joblib import Parallel, delayed
 
 class bootstrap():
-
+    
     def __init__(self, clf, bootstrap_method='standard', n_boots=1000, scaling='standardize', gridsearch= None, Vh=None, n_jobs=1):
-
+        
         if scaling is None:
             self.pipe = Pipeline([('clf', clf)]) 
         elif scaling in 'standardize': 

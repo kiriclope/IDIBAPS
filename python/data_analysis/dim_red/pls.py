@@ -1,9 +1,9 @@
 import numpy as np 
 
-from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical 
-from sklearn.model_selection import cross_val_predict
-from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler 
+from sklearn.model_selection import cross_val_predict, GridSearchCV 
+from sklearn.metrics import mean_squared_error 
+from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical 
 
 from joblib import Parallel, delayed
 
