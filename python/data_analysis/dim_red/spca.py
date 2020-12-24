@@ -90,10 +90,10 @@ class supervisedPCA_CV(supervisedPCA):
         self._Cs = Cs 
         self._max_threshold = max_threshold 
         self._cv = cv 
-        self._n_jobs = n_jobs
+        self._n_jobs = n_jobs 
         self.scaler = StandardScaler() 
         
-        self._best_model = None         
+        self._best_model = None 
         
     def fit(self, X, y):
         
@@ -162,8 +162,9 @@ class supervisedPCA_CV(supervisedPCA):
                         warnings.warn('All features_coefs below threshold: %.2f, try a smaller threshold' % self._threshold ) 
                     elif(len(self._dropouts)>0): 
                         trial = np.delete(trial, self._dropouts, 0)
-                    # decomposition 
-                    X_proj[i,j,k] = self._pca.transform(trial.T).T 
+                    # decomposition
+                    trial_proj = self._pca.transform(trial.T).T
+                    X_proj[i,j,k,0:trial_proj.shape[0]] = trial_proj 
                     
         if self._verbose:            
             print('X_proj', X_proj.shape) 
