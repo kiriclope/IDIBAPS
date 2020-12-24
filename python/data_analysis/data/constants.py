@@ -155,3 +155,7 @@ global pls_method, pls_max_comp, pls_cv
 pls_method = 'PLSRegression'
 pls_max_comp = 100
 pls_cv = 5
+
+global max_threshold, n_thresholds
+max_threshold = 10
+n_thresholds = 10 

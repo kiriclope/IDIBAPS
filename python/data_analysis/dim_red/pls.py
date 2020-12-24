@@ -65,7 +65,7 @@ class plsCV():
     
     def fit(self, X, y):
         if isinstance(self.max_comp, str):
-            self.max_comp = X.shape[1]
+            self.max_comp = X.shape[1] 
             
         # X=self.scaler.fit_transform(X)
         # self._opt_n_comp = self.cross_val_mse(X, y) 

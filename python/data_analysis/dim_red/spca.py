@@ -1,7 +1,7 @@
-import sys
-sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis')
-import data.constants as gv
-import data.progressbar as pg
+import sys 
+sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis') 
+import data.constants as gv 
+import data.progressbar as pg 
 
 import warnings
 import numpy as np 
@@ -44,7 +44,7 @@ class supervisedPCA():
         return self._n_components 
     
     def fit(self, X, y):
-        X_extra_dim = X[:, np.newaxis]  # Change dimension from (x,y) to (x,1,y)        
+        X_extra_dim = X[:, np.newaxis]  # Change dimension from (x,y) to (x,1,y) 
         self._dropouts = [] 
         
         # Fit each feature with the target (predictor) and if the coefficient is less than the threshold, drop it 
@@ -124,7 +124,7 @@ class supervisedPCA_CV(supervisedPCA):
         # self._n_components = super().get_coefs()
         # self._pca = super().get_pca()
         
-        if self._verbose:
+        if self._verbose: 
             print('n_components', self._n_components, 'pca', self._pca) 
         
         return self 
@@ -146,8 +146,8 @@ class supervisedPCA_CV(supervisedPCA):
         X_avg = self.scaler.transform(X_avg.T).T # n_trials X n_features 
         
         # supervised PCA the trial averaged data 
-        self.fit(X_avg.T, y_avg) # n_trials X n_features
-
+        self.fit(X_avg.T, y_avg) # n_trials X n_features 
+        
         if self._verbose : 
             print('n_pc', self._n_components,'explained_variance', self._explained_variance, 'pca', self._pca) 
             

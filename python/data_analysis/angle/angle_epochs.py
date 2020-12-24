@@ -256,9 +256,14 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     
     # preprocessing parameters 
     gv.T_WINDOW = 0.5 
-    gv.EDvsLD = 1 # average over epochs ED, MD and LD 
+    gv.EDvsLD = 1 # average over epochs ED, MD and LD
+    
+    # only useful with dim red methods 
+    gv.ED_MD_LD = 1 
+    gv.DELAY_ONLY = 0 
+    
     gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 1 # z_score with BL mean and std 
+    gv.Z_SCORE = 0 # z_score with BL mean and std 
     gv.FEATURE_SELECTION = 0 
     
     # scaling before clf, when using pca use None 
@@ -266,22 +271,20 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     
     # PCA parameters 
     gv.explained_variance = 0.95 
-    gv.pca_method = 'supervised' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.pca_method = None # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.max_threshold = 10 
+    gv.n_thresholds = 10 
     
     if gv.pca_method is not None: 
-        # gv.scaling = None # safety for dummies 
-        
+        # gv.scaling = None # safety for dummies         
         if gv.pca_method in 'supervised': 
-            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=10, Cs=10, verbose=True, n_jobs=gv.num_cores) 
+            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
         else: 
             my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance) 
-            
-    gv.ED_MD_LD = 1 
-    gv.DELAY_ONLY = 0 
     
     # PLS parameters 
     gv.pls_max_comp = 100 # 'full', int or None 
-    gv.pls_method = 'PLSRegression' # 'PLSRegression', 'PLSCanonical', 'PLSSVD' or None 
+    gv.pls_method = None # 'PLSRegression' # 'PLSRegression', 'PLSCanonical', 'PLSSVD' or None 
     gv.pls_cv = 5 
     
     if gv.pls_method is not None: 
@@ -289,14 +292,15 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
     
-    for gv.mouse in [gv.mice[1]] : 
+    for gv.mouse in gv.mice : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in gv.sessions[3:]: 
+        for gv.session in gv.sessions: 
             X_trials, y = fct.get_X_y_mouse_session() 
             
+                
             if (gv.pca_method is not None) or (gv.pls_method is not None): 
                 
                 if gv.ED_MD_LD: 
@@ -309,7 +313,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
                     X_trials = my_pca.fit_transform(X_trials, y) 
                 elif gv.pls_method is not None : 
                     X_trials = my_pls.trial_hybrid(X_trials, y) 
-                
+                    
             print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name, ', scaling:', gv.scaling,
                   ', pca_method:', gv.pca_method, ', pls_method:', gv.pls_method, ', n_components', X_trials.shape[3]) 
             
