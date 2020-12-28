@@ -19,13 +19,13 @@ fac.SetPlotParams()
 import warnings
 warnings.filterwarnings("ignore")
 
-import models.glms
-reload(models.glms)
-from models.glms import get_clf
+import models.glms 
+reload(models.glms) 
+from models.glms import get_clf 
 
-import dim_red.pca.pca_decomposition
-reload(dim_red.pca.pca_decomposition)
-from dim_red.pca.pca_decomposition import pca_methods
+import dim_red.pca.pca_decomposition 
+reload(dim_red.pca.pca_decomposition) 
+from dim_red.pca.pca_decomposition import pca_methods 
 
 import dim_red.spca
 reload(dim_red.spca)
@@ -263,7 +263,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.DELAY_ONLY = 0 
     
     gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 0 # z_score with BL mean and std 
+    gv.Z_SCORE = 1 # z_score with BL mean and std 
     gv.FEATURE_SELECTION = 0 
     
     # scaling before clf, when using pca use None 
@@ -271,12 +271,12 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     
     # PCA parameters 
     gv.explained_variance = 0.95 
-    gv.pca_method = None # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
-    gv.max_threshold = 10 
-    gv.n_thresholds = 10 
+    gv.pca_method = 'hybrid' # 'supervised' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.max_threshold = 100 
+    gv.n_thresholds = 100 
     
     if gv.pca_method is not None: 
-        # gv.scaling = None # safety for dummies         
+        gv.scaling = None # safety for dummies 
         if gv.pca_method in 'supervised': 
             my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
         else: 
@@ -297,10 +297,9 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in gv.sessions: 
-            X_trials, y = fct.get_X_y_mouse_session() 
+        for gv.session in gv.sessions : 
+            X_trials, y = fct.get_X_y_mouse_session()             
             
-                
             if (gv.pca_method is not None) or (gv.pls_method is not None): 
                 
                 if gv.ED_MD_LD: 
@@ -321,4 +320,3 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
             # matplotlib.use('GTK3cairo') 
             plot_cos_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, bootstrap_method=gv.bootstrap_method) 
             plt.close('all') 
-

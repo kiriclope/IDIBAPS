@@ -20,7 +20,7 @@ t_ED = []
 t_MD = []
 t_LD = []
 
-global frame_rate, n_bin, duration, time
+global frame_rate, n_bin, duration, time 
 frame_rate = []
 n_bin = []
 duration = []

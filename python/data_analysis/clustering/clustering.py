@@ -81,13 +81,13 @@ def bootstrap_distance(S1,S2,dum):
 
 def cluster_distance(X_trials):
     gv.n_boot = int(1e3) 
-    gv.num_cores = int(1*multiprocessing.cpu_count()/2) 
-        
+    gv.num_cores = int(0.9*multiprocessing.cpu_count()) 
+    
     gv.IF_PCA = 0
     if X_trials.shape[3]!=gv.n_neurons: 
         X_trials = X_trials[:,:,:,0:gv.n_components,:] 
         gv.IF_PCA = 1 
-
+        
     if gv.EDvsLD: 
         gv.epochs = ['ED', 'MD', 'LD'] 
         print('angle btw ED and other epochs') 
@@ -107,31 +107,31 @@ def cluster_distance(X_trials):
         for n_epochs in range(X_S1.shape[2]):
             S1 = X_S1[:,:,n_epochs] 
             S2 = X_S2[:,:,n_epochs] 
-
+            
             D_center_boot = np.array( Parallel(n_jobs=gv.num_cores, verbose=True)(delayed(bootstrap_distance)(S1, S2, gv.n_boot) for _ in range(gv.n_boot)) ) 
-            D_center[n_trial, n_epochs] = D_center_boot[:,0,:] 
-
+            D_center[n_trial, n_epochs] = D_center_boot[:,0,:] # boots x neurons 
+            
             # D_center_boot = get_centers_kmean(S1, S2)
             # D_center[n_trial, n_epochs] = D_center_boot 
-
-            print(D_center_boot.shape)
             
+            print(D_center_boot.shape)
             
     return D_center 
 
 def cluster_norm(D_center):
 
-    D_center_mean = np.mean(D_center, axis=2)
-    
+    # mean over boots 
+    D_center_mean = np.mean(D_center, axis=2) 
     lower = D_center_mean - np.percentile(D_center, 25, axis=2) 
     upper = np.percentile(D_center, 75, axis=2) - D_center_mean 
-    
+
+    # normalize over neurons 
     D_norm = np.linalg.norm(D_center_mean, axis=2) 
     D_norm = (D_norm.T/D_norm.T[0]).T 
     
     lower = np.linalg.norm(lower, axis=-1) 
     lower = (lower.T/lower.T[0]).T 
-
+    
     upper = np.linalg.norm(upper, axis=-1) 
     upper = (upper.T/upper.T[0]).T 
     
@@ -160,9 +160,9 @@ def barNorm(D_norm, lower, upper):
     pl.save_fig(figtitle) 
     
 def clustering(X_trials):
-    D_center = cluster_distance(X_trials)
-    print('center', D_center.shape)
+    D_center = cluster_distance(X_trials) 
+    print('center', D_center.shape) 
     D_norm, lower, upper = cluster_norm(D_center) 
     print('distance', D_norm) 
-    barNorm(D_norm, lower, upper)
+    barNorm(D_norm, lower, upper) 
     
