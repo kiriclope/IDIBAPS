@@ -336,7 +336,7 @@ def get_X_y_mouse_session():
     X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) ) 
 
     mins = [] 
-    for n_trial, gv.trial in enumerate(gv.trials):
+    for n_trial, gv.trial in enumerate(gv.trials): 
         
         X_S1, X_S2 = get_S1_S2_trials(X, y) 
         get_trial_types(X_S1) 
@@ -354,8 +354,8 @@ def get_X_y_mouse_session():
         if X_S1.shape[0]!=X_trials.shape[2] or X_S2.shape[0]!=X_trials.shape[2]: 
             print('X_trials', X_trials.shape[2], 'X_S1', X_S1.shape[0], 'X_S2', X_S2.shape[0]) 
             min_S1_S2 = np.amin([X_S1.shape[0], X_S2.shape[0]]) 
-        else:
-            min_S1_S2 = X_trials.shape[2]
+        else: 
+            min_S1_S2 = X_trials.shape[2] 
             
         mins.append(min_S1_S2)
             
@@ -364,9 +364,9 @@ def get_X_y_mouse_session():
                 X_S1[trial] = pp.z_score(X_S1[trial]) 
                 X_S2[trial] = pp.z_score(X_S2[trial]) 
             
-        X_trials[n_trial,0, 0:X_S1.shape[0]] = X_S1 
-        X_trials[n_trial,1, 0:X_S2.shape[0]] = X_S2 
-
+        X_trials[n_trial, 0, 0:X_S1.shape[0]] = X_S1 
+        X_trials[n_trial, 1, 0:X_S2.shape[0]] = X_S2 
+        
     mins = np.amin(mins) 
     y = np.array([np.zeros(mins), np.ones(mins)]).flatten() 
     X_trials = X_trials[:,:,0:mins] 

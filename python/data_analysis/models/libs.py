@@ -9,3 +9,6 @@ from sklearn.linear_model import LogisticRegression, LogisticRegressionCV, Lasso
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 from relaxed_lasso import RelaxedLassoLarsCV 
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline

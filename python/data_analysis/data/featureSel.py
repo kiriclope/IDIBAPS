@@ -1,18 +1,20 @@
 import numpy as np
 import pandas as pd
 
-from sklearn.feature_selection import SelectKBest, chi2, VarianceThreshold, f_regression, mutual_info_classif
+from sklearn.feature_selection import SelectKBest, chi2, VarianceThreshold, f_regression, mutual_info_classif, f_classif
 
 class featSel():
-
+    
     def __init__(self):
         self._X_feat = None
-
-    def select_best(X, y, percentage=0.9):
-        # model = SelectKBest(score_func=f_regression, k=int(percentage*X.shape[1]) ) 
-        model = SelectKBest(score_func=mutual_info_classif, k=int(percentage*X.shape[1]) ) 
-        model.fit(X,y)
-        return model.get_support(True) 
+        
+    def select_best(X, y, scoring=f_classif): 
+        model = SelectKBest(score_func=scoring, k=X.shape[1]) 
+        model.fit(X,y)         
+        pval = model.pvalues_.flatten()
+        non_selected = np.argwhere(pval>0.05)
+        X_selected = np.delete(X, non_selected, axis=1)
+        return X_selected
     
     def select_indep(X, threshold=0.9):
         

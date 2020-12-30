@@ -86,7 +86,15 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
             #     # print('pls decomposition') 
             #     X = my_pls.fit_transform(X, y) 
             #     print('X', X.shape)
+            
+            if gv.LASSOCV:
+                gv.lassoCV.fit(X, y) 
+                selected = np.argwhere(gv.lassoCV[-1].coef_==0)
+                if len(selected)<X.shape[1]: 
+                    X = np.delete(X, selected, axis=1) 
                 
+            print('X', X.shape, 'y', y.shape) 
+            
             if gv.TIBSHIRANI_TRICK and (penalty=='l2' or 'LDA' in gv.clf_name or 'PLS' in gv.clf_name): 
                 X, Vh = SVD_trick(X)
                 
@@ -226,7 +234,7 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
     # print('p_values', p_values)         
     pl.bar_trials_epochs(mean_cos, lower_cos, upper_cos) 
     add_pvalue(p_values_cos) 
-    plt.ylim([-0.1, 1.1]) 
+    plt.ylim([-1.1, 1.1]) 
     
     figtitle = '%s_%s_bars_cos_alp' % (gv.mouse, gv.session) 
     pl.save_fig(figtitle) 
@@ -263,16 +271,19 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.DELAY_ONLY = 0 
     
     gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 1 # z_score with BL mean and std 
+    gv.Z_SCORE = 0 # z_score with BL mean and std
+
+    # feature selection
     gv.FEATURE_SELECTION = 0 
+    gv.LASSOCV = 0 
     
     # scaling before clf, when using pca use None 
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
     # PCA parameters 
-    gv.explained_variance = 0.95 
-    gv.pca_method = 'hybrid' # 'supervised' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
-    gv.max_threshold = 100 
+    gv.explained_variance = 0.75 
+    gv.pca_method = 'supervised' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.max_threshold = 10
     gv.n_thresholds = 100 
     
     if gv.pca_method is not None: 
@@ -292,13 +303,13 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
     
-    for gv.mouse in gv.mice : 
+    for gv.mouse in [gv.mice[1]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
         for gv.session in gv.sessions : 
-            X_trials, y = fct.get_X_y_mouse_session()             
+            X_trials, y = fct.get_X_y_mouse_session() 
             
             if (gv.pca_method is not None) or (gv.pls_method is not None): 
                 

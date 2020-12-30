@@ -1,23 +1,43 @@
 from .libs import * 
-sys.path.insert(1, '/homecentral/alexandre.mahrach/gdrive/IDIBAPS/python/data_analysis') 
 
-import data.constants as gv 
-import data.utils as fct
-import data.utils as data 
+import data.constants as gv
+reload(gv)
+import data.utils as fct 
+reload(fct)
 import data.plotting as pl 
+reload(pl)
 import data.preprocessing as pp 
-import data.fct_facilities as fac
+reload(pp)
+import data.angle as agl 
+reload(agl)
+import data.progressbar as pg 
+reload(pg)
+import data.fct_facilities as fac 
+reload(fac)
 fac.SetPlotParams() 
 
-from models.glms import get_clf
-from .decoder import cross_temp_decoder 
+import warnings
+warnings.filterwarnings("ignore")
 
-def is_pca(X_trials): 
-    gv.IF_PCA = 0 
-    if X_trials.shape[3]!=gv.n_neurons: 
-        X_trials = X_trials[:,:,:,0:gv.n_components,:] 
-        gv.IF_PCA = 1 
-    return X_trials
+import models.glms 
+reload(models.glms) 
+from models.glms import get_clf 
+
+import dim_red.pca.pca_decomposition 
+reload(dim_red.pca.pca_decomposition) 
+from dim_red.pca.pca_decomposition import pca_methods 
+
+import dim_red.spca
+reload(dim_red.spca)
+from dim_red.spca import supervisedPCA_CV 
+
+import dim_red.pls
+reload(dim_red.pls)
+from dim_red.pls import plsCV
+
+from . import decoder
+reload(decoder)
+from .decoder import cross_temp_decoder 
 
 def get_epochs():
     if gv.EDvsLD: 
@@ -47,7 +67,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shr
         
     if gv.AVG_EPOCHS: 
         gv.figdir = gv.figdir + '/avg_epochs' 
-
+        
     if not os.path.isdir(gv.figdir): 
         os.makedirs(gv.figdir) 
         print('created: ', gv.figdir) 
@@ -57,18 +77,17 @@ def get_scores(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio
     gv.num_cores =  int(multiprocessing.cpu_count()) - 1     
     get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, normalize=False) 
     decoder = cross_temp_decoder(gv.clf, scoring='accuracy', cv=cv, shuffle=True, mne_decoder=not(gv.my_decoder), n_jobs=gv.num_cores) 
-
-    X_trials = is_pca(X_trials) 
+    
     get_epochs() 
-
+    
     scores = np.empty((len(gv.trials), len(gv.epochs), len(gv.epochs) ))
     
     for n_trial, gv.trial in enumerate(gv.trials): 
         X_S1 = X_trials[n_trial,0] 
         X_S2 = X_trials[n_trial,1] 
         
-        if gv.SELECTIVE: 
-            X_S1, X_S2, idx = pp.selectiveNeurons(X_S1, X_S2, .1)
+        # if gv.SELECTIVE: 
+        #     X_S1, X_S2, idx = pp.selectiveNeurons(X_S1, X_S2, .1)
         
         X_S1_S2 = np.vstack((X_S1, X_S2)) 
         X_S1_S2 = pp.avg_epochs(X_S1_S2)        
@@ -123,25 +142,79 @@ def plot_scores_epochs(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, 
         pl.save_fig(figtitle) 
 
 def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
-
-    gv.T_WINDOW = 0.0 
+    
+    gv.num_cores =  int(0.9*multiprocessing.cpu_count())
+    gv.my_decoder = 1 
     gv.IF_SAVE = 1 
-    gv.EDvsLD = 1 
-    gv.SAVGOL = 0 
+    gv.correct_trial = 0 
     
+    # classification parameters 
     gv.clf_name = 'LogisticRegressionCV' 
-    gv.my_decoder = 0 
+    gv.TIBSHIRANI_TRICK = 0 
+        
+    # preprocessing parameters 
+    gv.T_WINDOW = 0.5 
+    gv.EDvsLD = 1 # average over epochs ED, MD and LD
     
-    gv.FEATURE_SELECTION = 0     
-    gv.TIBSHIRANI_TRICK = 0
+    # only useful with dim red methods 
+    gv.ED_MD_LD = 1 
+    gv.DELAY_ONLY = 0 
     
+    gv.SAVGOL = 0 # sav_gol filter 
+    gv.Z_SCORE = 0 # z_score with BL mean and std
+    
+    # feature selection
+    gv.FEATURE_SELECTION = 0 
+    gv.LASSOCV = 0 
+        
+    # PCA parameters 
+    gv.explained_variance = 0.90 
+    gv.pca_method = 'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.max_threshold = 10 
+    gv.n_thresholds = 100 
+    
+    if gv.pca_method is not None: 
+        if gv.pca_method in 'supervised': 
+            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
+        else: 
+            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance) 
+            
+    # PLS parameters 
+    gv.pls_max_comp = 100 # 'full', int or None 
+    gv.pls_method = None # 'PLSRegression' # 'PLSRegression', 'PLSCanonical', 'PLSSVD' or None 
+    gv.pls_cv = 5 
+    
+    if gv.pls_method is not None: 
+        gv.pca_method = None  # safety for dummies 
+        # gv.scaling = None # safety for dummies 
+        my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
+        
+        
     for gv.mouse in [gv.mice[1]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
         for gv.session in [gv.sessions[4]] : 
-            X_trials = fct.get_X_y_mouse_session() 
-            print(X_trials.shape)
-            matplotlib.use('GTK3cairo')
-            plot_scores_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage)
+            X_trials, y = fct.get_X_y_mouse_session()
+            
+            if (gv.pca_method is not None) or (gv.pls_method is not None): 
+                
+                if gv.ED_MD_LD: 
+                    X_trials = X_trials[:,:,:,:,gv.bins_ED_MD_LD] 
+                if gv.DELAY_ONLY: 
+                    X_trials = X_trials[:,:,:,:,gv.bins_delay] 
+                    gv.bin_start = gv.bins_delay[0] 
+                    
+                if gv.pca_method is not None: 
+                    X_trials = my_pca.fit_transform(X_trials, y) 
+                elif gv.pls_method is not None : 
+                    X_trials = my_pls.trial_hybrid(X_trials, y) 
+                    
+            print('clf:', gv.clf_name, ', pca_method:', gv.pca_method, ', pls_method:', gv.pls_method, ', n_components', X_trials.shape[3]) 
+            
+            # matplotlib.use('Agg') # so that fig saves when in the in the background 
+            matplotlib.use('GTK3cairo') 
+            plot_scores_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage) 
+            # plt.close('all') 
+            

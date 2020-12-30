@@ -159,3 +159,7 @@ pls_cv = 5
 global max_threshold, n_thresholds
 max_threshold = 10
 n_thresholds = 10 
+
+global LASSOCV, lassoCV 
+LASSOCV = False 
+lassoCV = None 
