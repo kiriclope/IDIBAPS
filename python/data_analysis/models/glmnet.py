@@ -15,15 +15,15 @@ class glmnet_Logit():
 
     def __init__(self, alpha=1, nlambda=100, standardize=True, intr=True, nfolds=None, ptype='class', thresh=1e-4 , maxit=1e5, n_jobs=1):
         
-        opts = dict()
-        opts['alpha'] = alpha
-        opts['nlambda'] = nlambda
-        opts['standardize'] = standardize
-        opts['intr'] = intr
-        opts['thresh'] = thresh
-        opts['maxit'] = maxit
+        # opts = dict()
+        # opts['alpha'] = alpha
+        # opts['nlambda'] = nlambda
+        # opts['standardize'] = standardize
+        # opts['intr'] = intr
+        # opts['thresh'] = thresh
+        # opts['maxit'] = maxit
         
-        self.options = glmnetSet(opts) 
+        # self.options = glmnetSet(opts) 
         
         self.ptype = ptype 
         self.nfolds = n_folds 
