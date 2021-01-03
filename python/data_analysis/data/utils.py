@@ -206,10 +206,6 @@ def get_bins():
         gv.bins_DRT_rwd = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DRT_reward[0]) and (gv.time[bin]<=gv.t_DRT_reward[1]) ] 
 
         gv.bins_test = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_test[0]) and (gv.time[bin]<=gv.t_test[1]) ]
-
-        gv.bins_delay = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_LD[1]) ] 
-
-        gv.t_delay = [ gv.time[bin] for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_LD[1]) ] 
         
     else:
         gv.bins_BL = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_BL[0]) and (gv.time[bin]<=gv.t_BL[1]) ] 
@@ -229,14 +225,13 @@ def get_bins():
         gv.bins_DRT_rwd = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_DRT_reward[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_DRT_reward[1]) ] 
 
         gv.bins_test = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_test[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_test[1]) ] 
-
-        gv.bins_delay = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_LD[1]) ] 
-
-        gv.t_delay = [ gv.time[bin] for bin in gv.bins if (gv.time[bin]>=gv.t_LD[1]-gv.T_WINDOW) and (gv.time[bin]<=gv.t_LD[1]) ]
         
 
-    # gv.bins_STIM_ED_MD_LD =  np.hstack( (gv.bins_STIM, gv.bins_ED, gv.bins_MD, gv.bins_LD) )
-    # gv.t__STIM_ED_MD_LD = gv.time[gv.bins_STIM_ED_MD_LD]
+    gv.bins_delay = [ bin for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_LD[1]) ]     
+    gv.t_delay = [ gv.time[bin] for bin in gv.bins if (gv.time[bin]>=gv.t_ED[0]) and (gv.time[bin]<=gv.t_LD[1]) ] 
+
+    # gv.bins_STIM_ED_MD_LD =  np.hstack( (gv.bins_STIM, gv.bins_ED, gv.bins_MD, gv.bins_LD) ) 
+    # gv.t__STIM_ED_MD_LD = gv.time[gv.bins_STIM_ED_MD_LD] 
     
     gv.bins_ED_MD_LD = np.hstack( (gv.bins_ED, gv.bins_MD, gv.bins_LD) ) 
     gv.t_ED_MD_LD = gv.time[gv.bins_ED_MD_LD] 

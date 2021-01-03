@@ -171,13 +171,21 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
                     
         if 'sag' in solver:
             if cv is not None:
-                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f' % (C, penalty, solver, cv, l1_ratio[-1])
+                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_intercept_fit_%d_scaling_%d' % (C, penalty, solver, cv)
                 if fit_intercept:
                     clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
-            else:
-                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f' % (C, penalty, solver, 5, l1_ratio[-1]) 
+            else: 
+                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, 5) 
                 if fit_intercept:
                     clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
+            # if cv is not None:
+            #     clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f' % (C, penalty, solver, cv, l1_ratio[-1])
+            #     if fit_intercept:
+            #         clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
+            # else:
+            #     clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f' % (C, penalty, solver, 5, l1_ratio[-1]) 
+            #     if fit_intercept:
+            #         clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
                     
     elif 'LogisticRegression' in gv.clf_name:
         if 'liblinear' in solver:
@@ -234,7 +242,7 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
     # print('p_values', p_values)         
     pl.bar_trials_epochs(mean_cos, lower_cos, upper_cos) 
     add_pvalue(p_values_cos) 
-    plt.ylim([-1.1, 1.1]) 
+    plt.ylim([-0.1, 1.1]) 
     
     figtitle = '%s_%s_bars_cos_alp' % (gv.mouse, gv.session) 
     pl.save_fig(figtitle) 
@@ -281,15 +289,16 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
     # PCA parameters 
-    gv.explained_variance = 0.75 
+    gv.explained_variance = 0.95 
+    gv.n_components = None 
     gv.pca_method = 'supervised' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
-    gv.max_threshold = 10
+    gv.max_threshold = 1
     gv.n_thresholds = 100 
     
     if gv.pca_method is not None: 
-        gv.scaling = None # safety for dummies 
+        # gv.scaling = None # safety for dummies 
         if gv.pca_method in 'supervised': 
-            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
+            my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
         else: 
             my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance) 
     
@@ -303,12 +312,12 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
     
-    for gv.mouse in [gv.mice[1]] : 
+    for gv.mouse in gv.mice : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in gv.sessions : 
+        for gv.session in [gv.sessions[4]] : 
             X_trials, y = fct.get_X_y_mouse_session() 
             
             if (gv.pca_method is not None) or (gv.pls_method is not None): 

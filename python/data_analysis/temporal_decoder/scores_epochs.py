@@ -157,8 +157,8 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.EDvsLD = 1 # average over epochs ED, MD and LD
     
     # only useful with dim red methods 
-    gv.ED_MD_LD = 1 
-    gv.DELAY_ONLY = 0 
+    gv.ED_MD_LD = 0 
+    gv.DELAY_ONLY = 1  
     
     gv.SAVGOL = 0 # sav_gol filter 
     gv.Z_SCORE = 0 # z_score with BL mean and std
@@ -168,7 +168,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.LASSOCV = 0 
         
     # PCA parameters 
-    gv.explained_variance = 0.90 
+    gv.explained_variance = 0.90  
     gv.pca_method = 'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
@@ -190,13 +190,13 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
         
-    for gv.mouse in [gv.mice[1]] : 
+    for gv.mouse in [gv.mice[2]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in [gv.sessions[4]] : 
-            X_trials, y = fct.get_X_y_mouse_session()
+        for gv.session in [gv.sessions[3]] : 
+            X_trials, y = fct.get_X_y_mouse_session() 
             
             if (gv.pca_method is not None) or (gv.pls_method is not None): 
                 

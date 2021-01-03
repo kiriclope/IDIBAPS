@@ -2,7 +2,7 @@ from .libs import *
 sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis') 
 
 import data.constants as gv 
-from .glmnet import glmnet_Logit 
+# from .glmnet import glmnet_Logit 
 
 def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', normalize=True, fit_intercept=True, intercept_scaling=1e2, tol=1e-4, max_iter=1e5): 
     
@@ -28,7 +28,11 @@ def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None
         gv.clf = LinearSVC(penalty=penalty, loss=loss, dual=False, tol=tol, C=C, multi_class='ovr', fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, class_weight=None, verbose=0, random_state=None, max_iter=int(max_iter)) 
 
     elif 'glmnet' in gv.clf_name:
-        gv.clf = glmnet_Logit(alpha=1, nlambda=int(100), standardize=True, intr=fit_intercept, nfolds=int(10), ptype='auc', thresh=int(1e-4) , maxit=int(1e5), n_jobs=-1) 
+        gv.clf = glmnet_Logit(alpha=1, nlambda=int(100), standardize=True, intr=fit_intercept, nfolds=int(10), ptype='auc', thresh=int(1e-4) , maxit=int(1e5), n_jobs=-1)
+
+    elif 'pycasso':
+        gv.clf = pycasso.Solver(X,Y, lambdas=(100,0.05), family="binomial", penalty="l1")         
 
     clf = LassoCV(eps=0.001, n_alphas=100, alphas=None, fit_intercept=False, normalize=False, precompute='auto', max_iter=1000, tol=0.0001, copy_X=True, cv=10, verbose=False, n_jobs=None, positive=False, random_state=None, selection='random') 
     gv.lassoCV = Pipeline([('scaler', StandardScaler()), ('clf', clf)]) 
+        

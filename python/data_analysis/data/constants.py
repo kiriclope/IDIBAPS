@@ -2,7 +2,7 @@ import numpy as np
 import multiprocessing 
 
 global path, scriptdir, figdir, filedir 
-path = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis' 
+path = '/home/leon/IDIBAPS/python/data_analysis' 
 figdir = path + '/figs' 
 filedir = path + '/data' 
 
@@ -81,7 +81,7 @@ global correct_trial
 correct_trial = 0
 
 global n_components
-n_components = 3
+n_components = None 
 
 global eps
 eps = np.finfo(float).eps

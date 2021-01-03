@@ -5,9 +5,10 @@ import data.progressbar as pg
 
 import warnings
 import numpy as np 
-from sklearn.preprocessing import StandardScaler 
+from sklearn.preprocessing import StandardScaler, MinMaxScaler 
+from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA 
-from sklearn.metrics import log_loss 
+from sklearn.metrics import log_loss, mean_squared_error  
 from sklearn.model_selection import cross_val_predict 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
@@ -15,9 +16,17 @@ from sklearn.linear_model import LogisticRegression
 
 class supervisedPCA():
     
-    def __init__(self, model=LogisticRegression(), explained_variance=0.9, threshold=10, verbose=False): 
+    def __init__(self, model=LogisticRegression(), explained_variance=0.9, n_components=None, threshold=10, scaling=None, verbose=False):
+
+        # if scaling is None:
+        #     self.pipe = Pipeline([('clf', clf)]) 
+        # elif scaling in 'standardize': 
+        #     self.scaler =  StandardScaler() 
+        #     self.pipe = Pipeline([('scale', StandardScaler()), ('clf', clf)]) 
+
         self._model = model 
         self._explained_variance = explained_variance 
+        self._n_components = n_components 
         self._threshold = threshold 
         self._verbose = verbose 
 
@@ -26,21 +35,20 @@ class supervisedPCA():
         self._X_proj = None 
         self._dropouts = None
         self._pca = None 
-        self._n_components = None 
         
     def get_optimal_number_of_components(self, X): 
         cov = np.dot(X,X.transpose())/float(X.shape[0]) 
         U,s,v = np.linalg.svd(cov) 
         S_nn = sum(s) 
         
-        for n_components in range(0,s.shape[0]): 
+        for n_components in range(0, s.shape[0]): 
             temp_s = s[0:n_components] 
             S_ii = sum(temp_s) 
             if (1 - S_ii/float(S_nn)) <= 1 - self._explained_variance: 
                 return n_components 
-            
-        self._n_components = s.shape[0] 
         
+        self._n_components = s.shape[0]
+                    
         return self._n_components 
     
     def fit(self, X, y):
@@ -49,7 +57,7 @@ class supervisedPCA():
         
         # Fit each feature with the target (predictor) and if the coefficient is less than the threshold, drop it 
         for i in range(0, X_extra_dim.shape[2]): # iterate over all the features 
-            X_one_feature = X_extra_dim[:, :, i] # n_samples, 1, n_neurons
+            X_one_feature = X_extra_dim[:, :, i] # n_samples, 1, n_neurons 
             
             self._model.fit(X_one_feature, y) 
             
@@ -62,10 +70,13 @@ class supervisedPCA():
             X_extra_dim = np.delete(X_extra_dim, self._dropouts, 2) 
             
         self._n_components = self.get_optimal_number_of_components(X_extra_dim[:, 0, :]) # n_samples X n_features 
+        # self._n_components = np.min( X_extra_dim.shape[0], X_extra_dim.shape[2]) 
+        
+        print(self._n_components, X_extra_dim[:, 0, :].shape) 
+        
         self._pca = PCA(n_components=self._n_components) 
         
         self._X_proj = self._pca.fit_transform(X_extra_dim[:, 0, :]) # n_samples X n_features 
-        # self._pca = self._pca.fit(X_extra_dim[:, 0, :]) 
         
         return self
 
@@ -84,14 +95,15 @@ class supervisedPCA():
     
 class supervisedPCA_CV(supervisedPCA):
     
-    def __init__(self, model=LogisticRegression(), explained_variance=0.9, cv=5, max_threshold=100, Cs=100, verbose=False, n_jobs=None): 
-        super().__init__(model=model, explained_variance=explained_variance, threshold=None, verbose=verbose) 
+    def __init__(self, model=LogisticRegression(), explained_variance=0.9, n_components=None, cv=5, max_threshold=100, Cs=100, scaling=None, verbose=False, n_jobs=None, scoring='mse'): 
+        super().__init__(model=model, explained_variance=explained_variance, n_components=n_components, threshold=None, scaling=scaling, verbose=verbose) 
         
         self._Cs = Cs 
         self._max_threshold = max_threshold 
         self._cv = cv 
         self._n_jobs = n_jobs 
         self.scaler = StandardScaler() 
+        self.scoring = scoring
         
         self._best_model = None 
         
@@ -103,14 +115,25 @@ class supervisedPCA_CV(supervisedPCA):
         # self._best_model = search_result.best_estimator_ 
         
         mlhs = [] 
-        thresholds = np.linspace(0, self._max_threshold, self._Cs)
-        
+        thresholds = np.linspace(0, self._max_threshold, self._Cs) 
+
+        if self.scoring in 'mse': 
+            scorer = mean_squared_error
+        else: 
+            scorer = log_loss
+            
         for self._threshold in ( pg.tqdm(thresholds, desc='spca_cv') if self._verbose else thresholds): 
             super().fit(X, y) 
             y_cv = cross_val_predict(self._model, self._X_proj, y, cv=self._cv) 
-            mlhs.append(log_loss(y, y_cv)) 
-        mlh = np.argmax(mlhs) 
-        
+            mlhs.append(scorer(y, y_cv)) 
+            mean_squared_error
+            
+
+        if self.scoring in 'mse':        
+            mlh = np.argmin(mlhs) 
+        else: 
+            mlh = np.argmax(mlhs) 
+            
         if self._verbose: 
             print('threshold_opt', thresholds[mlh]) 
             
@@ -121,8 +144,8 @@ class supervisedPCA_CV(supervisedPCA):
         
         # print('threshold', self._threshold) 
         # self._best_model.fit(X,y) 
-        # self._n_components = super().get_coefs()
-        # self._pca = super().get_pca()
+        # self._n_components = super().get_coefs() 
+        # self._pca = super().get_pca() 
         
         if self._verbose: 
             print('n_components', self._n_components, 'pca', self._pca) 

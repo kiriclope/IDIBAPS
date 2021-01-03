@@ -21,20 +21,20 @@ def figDir():
     if gv.correct_trial :
         gv.figdir = gv.figdir + '/correct_trials' 
         
-    if gv.pca_method is not None:
-        if gv.pca_method in 'supervised':
+    if gv.pca_method is not None: 
+        if gv.pca_method in 'supervised': 
             gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f/threshold_%d_Cs_%d' % (gv.pca_method, gv.explained_variance,
                                                                                                     gv.max_threshold, gv.n_thresholds ) 
         else:
-            gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f' % (gv.pca_method, gv.explained_variance)
+            gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f' % (gv.pca_method, gv.explained_variance) 
             
-    if gv.pls_method is not None:
-        if isinstance(gv.pls_max_comp, str):
+    if gv.pls_method is not None: 
+        if isinstance(gv.pls_max_comp, str): 
             gv.figdir = gv.figdir + '/dim_red/pls/%s/max_comp_%s_cv_%.2f' % (gv.pls_method, gv.pls_max_comp, gv.pls_cv) 
         else: 
             gv.figdir = gv.figdir + '/dim_red/pls/%s/max_comp_%d_cv_%.2f' % (gv.pls_method, gv.pls_max_comp, gv.pls_cv) 
             
-        if gv.ED_MD_LD :
+        if gv.ED_MD_LD : 
             gv.figdir = gv.figdir + '/ED_MD_LD' 
         if gv.DELAY_ONLY:
             gv.figdir = gv.figdir + '/delay_only'
