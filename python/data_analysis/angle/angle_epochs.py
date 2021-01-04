@@ -1,6 +1,6 @@
 from .libs import * 
 
-import data.constants as gv
+import data.constants as gv 
 reload(gv)
 import data.utils as fct 
 reload(fct)
@@ -161,7 +161,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
     if 'LogisticRegressionCV' in gv.clf_name:
         if 'liblinear' in solver:
             if cv is not None:
-                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_intercept_fit_%d_scaling_%d' % (C, penalty, solver, cv)
+                clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, cv) 
                 if fit_intercept:
                     clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
             else: 
@@ -186,7 +186,8 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
             #     clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f' % (C, penalty, solver, 5, l1_ratio[-1]) 
             #     if fit_intercept:
             #         clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
-                    
+            
+        clf_param = clf_param + '/%s' % gv.scoring 
     elif 'LogisticRegression' in gv.clf_name:
         if 'liblinear' in solver:
             clf_param = '/C_%.3f_penalty_%s_solver_%s' % (C, penalty, solver)
@@ -203,7 +204,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
             clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
             
     elif gv.clf_name in 'LDA': 
-        clf_param = '/shrinkage_%s_solver_lsqr' % shrinkage
+        clf_param = '/shrinkage_%s_solver_lsqr' % shrinkage 
     
     gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param 
     
@@ -263,7 +264,8 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.correct_trial = 0 
     
     # classification parameters 
-    gv.clf_name = 'LogisticRegressionCV' 
+    gv.clf_name = 'LogisticRegressionCV'
+    gv.scoring = 'f1' # 'roc_auc' 
     gv.TIBSHIRANI_TRICK = 0 
     
     # bootstrap parameters
@@ -280,7 +282,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     
     gv.SAVGOL = 0 # sav_gol filter 
     gv.Z_SCORE = 0 # z_score with BL mean and std
-
+    
     # feature selection
     gv.FEATURE_SELECTION = 0 
     gv.LASSOCV = 0 
@@ -289,10 +291,10 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
     # PCA parameters 
-    gv.explained_variance = 0.95 
+    gv.explained_variance = 0.90 
     gv.n_components = None 
-    gv.pca_method = 'supervised' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
-    gv.max_threshold = 1
+    gv.pca_method =  'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.max_threshold = 10 
     gv.n_thresholds = 100 
     
     if gv.pca_method is not None: 
@@ -311,13 +313,13 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         gv.pca_method = None  # safety for dummies 
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
-    
-    for gv.mouse in gv.mice : 
+        
+    for gv.mouse in gv.mice[1:] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in [gv.sessions[4]] : 
+        for gv.session in gv.sessions : 
             X_trials, y = fct.get_X_y_mouse_session() 
             
             if (gv.pca_method is not None) or (gv.pls_method is not None): 

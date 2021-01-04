@@ -4,7 +4,10 @@ import data.constants as gv
 import data.progressbar as pg 
 
 import warnings
-import numpy as np 
+import numpy as np
+
+from sklearn.base import BaseEstimator, ClassifierMixin
+
 from sklearn.preprocessing import StandardScaler, MinMaxScaler 
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA 
@@ -14,7 +17,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LogisticRegression
 
-class supervisedPCA():
+class supervisedPCA(BaseEstimator, ClassifierMixin):
     
     def __init__(self, model=LogisticRegression(), explained_variance=0.9, n_components=None, threshold=10, scaling=None, verbose=False):
 
@@ -71,8 +74,9 @@ class supervisedPCA():
             
         self._n_components = self.get_optimal_number_of_components(X_extra_dim[:, 0, :]) # n_samples X n_features 
         # self._n_components = np.min( X_extra_dim.shape[0], X_extra_dim.shape[2]) 
-        
-        print(self._n_components, X_extra_dim[:, 0, :].shape) 
+
+        if self._verbose:
+            print(self._n_components, X_extra_dim[:, 0, :].shape) 
         
         self._pca = PCA(n_components=self._n_components) 
         
@@ -125,9 +129,7 @@ class supervisedPCA_CV(supervisedPCA):
         for self._threshold in ( pg.tqdm(thresholds, desc='spca_cv') if self._verbose else thresholds): 
             super().fit(X, y) 
             y_cv = cross_val_predict(self._model, self._X_proj, y, cv=self._cv) 
-            mlhs.append(scorer(y, y_cv)) 
-            mean_squared_error
-            
+            mlhs.append(scorer(y, y_cv))             
 
         if self.scoring in 'mse':        
             mlh = np.argmin(mlhs) 

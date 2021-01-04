@@ -2,7 +2,7 @@ import numpy as np
 import multiprocessing 
 
 global path, scriptdir, figdir, filedir 
-path = '/home/leon/IDIBAPS/python/data_analysis' 
+path = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis' 
 figdir = path + '/figs' 
 filedir = path + '/data' 
 
@@ -110,7 +110,7 @@ detrend = 0
 bootstrap_trials=0
 
 global num_cores
-num_cores = -int(multiprocessing.cpu_count()/2) 
+num_cores = int(0.9*multiprocessing.cpu_count()) 
 
 global SELECTIVE
 SELECTIVE=0
@@ -163,3 +163,6 @@ n_thresholds = 10
 global LASSOCV, lassoCV 
 LASSOCV = False 
 lassoCV = None 
+
+global scoring
+scoring='accuracy'

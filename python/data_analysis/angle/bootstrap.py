@@ -72,7 +72,7 @@ class bootstrap():
             boots_coefs = self.Vh.T.dot(boots_coefs).flatten() 
             
         return boots_coefs 
-
+    
     def my_bootstrap(self, X, y):
         if self.scaling is not None:
             if not 'sample' in self.scaling: 

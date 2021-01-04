@@ -1,6 +1,8 @@
 import warnings 
 warnings.filterwarnings('ignore')
 
+from sklearn.base import BaseEstimator, ClassifierMixin
+
 import glmnet_python
 
 from glmnet_python.glmnetSet import glmnetSet 
@@ -11,11 +13,11 @@ from glmnet_python.glmnetCoef import glmnetCoef
 from glmnet_python.cvglmnet import cvglmnet
 from glmnet_python.cvglmnetCoef import cvglmnetCoef
 
-class glmnet_Logit():
-
+class glmnet_Logit(BaseEstimator, ClassifierMixin):
+    
     def __init__(self, alpha=1, nlambda=100, standardize=True, intr=True, nfolds=None, ptype='class', thresh=1e-4 , maxit=1e5, n_jobs=1):
         
-        # opts = dict()
+        # opts = dict() 
         # opts['alpha'] = alpha
         # opts['nlambda'] = nlambda
         # opts['standardize'] = standardize
@@ -26,7 +28,7 @@ class glmnet_Logit():
         # self.options = glmnetSet(opts) 
         
         self.ptype = ptype 
-        self.nfolds = n_folds 
+        self.nfolds = nfolds 
         self.n_jobs = n_jobs
         
         self.model_ = None 
