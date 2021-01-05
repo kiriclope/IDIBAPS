@@ -130,11 +130,12 @@ class supervisedPCA_CV(supervisedPCA):
             super().fit(X, y) 
             y_cv = cross_val_predict(self._model, self._X_proj, y, cv=self._cv) 
             mlhs.append(scorer(y, y_cv))             
-
-        if self.scoring in 'mse':        
-            mlh = np.argmin(mlhs) 
-        else: 
-            mlh = np.argmax(mlhs) 
+            
+        mlh = np.argmin(mlhs) 
+        # if self.scoring in 'mse':        
+        #     mlh = np.argmin(mlhs) 
+        # else: 
+        #     mlh = np.argmax(mlhs) 
             
         if self._verbose: 
             print('threshold_opt', thresholds[mlh]) 

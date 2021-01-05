@@ -2,6 +2,7 @@ from .libs import *
 import data.constants as gv 
 # from .glmnet import glmnet_Logit 
 from glmnet import LogitNet 
+from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical, CCA 
 
 def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', normalize=True, fit_intercept=True, intercept_scaling=1e2, tol=1e-4, max_iter=1e5): 
     
@@ -35,13 +36,16 @@ def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None
 
     elif 'glmnet' in gv.clf_name:
         gv.clf = LogitNet(alpha=1, n_lambda=100, min_lambda_ratio=1e-4,
-                          lambda_path=None, standardize=True, fit_intercept=True,
+                          lambda_path=None, standardize=False, fit_intercept=fit_intercept,
                           lower_limits=-np.inf, upper_limits=np.inf,
-                          cut_point=1.0, n_splits=5, scoring=None, n_jobs=-1, tol=1e-7,
+                          cut_point=1.0, n_splits=cv, scoring=None, n_jobs=-1, tol=1e-7,
                           max_iter=100000, random_state=None, max_features=None, verbose=False)
 
-    elif 'pycasso':
+    elif 'pycasso' in gv.clf_name:
         gv.clf = pycasso.Solver(X,Y, lambdas=(100,0.05), family="binomial", penalty="l1")         
+
+    elif 'CCA' in gv.clf_name:
+        gv.clf = CCA(n_components=20, scale=False, max_iter=500, tol=1e-06, copy=True) 
         
     clf = LassoCV(eps=0.001, n_alphas=100, alphas=None, fit_intercept=False, normalize=False, precompute='auto', max_iter=1000, tol=0.0001, copy_X=True, cv=10, verbose=False, n_jobs=None, positive=False, random_state=None, selection='random') 
     gv.lassoCV = Pipeline([('scaler', StandardScaler()), ('clf', clf)]) 

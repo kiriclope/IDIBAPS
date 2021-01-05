@@ -7,7 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_predict, GridSearchCV 
 from sklearn.metrics import mean_squared_error 
-from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical 
+from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical, CCA 
 
 from joblib import Parallel, delayed
 
@@ -19,11 +19,16 @@ class plsCV():
         self.max_comp = max_comp 
         self.n_jobs = n_jobs 
         self.pls_method = pls_method 
-        
-        self.clf = PLSRegression()
-        # self.clf = PLSSVD()
-        # self.clf = PLSCanonical()
-        
+
+        if 'PLSRegression' in self.pls_method:
+            self.clf = PLSRegression()
+        elif 'CCA' in self.pls_method:        
+            self.clf = CCA(scale=True, max_iter=500, tol=1e-06, copy=True) 
+        elif 'SVD' in self.pls_method:
+            self.clf = PLSSVD()
+        elif 'Canonical' in self.pls_method:
+            self.clf = PLSCanonical() 
+            
         self.scaler = StandardScaler() 
         self.verbose = verbose
         
