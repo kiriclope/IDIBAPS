@@ -158,7 +158,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
     pl.figDir() 
     clf_param = '' 
     
-    if 'LogisticRegressionCV' in gv.clf_name:
+    if 'LogisticRegressionCV' in gv.clf_name or 'glmnet' in gv.clf_name: 
         if 'liblinear' in solver:
             if cv is not None:
                 clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, cv) 
@@ -187,7 +187,8 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
             #     if fit_intercept:
             #         clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
             
-        clf_param = clf_param + '/%s' % gv.scoring 
+        clf_param = clf_param + '/%s' % gv.scoring
+        
     elif 'LogisticRegression' in gv.clf_name:
         if 'liblinear' in solver:
             clf_param = '/C_%.3f_penalty_%s_solver_%s' % (C, penalty, solver)
@@ -264,13 +265,13 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.correct_trial = 0 
     
     # classification parameters 
-    gv.clf_name = 'LogisticRegressionCV' 
+    gv.clf_name = 'glmnet' 
     gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2'
     gv.TIBSHIRANI_TRICK = 0 
     
     # bootstrap parameters
     gv.n_boots = int(1e3) 
-    gv.bootstrap_method='block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
+    gv.bootstrap_method='bayes' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     
     # preprocessing parameters 
     gv.T_WINDOW = 0.5 

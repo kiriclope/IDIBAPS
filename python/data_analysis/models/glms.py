@@ -38,7 +38,7 @@ def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None
         gv.clf = LogitNet(alpha=1, n_lambda=100, min_lambda_ratio=1e-4,
                           lambda_path=None, standardize=False, fit_intercept=fit_intercept,
                           lower_limits=-np.inf, upper_limits=np.inf,
-                          cut_point=1.0, n_splits=cv, scoring=None, n_jobs=-1, tol=1e-7,
+                          cut_point=1.0, n_splits=cv, scoring=gv.scoring, n_jobs=-1, tol=1e-7,
                           max_iter=100000, random_state=None, max_features=None, verbose=False)
 
     elif 'pycasso' in gv.clf_name:

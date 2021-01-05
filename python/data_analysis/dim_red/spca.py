@@ -124,7 +124,7 @@ class supervisedPCA_CV(supervisedPCA):
         if self.scoring in 'mse': 
             scorer = mean_squared_error
         else: 
-            scorer = log_loss
+            scorer = log_loss 
             
         for self._threshold in ( pg.tqdm(thresholds, desc='spca_cv') if self._verbose else thresholds): 
             super().fit(X, y) 
@@ -132,10 +132,6 @@ class supervisedPCA_CV(supervisedPCA):
             mlhs.append(scorer(y, y_cv))             
             
         mlh = np.argmin(mlhs) 
-        # if self.scoring in 'mse':        
-        #     mlh = np.argmin(mlhs) 
-        # else: 
-        #     mlh = np.argmax(mlhs) 
             
         if self._verbose: 
             print('threshold_opt', thresholds[mlh]) 

@@ -16,8 +16,8 @@ import data.fct_facilities as fac
 reload(fac)
 fac.SetPlotParams() 
 
-import warnings
-warnings.filterwarnings("ignore")
+import warnings 
+warnings.filterwarnings("ignore") 
 
 import models.glms 
 reload(models.glms) 
@@ -58,7 +58,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shr
     elif gv.clf_name in 'LinearDiscriminantAnalysis': 
         clf_param = '/shrinkage_%s_solver_lsqr/' % shrinkage 
         
-    gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param 
+    gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param + '/' + gv.scoring 
     
     if gv.my_decoder: 
         gv.figdir = gv.figdir + '/kfold_%d' % cv 
@@ -74,9 +74,8 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shr
 
 def get_scores(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio=None, loss='lsqr', shrinkage='auto'): 
 
-    gv.num_cores =  int(multiprocessing.cpu_count()) - 1     
     get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, normalize=False) 
-    decoder = cross_temp_decoder(gv.clf, scoring='accuracy', cv=cv, shuffle=True, mne_decoder=not(gv.my_decoder), n_jobs=gv.num_cores) 
+    decoder = cross_temp_decoder(gv.clf, scoring=gv.scoring, cv=cv, shuffle=True, mne_decoder=not(gv.my_decoder), n_jobs=gv.num_cores) 
     
     get_epochs() 
     
@@ -91,8 +90,8 @@ def get_scores(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio
         
         X_S1_S2 = np.vstack((X_S1, X_S2)) 
         X_S1_S2 = pp.avg_epochs(X_S1_S2)        
-
-        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten()
+        
+        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
         print('trial:', gv.trial, 'X', X_S1_S2.shape,'y', y.shape) 
         scores[n_trial] = decoder.fit(X_S1_S2, y) 
@@ -143,13 +142,14 @@ def plot_scores_epochs(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, 
 
 def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
     
-    gv.num_cores =  int(0.9*multiprocessing.cpu_count())
+    gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
     gv.my_decoder = 1 
     gv.IF_SAVE = 1 
     gv.correct_trial = 0 
     
     # classification parameters 
-    gv.clf_name = 'LogisticRegressionCV' 
+    gv.clf_name = 'LogisticRegressionCV'
+    gv.scoring = 'roc_auc' 
     gv.TIBSHIRANI_TRICK = 0 
         
     # preprocessing parameters 
@@ -157,8 +157,8 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.EDvsLD = 1 # average over epochs ED, MD and LD
     
     # only useful with dim red methods 
-    gv.ED_MD_LD = 0 
-    gv.DELAY_ONLY = 1  
+    gv.ED_MD_LD = 1 
+    gv.DELAY_ONLY = 0 
     
     gv.SAVGOL = 0 # sav_gol filter 
     gv.Z_SCORE = 0 # z_score with BL mean and std
@@ -189,7 +189,6 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-        
     for gv.mouse in [gv.mice[2]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
@@ -213,8 +212,8 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
                     
             print('clf:', gv.clf_name, ', pca_method:', gv.pca_method, ', pls_method:', gv.pls_method, ', n_components', X_trials.shape[3]) 
             
-            # matplotlib.use('Agg') # so that fig saves when in the in the background 
-            matplotlib.use('GTK3cairo') 
+            matplotlib.use('Agg') # so that fig saves when in the in the background 
+            # matplotlib.use('GTK3cairo') 
             plot_scores_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage) 
-            # plt.close('all') 
+            plt.close('all') 
             
