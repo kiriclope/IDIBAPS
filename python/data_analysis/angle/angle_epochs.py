@@ -266,13 +266,13 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.correct_trial = 0 
     
     # classification parameters 
-    gv.clf_name = 'glmnet' 
+    gv.clf_name = 'LDA' 
     gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
     gv.TIBSHIRANI_TRICK = 0 
     
     # bootstrap parameters
     gv.n_boots = int(1e3) 
-    gv.bootstrap_method='block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
+    gv.bootstrap_method='bayes' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     
     # preprocessing parameters 
     gv.T_WINDOW = 0.5 
@@ -296,7 +296,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.explained_variance = 0.90    
     gv.n_components = None
     gv.inflexion = True 
-    gv.pca_method =  'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.pca_method =  'concatenated' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     

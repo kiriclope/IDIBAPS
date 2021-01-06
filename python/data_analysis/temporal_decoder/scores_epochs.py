@@ -55,7 +55,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shr
         clf_param = '/C_%.3f_penalty_%s_solver_%s/' % (C, penalty, solver) 
     elif gv.clf_name in 'LinearSVC': 
         clf_param = '/C_%.3f_penalty_%s_loss_%s/' % (C, penalty, loss) 
-    elif gv.clf_name in 'LinearDiscriminantAnalysis': 
+    elif gv.clf_name in 'LDA': 
         clf_param = '/shrinkage_%s_solver_lsqr/' % shrinkage 
         
     gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param + '/' + gv.scoring 
@@ -156,18 +156,18 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
     gv.my_decoder = 1
     gv.n_iter = 100 
-
+    
     gv.shuffle= True
     gv.random_state= None  
     
-    gv.IF_SAVE = 1
-    gv.SYNTHETIC = 0   
+    gv.IF_SAVE = 1 
+    gv.SYNTHETIC = 0 
     gv.correct_trial = 0 
     
     # classification parameters 
-    gv.clf_name = 'glmnet' 
-    gv.scoring =  'roc_auc' # 'accuracy' 'roc_auc' 
-    gv.fold_type = 'loo' 
+    gv.clf_name = 'LDA' 
+    gv.scoring =  'hamming' # 'accuracy' 'roc_auc' 
+    gv.fold_type = 'stratified' 
     gv.TIBSHIRANI_TRICK = 0 
         
     # preprocessing parameters 
@@ -187,7 +187,8 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         
     # PCA parameters 
     gv.explained_variance = 0.90 
-    gv.pca_method = 'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.inflexion = True 
+    gv.pca_method = 'concatenated' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     
@@ -195,7 +196,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         if gv.pca_method in 'supervised': 
             my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
         else: 
-            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance) 
+            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflexion=gv.inflexion) 
             
     # PLS parameters 
     gv.pls_max_comp = 100 # 'full', int or None 

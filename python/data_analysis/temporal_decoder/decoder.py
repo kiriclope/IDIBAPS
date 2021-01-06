@@ -2,6 +2,7 @@ import data.progressbar as pg
 
 import numpy as np
 
+from sklearn.metrics import hamming_loss, make_scorer
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold, StratifiedKFold 
 from sklearn.pipeline import make_pipeline
@@ -14,6 +15,9 @@ class cross_temp_decoder():
     def __init__(self, clf, scoring='accuracy', cv=10, shuffle=True, random_state=None, mne_decoder=False, fold_type='stratified', n_iter=1, n_jobs=1): 
         self.clf = clf
         self.scoring = scoring
+        if self.scoring in 'hamming':
+            self.scoring = make_scorer(hamming_loss, greater_is_better=False, needs_proba=True, needs_threshold=False) 
+            
         self.n_jobs = n_jobs
         self.shuffle = shuffle
         self.random_state = random_state 

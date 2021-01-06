@@ -31,7 +31,7 @@ def figDir():
         else:
             gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f' % (gv.pca_method, gv.explained_variance) 
             
-        if gv.inflexion:
+        if gv.inflexion: 
             gv.figdir = gv.figdir + '/inflection_point'
             
     if gv.pls_method is not None: 

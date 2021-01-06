@@ -74,29 +74,37 @@ class pca_methods():
             print('X_proj', X_proj.shape)
             
         return X_proj 
-
+    
     def trial_concatenated(self, X_trials):
-
+        
         trials = []
         for n_trial in range(len(gv.trials)) : 
             X_S1_S2 = np.hstack( (np.hstack(X_trials[n_trial,0]), np.hstack(X_trials[n_trial,1])) ) 
             trials.append(X_S1_S2) 
             
         X_concat = np.hstack(trials) 
-
+        
         # standardize neurons/features across trials/samples 
         self.scaler.fit(X_concat.T) 
         X_concat = self.scaler.transform(X_concat.T).T 
         
         n_components = self.get_optimal_number_of_components(X_concat.T) 
-        pca = PCA(n_components=n_components) 
-        # pca on X: trials x neurons 
-        X_concat = pca.fit_transform(X_concat.T).T 
+        pca = PCA(n_components=n_components)        
+        pca.fit(X_concat.T)
+        explained_variance = pca.explained_variance_ratio_ 
+        
+        if self.inflexion:
+            n_components = self.get_inflexion_point(explained_variance) 
+            pca = PCA(n_components=n_components) 
+            X_concat = pca.fit_transform(X_concat.T).T 
+            explained_variance = pca.explained_variance_ratio_ 
+        else:
+            # pca on X: trials x neurons 
+            X_concat = pca.fit_transform(X_concat.T).T 
         
         if self.verbose :
             print('X_concat', X_concat.shape) 
         
-        explained_variance = pca.explained_variance_ratio_ 
         if self.verbose :
             print('n_pc', n_components,'explained_variance', explained_variance[0:3], 'total' , np.cumsum(explained_variance)[-1]*100) 
         
