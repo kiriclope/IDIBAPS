@@ -8,12 +8,18 @@ from sklearn.preprocessing import StandardScaler
 
 class pca_methods():
     
-    def __init__(self, pca_method='hybrid', explained_variance=0.9, verbose=False):
+    def __init__(self, pca_method='hybrid', explained_variance=0.9, inflexion=False, verbose=False):
         self.pca_method = pca_method
         self.explained_variance = explained_variance 
-        self.scaler = StandardScaler() 
+        self.scaler = StandardScaler()
+        self.inflexion = inflexion 
         self.verbose = verbose
         
+    def get_inflexion_point(self, explained_variance): 
+        d2_var = np.gradient(np.gradient(explained_variance)) 
+        inflection_point = np.argwhere(np.diff(np.sign(d2_var)))[0][0]
+        return np.maximum(inflection_point,1) 
+    
     def get_optimal_number_of_components(self, X): 
         cov = np.dot(X,X.transpose())/float(X.shape[0]) 
         U,s,v = np.linalg.svd(cov)
@@ -42,11 +48,18 @@ class pca_methods():
         X_avg = self.scaler.transform(X_avg.T).T 
     
         # PCA the trial averaged data 
-        n_components = self.get_optimal_number_of_components(X_avg.T) 
+        n_components = self.get_optimal_number_of_components(X_avg.T)        
         pca = PCA(n_components=n_components) 
-        X_avg = pca.fit_transform(X_avg.T).T 
+        pca.fit(X_avg.T)
         
-        explained_variance = pca.explained_variance_ratio_ 
+        explained_variance = pca.explained_variance_ratio_
+        
+        if self.inflexion:
+            n_components = self.get_inflexion_point(explained_variance) 
+            pca = PCA(n_components=n_components) 
+            pca.fit(X_avg.T)
+            explained_variance = pca.explained_variance_ratio_ 
+            
         if self.verbose :
             print('n_pc', n_components,'explained_variance', explained_variance[0:3], 'total' , np.cumsum(explained_variance)[-1]) 
         

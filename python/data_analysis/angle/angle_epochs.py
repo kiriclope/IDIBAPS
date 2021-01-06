@@ -261,17 +261,18 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
 def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=1e2): 
     
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
+    # gv.num_cores =  int( np.sqrt(0.9*multiprocessing.cpu_count()) ) 
     gv.IF_SAVE = 1 
     gv.correct_trial = 0 
     
     # classification parameters 
     gv.clf_name = 'glmnet' 
-    gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2'
+    gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
     gv.TIBSHIRANI_TRICK = 0 
     
     # bootstrap parameters
     gv.n_boots = int(1e3) 
-    gv.bootstrap_method='bayes' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
+    gv.bootstrap_method='block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     
     # preprocessing parameters 
     gv.T_WINDOW = 0.5 
@@ -292,8 +293,9 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
     # PCA parameters 
-    gv.explained_variance = 0.90 
-    gv.n_components = None 
+    gv.explained_variance = 0.90    
+    gv.n_components = None
+    gv.inflexion = True 
     gv.pca_method =  'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
@@ -303,7 +305,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         if gv.pca_method in 'supervised': 
             my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores, scoring='mse') 
         else: 
-            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance) 
+            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflexion=gv.inflexion) 
     
     # PLS parameters
     # gv.pls_n_comp = None 
@@ -337,7 +339,8 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
                 elif gv.pls_method is not None: 
                     X_trials = my_pls.trial_hybrid(X_trials, y) 
                     
-            print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name, ', scaling:', gv.scaling,
+            print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name,
+                  ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', cv:', cv, 
                   ', pca_method:', gv.pca_method, ', pls_method:', gv.pls_method, ', n_components', X_trials.shape[3]) 
             
             matplotlib.use('Agg') # so that fig saves when in the in the background 

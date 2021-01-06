@@ -315,7 +315,7 @@ def get_X_y_trials(X_data, y_labels):
     
     return X_trials, y_trials
 
-def get_X_y_mouse_session():
+def get_X_y_mouse_session(synthetic=False):
     
     X, y = get_fluo_data() 
     print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
@@ -329,7 +329,7 @@ def get_X_y_mouse_session():
         gv.n_trials = 32 
         
     X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) ) 
-
+        
     mins = [] 
     for n_trial, gv.trial in enumerate(gv.trials): 
         

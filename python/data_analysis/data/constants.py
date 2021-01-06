@@ -103,11 +103,11 @@ t_stim_delay = []
 global scaling
 scaling = None
 
-global IF_PCA, pca_method, detrend, bootstrap_trials
-IF_PCA = 0 
+global pca_method, detrend, bootstrap_trials, inflexion
 pca_method = 'hybrid' 
 detrend = 0
 bootstrap_trials=0
+inflexion= False
 
 global num_cores
 num_cores = int(0.9*multiprocessing.cpu_count()) 
@@ -164,5 +164,10 @@ global LASSOCV, lassoCV
 LASSOCV = False 
 lassoCV = None 
 
-global scoring
+global scoring, fold_type, n_iter
 scoring='accuracy'
+fold_type='stratified'
+n_iter = 1
+
+global SYNTHETIC
+SYNTHETIC=0

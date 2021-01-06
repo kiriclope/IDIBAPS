@@ -7,8 +7,8 @@ from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical, CCA
 def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', normalize=True, fit_intercept=True, intercept_scaling=1e2, tol=1e-4, max_iter=1e5): 
     
     if 'LogisticRegressionCV' in gv.clf_name:
-        gv.clf = LogisticRegressionCV(Cs=np.logspace(-4,4,C), solver=solver, penalty=penalty, l1_ratios=l1_ratio,
-                                      tol=tol, max_iter=int(max_iter), scoring=gv.scoring,
+        gv.clf = LogisticRegressionCV(Cs=np.logspace(-4,4,C), solver=solver, penalty=penalty, l1_ratios=l1_ratio, 
+                                      tol=tol, max_iter=int(max_iter), scoring=gv.scoring, 
                                       fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, 
                                       cv=cv, n_jobs=None) 
         
@@ -38,7 +38,7 @@ def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None
         gv.clf = LogitNet(alpha=1, n_lambda=100, min_lambda_ratio=1e-4,
                           lambda_path=None, standardize=False, fit_intercept=fit_intercept,
                           lower_limits=-np.inf, upper_limits=np.inf,
-                          cut_point=1.0, n_splits=cv, scoring=gv.scoring, n_jobs=-1, tol=1e-7,
+                          cut_point=1.0, n_splits=cv, scoring=gv.scoring, n_jobs=gv.num_cores, tol=1e-7,
                           max_iter=100000, random_state=None, max_features=None, verbose=False)
 
     elif 'pycasso' in gv.clf_name:

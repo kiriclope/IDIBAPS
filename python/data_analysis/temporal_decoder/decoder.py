@@ -11,14 +11,16 @@ from joblib import Parallel, delayed
 
 class cross_temp_decoder():
 
-    def __init__(self, clf, scoring='accuracy', cv=10, shuffle=True, mne_decoder=False, folds_type='stratified', n_jobs=1):
+    def __init__(self, clf, scoring='accuracy', cv=10, shuffle=True, random_state=None, mne_decoder=False, fold_type='stratified', n_iter=1, n_jobs=1): 
         self.clf = clf
         self.scoring = scoring
         self.n_jobs = n_jobs
         self.shuffle = shuffle
+        self.random_state = random_state 
         self.mne_decoder = mne_decoder 
         self.cv = cv
-        self.folds_type = folds_type
+        self.fold_type = fold_type
+        self.n_iter = n_iter
         self.scores = None
         
     def mne_cross_temp_scores(self, X, y):
@@ -31,11 +33,13 @@ class cross_temp_decoder():
 
     def cross_val_loop(self, X, y, t_train, t_test): 
         
-        if 'stratified' in self.folds_type:
-            folds = StratifiedKFold(n_splits=self.cv, shuffle=self.shuffle) 
+        if 'stratified' in self.fold_type:
+            folds = StratifiedKFold(n_splits=self.cv, shuffle=self.shuffle, random_state=self.random_state) 
+        elif 'loo' in self.fold_type: 
+            folds = KFold(n_splits=X.shape[0], shuffle=self.shuffle, random_state=self.random_state) 
         else: 
-            folds = KFold(n_splits=self.cv, shuffle=self.shuffle)
-
+            folds = KFold(n_splits=self.cv, shuffle=self.shuffle, random_state=self.random_state) 
+            
         X_t_train = X[:,:,t_train] 
         X_t_test = X[:,:,t_test] 
         
@@ -48,26 +52,36 @@ class cross_temp_decoder():
             X_train = scaler.transform(X_train) 
             X_test = scaler.transform(X_test) 
             
-            self.clf.fit(X_train, y_train)             
-            scores.append(self.clf.score(X_test, y_test))
+            self.clf.fit(X_train, y_train) 
+            scores.append(self.clf.score(X_test, y_test)) 
             
         return np.mean(scores)
     
-    def cross_temp_scores(self, X, y): 
+    def cross_temp_scores(self, X, y):
         
-        with pg.tqdm_joblib(pg.tqdm(desc="cross validation", total=int(X.shape[2]*X.shape[2]))) as progress_bar: 
+        with pg.tqdm_joblib(pg.tqdm(desc="cross validation", total=int(X.shape[2]*X.shape[2]*self.n_iter))) as progress_bar: 
             scores = Parallel(n_jobs=self.n_jobs)(delayed(self.cross_val_loop)(X, y, t_train, t_test) 
-                                                   for t_train in range(0, X.shape[2]) 
-                                                   for t_test in range(0, X.shape[2]) )
+                                                  for t_train in range(X.shape[2]) 
+                                                  for t_test in range(X.shape[2]) 
+                                                  for _ in range(self.n_iter) ) 
             
-        self.scores = np.asarray(scores).reshape( X.shape[2], X.shape[2] ) 
+        self.scores = np.asarray(scores).reshape(X.shape[2], X.shape[2], self.n_iter) 
+        
+        # self.scores = np.empty((self.n_iter, X.shape[2], X.shape[2])) 
+        # for iter in range(self.n_iter) : 
+        #     for t_train in range(X.shape[2]) : 
+        #         for t_test in range(X.shape[2]) : 
+        #             self.scores[iter, t_train, t_test] = self.cross_val_loop(X, y, t_train, t_test) 
+                    
+        self.scores = np.mean(self.scores, axis=-1) 
+        # print('scores', self.scores) 
         return self.scores 
     
-    def fit(self, X, y):
-
+    def fit(self, X, y): 
+        
         if self.mne_decoder:
             self.scores = self.mne_cross_temp_scores(X, y) 
         else: 
             self.scores = self.cross_temp_scores(X, y) 
-
+            
         return self.scores 

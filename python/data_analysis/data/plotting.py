@@ -21,12 +21,18 @@ def figDir():
     if gv.correct_trial :
         gv.figdir = gv.figdir + '/correct_trials' 
         
+    if gv.SYNTHETIC :
+        gv.figdir = gv.figdir + '/synthetic' 
+        
     if gv.pca_method is not None: 
         if gv.pca_method in 'supervised': 
             gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f/threshold_%d_Cs_%d' % (gv.pca_method, gv.explained_variance,
                                                                                                     gv.max_threshold, gv.n_thresholds ) 
         else:
             gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f' % (gv.pca_method, gv.explained_variance) 
+            
+        if gv.inflexion:
+            gv.figdir = gv.figdir + '/inflection_point'
             
     if gv.pls_method is not None: 
         if isinstance(gv.pls_max_comp, str): 
