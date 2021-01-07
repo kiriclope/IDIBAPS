@@ -38,15 +38,15 @@ class pca_methods():
         X_avg = np.empty( (len(gv.trials), gv.n_neurons, len(gv.samples) * X_trials.shape[-1] ) ) 
         for n_trial in range(len(gv.trials)) :
             X_avg[n_trial] = np.hstack( ( np.mean(X_trials[n_trial,0], axis=0), np.mean(X_trials[n_trial,1], axis=0) ) ) 
-    
+            
         X_avg = np.hstack(X_avg) 
         if self.verbose :
             print('X_avg', X_avg.shape) 
-    
+            
         # standardize neurons/features across trials/samples 
         self.scaler.fit(X_avg.T) 
         X_avg = self.scaler.transform(X_avg.T).T 
-    
+        
         # PCA the trial averaged data 
         n_components = self.get_optimal_number_of_components(X_avg.T)        
         pca = PCA(n_components=n_components) 
@@ -100,7 +100,7 @@ class pca_methods():
             explained_variance = pca.explained_variance_ratio_ 
         else:
             # pca on X: trials x neurons 
-            X_concat = pca.fit_transform(X_concat.T).T 
+            X_concat = pca.transform(X_concat.T).T 
         
         if self.verbose :
             print('X_concat', X_concat.shape) 
@@ -122,7 +122,8 @@ class pca_methods():
         return X_proj 
 
     def trial_averaged(self, X_trials):
-        
+
+        trial_averages = []
         for n_trial in range(len(gv.trials)) : 
             X_S1 = np.mean(X_trials[n_trial,0], axis=0) 
             X_S2 = np.mean(X_trials[n_trial,1], axis=0) 
@@ -133,20 +134,33 @@ class pca_methods():
         # standardize neurons/features across trials/samples 
         X_avg = self.scaler.fit_transform(X_avg.T).T 
         
+        n_components = self.get_optimal_number_of_components(X_avg.T) 
         pca = PCA(n_components=n_components) 
-        X_proj = pca.fit_transform(X_avg.T).T
-        
+        pca.fit(X_avg.T) 
         explained_variance = pca.explained_variance_ratio_ 
+        
+        if self.inflexion:
+            n_components = self.get_inflexion_point(explained_variance) 
+            pca = PCA(n_components=n_components) 
+            X_proj = pca.fit_transform(X_avg.T).T 
+            explained_variance = pca.explained_variance_ratio_ 
+        else:
+            X_proj = pca.transform(X_avg.T).T 
+            
         if self.verbose :
-            print('n_pc', gv.n_components,'explained_variance', explained_variance, 'total' , np.cumsum(explained_variance)[-1]) 
+            print('n_pc', n_components,'explained_variance', explained_variance, 'total' , np.cumsum(explained_variance)[-1]) 
         
         X_proj = np.asarray(X_proj) 
-        X_proj = X_proj.reshape(gv.n_components, len(gv.trials), len(gv.samples), X_trials.shape[-1]) 
+        X_proj = X_proj.reshape(n_components, len(gv.trials), len(gv.samples), X_trials.shape[-1])
+        X_proj = np.rollaxis(X_proj, 0, -1)
+        
+        X_proj = X_proj[:,:,np.newaxis]
+        
         if self.verbose :
             print('X_proj', X_proj.shape) 
         
         return X_proj
-
+    
     def fit_transform(self, X_trials, y=None): 
         X_proj = [] 
         if self.pca_method in 'hybrid': 
@@ -154,5 +168,5 @@ class pca_methods():
         if self.pca_method in 'concatenated': 
             X_proj = self.trial_concatenated(X_trials) 
         if self.pca_method in 'averaged': 
-            X_proj = self.trial_concatenated(X_trials) 
+            X_proj = self.trial_averaged(X_trials) 
         return X_proj 

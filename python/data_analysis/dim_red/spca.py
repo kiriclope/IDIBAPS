@@ -11,7 +11,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.preprocessing import StandardScaler, MinMaxScaler 
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA 
-from sklearn.metrics import log_loss, mean_squared_error  
+from sklearn.metrics import log_loss, mean_squared_error , roc_auc_score 
 from sklearn.model_selection import cross_val_predict 
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
@@ -37,8 +37,13 @@ class supervisedPCA(BaseEstimator, ClassifierMixin):
         
         self._X_proj = None 
         self._dropouts = None
-        self._pca = None 
+        self._pca = None
         
+    def get_inflexion_point(self, explained_variance): 
+        d2_var = np.gradient(np.gradient(explained_variance)) 
+        inflection_point = np.argwhere(np.diff(np.sign(d2_var)))[0][0]
+        return np.maximum(inflection_point,1) 
+    
     def get_optimal_number_of_components(self, X): 
         cov = np.dot(X,X.transpose())/float(X.shape[0]) 
         U,s,v = np.linalg.svd(cov) 
@@ -74,20 +79,20 @@ class supervisedPCA(BaseEstimator, ClassifierMixin):
             
         self._n_components = self.get_optimal_number_of_components(X_extra_dim[:, 0, :]) # n_samples X n_features 
         # self._n_components = np.min( X_extra_dim.shape[0], X_extra_dim.shape[2]) 
-
-        if self._verbose:
-            print(self._n_components, X_extra_dim[:, 0, :].shape) 
+        
+        # if self._verbose:
+        #     print(self._n_components, X_extra_dim[:, 0, :].shape) 
         
         self._pca = PCA(n_components=self._n_components) 
         
         self._X_proj = self._pca.fit_transform(X_extra_dim[:, 0, :]) # n_samples X n_features 
         
         return self
-
+    
     def fit_transform(self, X, y): 
         self.fit(X,y)
         return self._X_proj 
-
+    
     def transform(self, X): 
         return self._pca.transform(X) 
 
@@ -99,10 +104,10 @@ class supervisedPCA(BaseEstimator, ClassifierMixin):
     
 class supervisedPCA_CV(supervisedPCA):
     
-    def __init__(self, model=LogisticRegression(), explained_variance=0.9, n_components=None, cv=5, max_threshold=100, Cs=100, scaling=None, verbose=False, n_jobs=None, scoring='mse'): 
+    def __init__(self, model=LogisticRegression(), explained_variance=0.9, n_components=None, cv=5, max_threshold=100, n_thresholds=100, scaling=None, verbose=False, n_jobs=None, scoring='mse'): 
         super().__init__(model=model, explained_variance=explained_variance, n_components=n_components, threshold=None, scaling=scaling, verbose=verbose) 
         
-        self._Cs = Cs 
+        self._n_thresholds = n_thresholds 
         self._max_threshold = max_threshold 
         self._cv = cv 
         self._n_jobs = n_jobs 
@@ -113,23 +118,25 @@ class supervisedPCA_CV(supervisedPCA):
         
     def fit(self, X, y):
         
-        # param_grid = [{'threshold' : np.logspace(-4, 4, self._Cs)}] 
+        # param_grid = [{'threshold' : np.logspace(-4, 4, self._n_thresholds)}] 
         # search = GridSearchCV( super(), param_grid=param_grid, cv=self._cv, verbose=self._verbose, n_jobs=self._n_jobs) 
         # search_result = search.fit(X, y)      
         # self._best_model = search_result.best_estimator_ 
         
         mlhs = [] 
-        thresholds = np.linspace(0, self._max_threshold, self._Cs) 
-
+        thresholds = np.linspace(0, self._max_threshold, self._n_thresholds) 
+        
         if self.scoring in 'mse': 
-            scorer = mean_squared_error
-        else: 
+            scorer = mean_squared_error 
+        elif self.scoring in 'log_loss' : 
             scorer = log_loss 
+        elif self.scoring in 'roc_auc':
+            scorer = roc_auc_score 
             
         for self._threshold in ( pg.tqdm(thresholds, desc='spca_cv') if self._verbose else thresholds): 
             super().fit(X, y) 
             y_cv = cross_val_predict(self._model, self._X_proj, y, cv=self._cv) 
-            mlhs.append(scorer(y, y_cv))             
+            mlhs.append(scorer(y, y_cv)) 
             
         mlh = np.argmin(mlhs) 
             
@@ -178,8 +185,8 @@ class supervisedPCA_CV(supervisedPCA):
             for j in range(X_trials.shape[1]): 
                 for k in range(X_trials.shape[2]): 
                     # scaling
-                    trial = self.scaler.transform(X_trials[i,j,k,:,:].T).T # neurons x time = features x samples
-                    # remove dropouts
+                    trial = self.scaler.transform(X_trials[i,j,k,:,:].T).T # neurons x time = features x samples 
+                    # remove dropouts 
                     if (len(self._dropouts) == X_trials.shape[3]):  # all features have coef less than the threshold 
                         warnings.warn('All features_coefs below threshold: %.2f, try a smaller threshold' % self._threshold ) 
                     elif(len(self._dropouts)>0): 

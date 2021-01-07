@@ -156,9 +156,11 @@ pls_method = 'PLSRegression'
 pls_max_comp = 100
 pls_cv = 5
 
-global max_threshold, n_thresholds
+global max_threshold, n_thresholds, spca_scoring, spca_cv
 max_threshold = 10
 n_thresholds = 10 
+spca_scoring = 'mse'
+spca_cv = 5
 
 global LASSOCV, lassoCV 
 LASSOCV = False 
@@ -171,3 +173,6 @@ n_iter = 1
 
 global SYNTHETIC
 SYNTHETIC=0
+
+global standardize
+standardize=True

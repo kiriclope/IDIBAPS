@@ -12,9 +12,11 @@ from joblib import Parallel, delayed
 
 class cross_temp_decoder():
 
-    def __init__(self, clf, scoring='accuracy', cv=10, shuffle=True, random_state=None, mne_decoder=False, fold_type='stratified', n_iter=1, n_jobs=1): 
+    def __init__(self, clf, scoring='accuracy', cv=10, shuffle=True, random_state=None, mne_decoder=False, fold_type='stratified', n_iter=1, standardize=True, n_jobs=1): 
+
         self.clf = clf
-        self.scoring = scoring
+        
+        self.scoring = scoring        
         if self.scoring in 'hamming':
             self.scoring = make_scorer(hamming_loss, greater_is_better=False, needs_proba=True, needs_threshold=False) 
             
@@ -25,11 +27,16 @@ class cross_temp_decoder():
         self.cv = cv
         self.fold_type = fold_type
         self.n_iter = n_iter
+        self.standardize = standardize
+        
         self.scores = None
         
     def mne_cross_temp_scores(self, X, y):
-
-        pipe = make_pipeline(StandardScaler(), self.clf)
+        if self.standardize:
+            pipe = make_pipeline(StandardScaler(), self.clf)
+        else:
+            pipe = make_pipeline(self.clf)
+            
         time_gen = GeneralizingEstimator(pipe, n_jobs=self.n_jobs, scoring=self.scoring, verbose=False) 
         scores = cross_val_multiscore(time_gen, X, y, cv=self.cv, n_jobs=self.n_jobs) 
         self.scores = np.mean(scores, axis=0) 
@@ -52,9 +59,10 @@ class cross_temp_decoder():
             X_train, y_train = X_t_train[idx_train], y[idx_train] 
             X_test, y_test = X_t_test[idx_test], y[idx_test] 
             
-            scaler =  StandardScaler().fit(X_train) 
-            X_train = scaler.transform(X_train) 
-            X_test = scaler.transform(X_test) 
+            if self.standardize:
+                scaler =  StandardScaler().fit(X_train) 
+                X_train = scaler.transform(X_train) 
+                X_test = scaler.transform(X_test) 
             
             self.clf.fit(X_train, y_train) 
             scores.append(self.clf.score(X_test, y_test)) 

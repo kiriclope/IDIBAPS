@@ -263,16 +263,18 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
     # gv.num_cores =  int( np.sqrt(0.9*multiprocessing.cpu_count()) ) 
     gv.IF_SAVE = 1 
-    gv.correct_trial = 0 
+    gv.correct_trial = 0
+    
+    # gv.trials = ['ND_D1', 'ND_D2'] 
     
     # classification parameters 
-    gv.clf_name = 'LDA' 
+    gv.clf_name = 'LogisticRegressionCV' 
     gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
     gv.TIBSHIRANI_TRICK = 0 
     
     # bootstrap parameters
     gv.n_boots = int(1e3) 
-    gv.bootstrap_method='bayes' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
+    gv.bootstrap_method='block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     
     # preprocessing parameters 
     gv.T_WINDOW = 0.5 
@@ -283,7 +285,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.DELAY_ONLY = 0 
     
     gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 0 # z_score with BL mean and std
+    gv.Z_SCORE = 0 # z_score with BL mean and std 
     
     # feature selection 
     gv.FEATURE_SELECTION = 0 
@@ -293,21 +295,23 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
     # PCA parameters 
-    gv.explained_variance = 0.90    
-    gv.n_components = None
+    gv.explained_variance = 0.90 
+    gv.n_components = None 
     gv.inflexion = True 
-    gv.pca_method =  'concatenated' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.pca_method =  'averaged' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
-    
+    gv.spca_scoring = 'roc_auc' # 'mse', 'log_loss' or 'roc_auc' 
+    gv.spca_cv = 5 
+        
     if gv.pca_method is not None: 
         # gv.scaling = None # safety for dummies 
         if gv.pca_method in 'supervised': 
-            my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores, scoring='mse') 
+            my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance, cv=gv.spca_cv, max_threshold=gv.max_threshold, n_thresholds=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores, scoring=gv.spca_scoring) 
         else: 
-            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflexion=gv.inflexion) 
+            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflexion=gv.inflexion, verbose=True) 
     
-    # PLS parameters
+    # PLS parameters 
     # gv.pls_n_comp = None 
     gv.pls_max_comp = 30 # 'full', int or None 
     gv.pls_method = None # 'PLSRegression', 'PLSCanonical', 'PLSSVD', CCA or None 

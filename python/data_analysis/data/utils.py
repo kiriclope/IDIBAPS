@@ -67,9 +67,103 @@ def get_fluo_data():
 
 def which_trials(y_labels):
     y_trials = []
-
-    bool_correct = ( y_labels[2]==1 ) | ( y_labels[2]==4 ) 
-    if 'ND' in gv.trial:
+    
+    # bool_ND = (y_labels[4]==0) * ('ND' in gv.trials)
+    # bool_D1 = (y_labels[4]==13) * ('D1' in gv.trials)
+    # bool_D2 = (y_labels[4]==14) * ('D2' in gv.trials)
+    
+    # bool_trial = bool_ND & bool_D1 & bool_D2
+    
+    # bool_S1 = (y_labels[0]==17) * ('S1' in gv.trials)
+    # bool_S2 = (y_labels[0]==18) * ('S2' in gv.trials)
+        
+    # bool_sample = bool_S1 & bool_S2 
+    
+    if gv.laser_on: 
+        bool_laser = (y_labels[8]!=0) 
+    if gv.correct_trial:
+        bool_correct = ( y_labels[2]==1 ) | ( y_labels[2]==4 ) 
+        
+    if 'all' in gv.trial: 
+        if 'S1' in gv.trial: 
+            if gv.laser_on:               
+                y_trials = np.argwhere( (y_labels[0]==17) & (y_labels[8]!=0) ).flatten()            
+            if not gv.laser_on:
+                if gv.correct_trial:
+                    y_trials = np.argwhere( (y_labels[0]==17) & (y_labels[4]==0) & (y_labels[8]==0) & bool_correct).flatten()
+                else:
+                    y_trials = np.argwhere( (y_labels[0]==17) & (y_labels[4]==0) & (y_labels[8]==0) ).flatten() 
+                    
+        elif 'S2' in gv.trial: 
+            if gv.laser_on: 
+                y_trials = np.argwhere( (y_labels[0]==18) & (y_labels[8]!=0) ).flatten() 
+            if not gv.laser_on: 
+                if gv.correct_trial:
+                    y_trials = np.argwhere( (y_labels[0]==18) & (y_labels[8]==0) & bool_correct).flatten()
+                else:
+                    y_trials = np.argwhere( (y_labels[0]==18) & (y_labels[8]==0) ).flatten()                    
+        else: 
+            if gv.laser_on: 
+                y_trials = np.argwhere( (y_labels[8]!=0) ).flatten() 
+            if not gv.laser_on: 
+                if gv.correct_trial:
+                    y_trials = np.argwhere( (y_labels[8]==0) & bool_correct ).flatten()
+                else:
+                    y_trials = np.argwhere( (y_labels[8]==0) ).flatten()
+                    
+    elif 'ND_D1' in gv.trial: 
+        if 'S1' in gv.trial: 
+            if gv.laser_on: 
+                y_trials = np.argwhere( (y_labels[0]==17) & ( (y_labels[4]==0) | (y_labels[4]==13) ) & (y_labels[8]!=0) ).flatten() 
+            if not gv.laser_on: 
+                if gv.correct_trial:
+                    y_trials = np.argwhere( (y_labels[0]==17) & ( (y_labels[4]==0) | (y_labels[4]==13) ) & (y_labels[8]==0) & bool_correct).flatten()
+                else:
+                    y_trials = np.argwhere( (y_labels[0]==17) & ( (y_labels[4]==0) | (y_labels[4]==13) ) & (y_labels[8]==0) ).flatten() 
+        elif 'S2' in gv.trial: 
+            if gv.laser_on: 
+                y_trials = np.argwhere( (y_labels[0]==18) & ( (y_labels[4]==0) | (y_labels[4]==13) ) & (y_labels[8]!=0) ).flatten() 
+            if not gv.laser_on: 
+                if gv.correct_trial:
+                    y_trials = np.argwhere( (y_labels[0]==18) & ( (y_labels[4]==0) | (y_labels[4]==13) )
+                                            & (y_labels[8]==0) & bool_correct ).flatten() 
+                else:
+                    y_trials = np.argwhere( (y_labels[0]==18) & ( (y_labels[4]==0) | (y_labels[4]==13) ) & (y_labels[8]==0) ).flatten() 
+        else:
+            if gv.laser_on: 
+                y_trials = np.argwhere(( (y_labels[4]==0) | (y_labels[4]==13) ) & (y_labels[8]!=0) ).flatten()
+            if not gv.laser_on: 
+                if gv.correct_trial:
+                    y_trials = np.argwhere(( (y_labels[4]==0) | (y_labels[4]==13) ) & (y_labels[8]==0) & bool_correct).flatten() 
+                else:
+                    y_trials = np.argwhere(( (y_labels[4]==0) | (y_labels[4]==13) ) & (y_labels[8]==0) ).flatten() 
+    elif 'ND_D2' in gv.trial: 
+        if 'S1' in gv.trial: 
+            if gv.laser_on: 
+                y_trials = np.argwhere( (y_labels[0]==17) & ( (y_labels[4]==0) | (y_labels[4]==14) ) & (y_labels[8]!=0) ).flatten() 
+            if not gv.laser_on: 
+                if gv.correct_trial:
+                    y_trials = np.argwhere( (y_labels[0]==17) & ( (y_labels[4]==0) | (y_labels[4]==14) ) & (y_labels[8]==0) & bool_correct).flatten()
+                else:
+                    y_trials = np.argwhere( (y_labels[0]==17) & ( (y_labels[4]==0) | (y_labels[4]==14) ) & (y_labels[8]==0) ).flatten()
+        elif 'S2' in gv.trial:
+            if gv.laser_on: 
+                y_trials = np.argwhere( (y_labels[0]==18) & ( (y_labels[4]==0) | (y_labels[4]==14) ) & (y_labels[8]!=0) ).flatten() 
+            if not gv.laser_on: 
+                if gv.correct_trial:
+                    y_trials = np.argwhere( (y_labels[0]==18) & ( (y_labels[4]==0) | (y_labels[4]==14) ) & (y_labels[8]==0) & bool_correct).flatten()
+                else:
+                    y_trials = np.argwhere( (y_labels[0]==18) & ( (y_labels[4]==0) | (y_labels[4]==14) ) & (y_labels[8]==0) ).flatten()
+        else: 
+            if gv.laser_on: 
+                y_trials = np.argwhere(( (y_labels[4]==0) | (y_labels[4]==14) ) & (y_labels[8]!=0) ).flatten() 
+            if not gv.laser_on: 
+                if gv.correct_trial:
+                    y_trials = np.argwhere( ( (y_labels[4]==0) | (y_labels[4]==14) ) & (y_labels[8]==0) & bool_correct).flatten() 
+                else:
+                    y_trials = np.argwhere( ( (y_labels[4]==0) | (y_labels[4]==14) ) & (y_labels[8]==0) ).flatten() 
+                    
+    elif 'ND' in gv.trial:
         if 'S1' in gv.trial:
             if gv.laser_on:                
                 y_trials = np.argwhere( (y_labels[0]==17) & (y_labels[4]==0) & (y_labels[8]!=0) ).flatten()            
@@ -146,23 +240,7 @@ def which_trials(y_labels):
                     y_trials = np.argwhere((y_labels[4]==14) & (y_labels[8]==0) & bool_correct).flatten() 
                 else:
                     y_trials = np.argwhere((y_labels[4]==14) & (y_labels[8]==0) ).flatten()
-    elif 'all' in gv.trial:
-        if 'S1' in gv.trial:
-            if gv.laser_on: 
-                y_trials = np.argwhere( (y_labels[0]==17) & (y_labels[8]!=0) ).flatten() 
-            if not gv.laser_on: 
-                if gv.correct_trial:
-                    y_trials = np.argwhere( (y_labels[0]==17) & (y_labels[8]==0) & bool_correct).flatten()
-                else:
-                    y_trials = np.argwhere( (y_labels[0]==17) & (y_labels[8]==0) ).flatten()
-        elif 'S2' in gv.trial: 
-            if gv.laser_on: 
-                y_trials = np.argwhere( (y_labels[0]==18) & (y_labels[8]!=0) ).flatten() 
-            if not gv.laser_on: 
-                if gv.correct_trial:
-                    y_trials = np.argwhere( (y_labels[0]==18) & (y_labels[8]==0) & bool_correct).flatten() 
-                else:
-                    y_trials = np.argwhere( (y_labels[0]==18) & (y_labels[8]==0) ).flatten() 
+                    
     return y_trials
 
 def get_S1_S2_trials(X_data, y_labels):
@@ -323,11 +401,17 @@ def get_X_y_mouse_session(synthetic=False):
     get_delays_times() 
     get_bins() # .9 or 1 
         
-    if gv.mouse in [gv.mice[0]]: 
-        gv.n_trials = 40 
+    if gv.mouse in [gv.mice[0]]:
+        if 'ND_D1' in gv.trials:
+            gv.n_trials = 40*2
+        else:
+            gv.n_trials = 40
     else: 
-        gv.n_trials = 32 
-        
+        if 'ND_D1' in gv.trials:
+            gv.n_trials = 32*2
+        else:        
+            gv.n_trials = 32
+            
     X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) ) 
         
     mins = [] 

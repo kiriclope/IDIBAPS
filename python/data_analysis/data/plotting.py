@@ -21,6 +21,9 @@ def figDir():
     if gv.correct_trial :
         gv.figdir = gv.figdir + '/correct_trials' 
         
+    if 'ND_D1' in gv.trials:
+        gv.figdir = gv.figdir + '/ND_D1_ND_D2' 
+    
     if gv.SYNTHETIC :
         gv.figdir = gv.figdir + '/synthetic' 
         

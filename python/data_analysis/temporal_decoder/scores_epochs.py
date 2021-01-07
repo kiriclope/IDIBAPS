@@ -75,6 +75,11 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shr
     if gv.AVG_EPOCHS: 
         gv.figdir = gv.figdir + '/avg_epochs' 
         
+    if gv.standardize:
+        gv.figdir = gv.figdir + '/standardize'
+    else:
+        gv.figdir = gv.figdir + '/not_standardize'
+        
     day = '/day_%d' % (list(gv.sessions).index(gv.session) + 1 ) 
     gv.figdir = gv.figdir + day 
         
@@ -86,7 +91,7 @@ def get_scores(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio
     
     get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, normalize=False)
     
-    decoder = cross_temp_decoder(gv.clf, scoring=gv.scoring, cv=cv, shuffle=gv.shuffle, random_state=gv.random_state, mne_decoder=not(gv.my_decoder), fold_type=gv.fold_type, n_jobs=gv.num_cores, n_iter=gv.n_iter) 
+    decoder = cross_temp_decoder(gv.clf, scoring=gv.scoring, cv=cv, shuffle=gv.shuffle, random_state=gv.random_state, mne_decoder=not(gv.my_decoder), fold_type=gv.fold_type, standardize=gv.standardize, n_jobs=gv.num_cores, n_iter=gv.n_iter) 
     
     get_epochs() 
     
@@ -154,7 +159,7 @@ def plot_scores_epochs(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, 
 def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
     
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
-    gv.my_decoder = 1
+    gv.my_decoder = 1 
     gv.n_iter = 100 
     
     gv.shuffle= True
@@ -165,9 +170,11 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.correct_trial = 0 
     
     # classification parameters 
-    gv.clf_name = 'LDA' 
-    gv.scoring =  'hamming' # 'accuracy' 'roc_auc' 
-    gv.fold_type = 'stratified' 
+    gv.clf_name = 'LogisticRegressionCV' 
+    gv.scoring =  'accuracy' # 'accuracy' 'roc_auc' 
+    gv.fold_type = 'stratified'
+    gv.standardize = True # safety for dummies 
+    
     gv.TIBSHIRANI_TRICK = 0 
         
     # preprocessing parameters 
@@ -179,7 +186,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.DELAY_ONLY = 0 
     
     gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 0 # z_score with BL mean and std 
+    gv.Z_SCORE = 1 # z_score with BL mean and std 
     
     # feature selection 
     gv.FEATURE_SELECTION = 0 
@@ -188,7 +195,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     # PCA parameters 
     gv.explained_variance = 0.90 
     gv.inflexion = True 
-    gv.pca_method = 'concatenated' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.pca_method = 'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     
