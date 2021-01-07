@@ -176,3 +176,6 @@ SYNTHETIC=0
 
 global standardize
 standardize=True
+
+global pair_trials
+pair_trials = 0

@@ -19,7 +19,10 @@ def figDir():
         gv.figdir = gv.figdir + '/laser_off'
         
     if gv.correct_trial :
-        gv.figdir = gv.figdir + '/correct_trials' 
+        gv.figdir = gv.figdir + '/correct_trials'
+        
+    if gv.pair_trials :
+        gv.figdir = gv.figdir + '/pair_trials' 
         
     if 'ND_D1' in gv.trials:
         gv.figdir = gv.figdir + '/ND_D1_ND_D2' 

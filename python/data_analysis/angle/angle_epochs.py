@@ -264,7 +264,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     # gv.num_cores =  int( np.sqrt(0.9*multiprocessing.cpu_count()) ) 
     gv.IF_SAVE = 1 
     gv.correct_trial = 0
-    
+    gv.pair_trials = 0 
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
     # classification parameters 
@@ -297,7 +297,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     # PCA parameters 
     gv.explained_variance = 0.90 
     gv.n_components = None 
-    gv.inflexion = True 
+    gv.inflexion = False 
     gv.pca_method =  'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 

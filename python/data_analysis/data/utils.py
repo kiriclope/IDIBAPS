@@ -115,7 +115,7 @@ def which_trials(y_labels):
             y_trials = np.argwhere( bool_trial & bool_S1 & bool_S2 ).flatten() 
             
     if 'D1' in gv.trial:        
-        bool_trial = bool_ND
+        bool_trial = bool_D1
         
         if 'S1' in gv.trial: 
             y_trials = np.argwhere( bool_trial & bool_S1 ).flatten()             
@@ -129,7 +129,7 @@ def which_trials(y_labels):
             y_trials = np.argwhere( bool_trial & bool_S1 & bool_S2 ).flatten() 
             
     if 'D2' in gv.trial: 
-        bool_trial = bool_ND
+        bool_trial = bool_D2
         
         if 'S1' in gv.trial: 
             y_trials = np.argwhere( bool_trial & bool_S1 ).flatten()             
@@ -141,8 +141,6 @@ def which_trials(y_labels):
             y_trials = np.argwhere( bool_trial & bool_unpair ).flatten()
         else:
             y_trials = np.argwhere( bool_trial & bool_S1 & bool_S2 ).flatten() 
-            
-            
             
     return y_trials
 
@@ -159,7 +157,8 @@ def get_pair_trials(X_data, y_labels):
     gv.trial = trial 
     X_pair = X_data[y_pair] 
     X_unpair = X_data[y_unpair] 
-    
+
+    print('X_pair', X_pair.shape, 'X_unpair', X_unpair.shape)
     return X_pair, X_unpair 
     
 def get_S1_S2_trials(X_data, y_labels):
@@ -336,8 +335,11 @@ def get_X_y_mouse_session(synthetic=False):
     mins = [] 
     for n_trial, gv.trial in enumerate(gv.trials): 
         
-        # X_S1, X_S2 = get_S1_S2_trials(X, y) 
-        X_S1, X_S2 = get_pair_trials(X, y) 
+        if gv.pair_trials:
+            X_S1, X_S2 = get_pair_trials(X, y) 
+        else:
+            X_S1, X_S2 = get_S1_S2_trials(X, y)
+
         get_trial_types(X_S1) 
             
         # compute DF over F0 
