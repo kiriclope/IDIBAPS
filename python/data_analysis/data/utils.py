@@ -86,70 +86,34 @@ def which_trials(y_labels):
     if gv.correct_trial:
         bool_correct = ( y_labels[2]==1 ) | ( y_labels[2]==4 ) 
         
-    if 'all' in gv.trial:        
-        bool_trial = bool_ND & bool_D1 & bool_D2        
-        
-        if 'S1' in gv.trial: 
-            y_trials = np.argwhere( bool_trial & bool_S1 ).flatten()             
-        elif 'S2' in gv.trial: 
-            y_trials = np.argwhere( bool_trial & bool_S2 ).flatten()
-        elif 'pair' in gv.trial:
-            y_trials = np.argwhere( bool_trial & bool_pair ).flatten()
-        elif 'unpair' in gv.trial:
-            y_trials = np.argwhere( bool_trial & bool_unpair ).flatten()
-        else:
-            y_trials = np.argwhere( bool_trial & bool_S1 & bool_S2 ).flatten() 
-            
-    if 'ND' in gv.trial:        
-        bool_trial = bool_ND
-        
-        if 'S1' in gv.trial: 
-            y_trials = np.argwhere( bool_trial & bool_S1 ).flatten()             
-        elif 'S2' in gv.trial: 
-            y_trials = np.argwhere( bool_trial & bool_S2 ).flatten()
-        elif 'pair' in gv.trial:
-            y_trials = np.argwhere( bool_trial & bool_pair ).flatten()
-        elif 'unpair' in gv.trial:
-            y_trials = np.argwhere( bool_trial & bool_unpair ).flatten()
-        else:
-            y_trials = np.argwhere( bool_trial & bool_S1 & bool_S2 ).flatten() 
-            
-    if 'D1' in gv.trial:        
-        bool_trial = bool_D1
-        
-        if 'S1' in gv.trial: 
-            y_trials = np.argwhere( bool_trial & bool_S1 ).flatten()             
-        elif 'S2' in gv.trial: 
-            y_trials = np.argwhere( bool_trial & bool_S2 ).flatten()
-        elif 'pair' in gv.trial:
-            y_trials = np.argwhere( bool_trial & bool_pair ).flatten()
-        elif 'unpair' in gv.trial:
-            y_trials = np.argwhere( bool_trial & bool_unpair ).flatten()
-        else:
-            y_trials = np.argwhere( bool_trial & bool_S1 & bool_S2 ).flatten() 
-            
+    if 'all' in gv.trial: 
+        bool_trial = bool_ND & bool_D1 & bool_D2 
+    if 'ND' in gv.trial: 
+        bool_trial = bool_ND 
+    if 'D1' in gv.trial: 
+        bool_trial = bool_D1 
     if 'D2' in gv.trial: 
-        bool_trial = bool_D2
+        bool_trial = bool_D2 
         
-        if 'S1' in gv.trial: 
-            y_trials = np.argwhere( bool_trial & bool_S1 ).flatten()             
-        elif 'S2' in gv.trial: 
-            y_trials = np.argwhere( bool_trial & bool_S2 ).flatten()
-        elif 'pair' in gv.trial:
-            y_trials = np.argwhere( bool_trial & bool_pair ).flatten()
-        elif 'unpair' in gv.trial:
-            y_trials = np.argwhere( bool_trial & bool_unpair ).flatten()
-        else:
-            y_trials = np.argwhere( bool_trial & bool_S1 & bool_S2 ).flatten() 
-            
-    return y_trials
+    if 'S1' in gv.trial: 
+        y_trials = np.argwhere( bool_trial & bool_S1 ).flatten() 
+    elif 'S2' in gv.trial: 
+        y_trials = np.argwhere( bool_trial & bool_S2 ).flatten()
+    elif 'pair' in gv.trial:
+        y_trials = np.argwhere( bool_trial & bool_pair ).flatten()
+    elif 'unpair' in gv.trial:
+        y_trials = np.argwhere( bool_trial & bool_unpair ).flatten()
+    else:
+        y_trials = np.argwhere( bool_trial & bool_S1 & bool_S2 ).flatten() 
+        
+    return y_trials 
 
 def get_pair_trials(X_data, y_labels):
-
+    
     trial = gv.trial
     gv.trial = trial + "_pair" 
     y_pair = which_trials(y_labels) 
-
+    
     trial = gv.trial
     gv.trial = trial + "_unpair" 
     y_unpair = which_trials(y_labels)
@@ -157,30 +121,30 @@ def get_pair_trials(X_data, y_labels):
     gv.trial = trial 
     X_pair = X_data[y_pair] 
     X_unpair = X_data[y_unpair] 
-
+    
     print('X_pair', X_pair.shape, 'X_unpair', X_unpair.shape)
     return X_pair, X_unpair 
     
 def get_S1_S2_trials(X_data, y_labels):
-
+    
     trial = gv.trial
     gv.trial = trial + "_S1" 
-    y_S1_trials = which_trials(y_labels) 
-    # print(y_S1_trials) 
+    y_S1 = which_trials(y_labels) 
     
     gv.trial = trial + "_S2" 
-    y_S2_trials = which_trials(y_labels) 
-    # print(y_S2_trials) 
-
-    gv.trial = trial 
-    X_S1_trials = X_data[y_S1_trials] 
-    X_S2_trials = X_data[y_S2_trials] 
+    y_S2 = which_trials(y_labels) 
     
-    return X_S1_trials, X_S2_trials 
+    gv.trial = trial 
+    X_S1 = X_data[y_S1] 
+    X_S2 = X_data[y_S2] 
+    
+    print('X_S1', X_S1.shape, 'X_S2', X_S2.shape)
+    
+    return X_S1, X_S2 
 
 def get_trial_types(X_S1_trials): 
-    gv.n_trials = 2*X_S1_trials.shape[0]
-    gv.trial_type = ['ND'] * gv.n_trials + ['D1'] * gv.n_trials + ['D2'] * gv.n_trials
+    gv.n_trials = 2*X_S1_trials.shape[0] 
+    gv.trial_type = ['ND'] * gv.n_trials + ['D1'] * gv.n_trials + ['D2'] * gv.n_trials 
 
 def get_bins():
 

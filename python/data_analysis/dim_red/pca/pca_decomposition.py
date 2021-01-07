@@ -50,7 +50,7 @@ class pca_methods():
         # PCA the trial averaged data 
         n_components = self.get_optimal_number_of_components(X_avg.T)        
         pca = PCA(n_components=n_components) 
-        pca.fit(X_avg.T)
+        pca.fit(X_avg.T) 
         
         explained_variance = pca.explained_variance_ratio_
         

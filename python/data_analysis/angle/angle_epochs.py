@@ -268,9 +268,9 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
     # classification parameters 
-    gv.clf_name = 'LogisticRegressionCV' 
+    gv.clf_name = 'glmnet' 
     gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
-    gv.TIBSHIRANI_TRICK = 0 
+    gv.TIBSHIRANI_TRICK = 0  
     
     # bootstrap parameters
     gv.n_boots = int(1e3) 
@@ -288,7 +288,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.Z_SCORE = 0 # z_score with BL mean and std 
     
     # feature selection 
-    gv.FEATURE_SELECTION = 0  
+    gv.FEATURE_SELECTION = 0   
     gv.LASSOCV = 0 
     
     # scaling before clf, when using pca use None 
@@ -303,7 +303,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.n_thresholds = 100 
     gv.spca_scoring = 'roc_auc' # 'mse', 'log_loss' or 'roc_auc' 
     gv.spca_cv = 5 
-        
+    
     if gv.pca_method is not None: 
         # gv.scaling = None # safety for dummies 
         if gv.pca_method in 'supervised': 
