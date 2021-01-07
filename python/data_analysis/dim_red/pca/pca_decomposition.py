@@ -31,7 +31,7 @@ class pca_methods():
             if (1 - S_ii/float(S_nn)) <= 1 - self.explained_variance: 
                 return num_components
             
-        return s.shape[0] 
+        return np.maximum(s.shape[0], 1)
 
     def trial_hybrid(self, X_trials): 
         

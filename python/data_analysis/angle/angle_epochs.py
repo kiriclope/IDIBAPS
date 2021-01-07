@@ -288,7 +288,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.Z_SCORE = 0 # z_score with BL mean and std 
     
     # feature selection 
-    gv.FEATURE_SELECTION = 0 
+    gv.FEATURE_SELECTION = 0  
     gv.LASSOCV = 0 
     
     # scaling before clf, when using pca use None 
@@ -298,7 +298,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.explained_variance = 0.90 
     gv.n_components = None 
     gv.inflexion = True 
-    gv.pca_method =  'averaged' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.pca_method =  'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     gv.spca_scoring = 'roc_auc' # 'mse', 'log_loss' or 'roc_auc' 
