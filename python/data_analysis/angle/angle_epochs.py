@@ -158,7 +158,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
     pl.figDir() 
     clf_param = '' 
     
-    if 'LogisticRegressionCV' in gv.clf_name or 'glmnet' in gv.clf_name: 
+    if 'LogisticRegressionCV' in gv.clf_name: 
         if 'liblinear' in solver:
             if cv is not None:
                 clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, cv) 
@@ -168,7 +168,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
                 clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, 5) 
                 if fit_intercept:
                     clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
-                    
+        
         if 'sag' in solver:
             if cv is not None:
                 clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_intercept_fit_%d_scaling_%d' % (C, penalty, solver, cv)
@@ -186,6 +186,13 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', l1_
             #     clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d_l1_ratio_%.2f' % (C, penalty, solver, 5, l1_ratio[-1]) 
             #     if fit_intercept:
             #         clf_param = clf_param + '_intercept_fit_%d_scaling_%d' % (fit_intercept, intercept_scaling )
+
+        clf_param = clf_param + '/%s' % gv.scoring
+
+    if 'glmnet' in gv.clf_name:
+        clf_param = '/C_%.3f_l1_ratio_%.2f' % (C, l1_ratio) 
+        if fit_intercept:
+            clf_param = clf_param + '_fit_intercept'
             
         clf_param = clf_param + '/%s' % gv.scoring
         
@@ -233,7 +240,7 @@ def get_corr_epochs(coefs):
         
     return corr[:,:,0], lower[:,:,0], upper[:,:,0], corr_boot[:,:,0] 
 
-def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=True, intercept_scaling=1e2): 
+def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=1e2): 
 
     create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss, l1_ratio=l1_ratio, shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling) 
 
@@ -241,11 +248,15 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
 
     mean_cos, lower_cos, upper_cos, cos_boot = get_cos_epochs(coefs) 
     p_values_cos = get_p_values(cos_boot)  
-    # print('p_values', p_values)         
+    # print('p_values', p_values) 
     pl.bar_trials_epochs(mean_cos, lower_cos, upper_cos) 
-    add_pvalue(p_values_cos) 
-    plt.ylim([-0.1, 1.1]) 
+    add_pvalue(p_values_cos)
     
+    if np.all(mean_cos>-0.1): 
+        plt.ylim([-0.1, 1.1]) 
+    else:
+        plt.ylim([-1, 1.1])  
+       
     figtitle = '%s_%s_bars_cos_alp' % (gv.mouse, gv.session) 
     pl.save_fig(figtitle) 
     
@@ -258,7 +269,7 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
     # figtitle = '%s_%s_bars_corr' % (gv.mouse, gv.session) 
     # pl.save_fig(figtitle) 
 
-def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=1e2): 
+def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=1e2): 
     
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
     # gv.num_cores =  int( np.sqrt(0.9*multiprocessing.cpu_count()) ) 
@@ -267,8 +278,12 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.pair_trials = 0 
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
-    # classification parameters 
-    gv.clf_name = 'glmnet' 
+    # classification parameters
+    if clf is None:
+        gv.clf_name = 'glmnet'
+    else:
+        gv.clf_name = clf
+        
     gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
     gv.TIBSHIRANI_TRICK = 0  
     
@@ -285,20 +300,21 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.DELAY_ONLY = 0 
     
     gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 0 # z_score with BL mean and std 
+    gv.Z_SCORE = 1 # z_score with BL mean and std 
     
     # feature selection 
-    gv.FEATURE_SELECTION = 0   
+    gv.FEATURE_SELECTION = 0 
     gv.LASSOCV = 0 
     
     # scaling before clf, when using pca use None 
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
     # PCA parameters 
-    gv.explained_variance = 0.90 
+    gv.explained_variance = 1 
     gv.n_components = None 
-    gv.inflexion = False 
-    gv.pca_method =  'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.inflection = True 
+    gv.minka_mle = False 
+    gv.pca_method =  None # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     gv.spca_scoring = 'roc_auc' # 'mse', 'log_loss' or 'roc_auc' 
@@ -309,7 +325,9 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         if gv.pca_method in 'supervised': 
             my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance, cv=gv.spca_cv, max_threshold=gv.max_threshold, n_thresholds=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores, scoring=gv.spca_scoring) 
         else: 
-            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflexion=gv.inflexion, verbose=True) 
+            my_pca = pca_methods(pca_method=gv.pca_method,
+                                 explained_variance=gv.explained_variance, inflection=gv.inflection,
+                                 minka_mle=gv.minka_mle, verbose=True) 
     
     # PLS parameters 
     # gv.pls_n_comp = None 

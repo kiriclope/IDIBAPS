@@ -35,7 +35,7 @@ def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None
                            class_weight=None, verbose=0, random_state=None) 
 
     elif 'glmnet' in gv.clf_name:
-        gv.clf = LogitNet(alpha=1, n_lambda=100, min_lambda_ratio=1e-4,
+        gv.clf = LogitNet(alpha=l1_ratio, n_lambda=C, min_lambda_ratio=1e-4,
                           lambda_path=None, standardize=False, fit_intercept=fit_intercept,
                           lower_limits=-np.inf, upper_limits=np.inf,
                           cut_point=1.0, n_splits=cv, scoring=gv.scoring, n_jobs=gv.num_cores, tol=1e-7,

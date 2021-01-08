@@ -34,11 +34,15 @@ def figDir():
         if gv.pca_method in 'supervised': 
             gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f/threshold_%d_Cs_%d' % (gv.pca_method, gv.explained_variance,
                                                                                                     gv.max_threshold, gv.n_thresholds ) 
+        elif gv.inflection: 
+            gv.figdir = gv.figdir + '/dim_red/pca/%s/inflection_point' % gv.pca_method
+            
+        elif gv.minka_mle: 
+            gv.figdir = gv.figdir + '/dim_red/pca/%s/minka_mle' % gv.pca_method
+            
         else:
             gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f' % (gv.pca_method, gv.explained_variance) 
             
-        if gv.inflexion: 
-            gv.figdir = gv.figdir + '/inflection_point'
             
     if gv.pls_method is not None: 
         if isinstance(gv.pls_max_comp, str): 

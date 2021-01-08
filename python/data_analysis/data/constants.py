@@ -103,11 +103,11 @@ t_stim_delay = []
 global scaling
 scaling = None
 
-global pca_method, detrend, bootstrap_trials, inflexion
+global pca_method, detrend, bootstrap_trials, inflection
 pca_method = 'hybrid' 
 detrend = 0
 bootstrap_trials=0
-inflexion= False
+inflection= False 
 
 global num_cores
 num_cores = int(0.9*multiprocessing.cpu_count()) 
@@ -179,3 +179,6 @@ standardize=True
 
 global pair_trials
 pair_trials = 0
+
+global minka_mle
+minka_mle=0
