@@ -155,10 +155,14 @@ def bar_trials_epochs(mean, lower=None, upper=None, var_name='cos_alp'):
 
     day = 'day %d' % (list(gv.sessions).index(gv.session) + 1 ) 
     ax.set_title(day)
-    
-    plt.xticks([i + width for i in range(len(gv.epochs)-1)], gv.epochs[1:]) 
 
-    plt.xlabel('Epochs')
+    if gv.cos_trials:
+        plt.xticks([i + width for i in range(len(gv.trials)-1)], gv.trials[1:]) 
+        plt.xlabel('Trials')
+    else:
+        plt.xticks([i + width for i in range(len(gv.epochs)-1)], gv.epochs[1:]) 
+        plt.xlabel('Epochs')
+        
     if 'cos_alp' in var_name:
         plt.ylabel('Cos($\\alpha$)')
     else:

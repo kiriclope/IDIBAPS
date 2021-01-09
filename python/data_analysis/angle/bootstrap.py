@@ -45,21 +45,25 @@ class bootstrap():
         self._coefs = None
         
     def my_bootstrap_loop(self, X, y): 
-        
-        if 'standard' in self.bootstrap_method :
-            idx_trials = np.random.randint(0, X.shape[0], X.shape[0]) 
+
+        if self.n_boots==1:
+            X_sample = X 
+            y_sample = y 
+        else:
+            if 'standard' in self.bootstrap_method :
+                idx_trials = np.random.randint(0, X.shape[0], X.shape[0]) 
             
-        if 'block' in self.bootstrap_method :
-            idx_trials = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)), 
-                                      np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) )
+            if 'block' in self.bootstrap_method :
+                idx_trials = np.hstack( ( np.random.randint(0, int(X.shape[0]/2), int(X.shape[0]/2)), 
+                                          np.random.randint(int(X.shape[0]/2), X.shape[0], int(X.shape[0]/2)) ) )
             
-        X_sample = X[idx_trials] 
-        y_sample = y[idx_trials] 
+            X_sample = X[idx_trials] 
+            y_sample = y[idx_trials] 
         
-        if 'hierarchical' in self.bootstrap_method :
-            for trial in idx_trials: 
-                idx_neurons = np.random.randint(0, X.shape[1], X.shape[1]) 
-                X_sample[trial] = X[trial, idx_neurons] 
+            if 'hierarchical' in self.bootstrap_method :
+                for trial in idx_trials: 
+                    idx_neurons = np.random.randint(0, X.shape[1], X.shape[1]) 
+                    X_sample[trial] = X[trial, idx_neurons] 
                 
         if self.scaling is not None:
             if not 'sample' in self.scaling: 
@@ -91,7 +95,7 @@ class bootstrap():
         else: 
             coefs = [ estimator[-1].coef_.flatten() for estimator in model.base_models_ ] 
             
-        self._coefs = np.array(coefs)
+        self._coefs = np.array(coefs) 
 
     def bagging_bootstrap(self, X, y):
         model = BaggingRegressor(base_estimator=self.pipe, n_estimators=self.n_boots, n_jobs=self.n_jobs, bootstrap_features=False) 
