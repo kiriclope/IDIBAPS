@@ -108,10 +108,11 @@ def get_cos_epochs(coefs):
     cos_boot = np.empty( (len(gv.trials), gv.n_boots, len(gv.epochs) ) ) 
     
     mean_cos = np.empty((len(gv.trials), len(gv.epochs)))
+    var_cos = np.empty((len(gv.trials), len(gv.epochs)))
     upper_cos = np.empty( (len(gv.trials), len(gv.epochs)) )
     lower_cos = np.empty((len(gv.trials), len(gv.epochs)))
 
-    # # THIS WRONG !!!!!!!!!
+    # # THIS IS WRONG !!!!!!!!!
     # for n_trial, gv.trial in enumerate(gv.trials): 
     #     for boot in range(coefs.shape[2]): 
     #         cos_alp = agl.get_cos(coefs[n_trial,:,boot,:], coefs[n_trial,0,boot,:]) # bins x neurons 
@@ -131,12 +132,12 @@ def get_cos_epochs(coefs):
         # mean_cos = cos(mean_coefs) 
         mean_cos[n_epoch] = agl.get_cos(mean_coefs[:,n_epoch,:], mean_coefs[0,n_epoch,:]) 
         # var_cos = nabla(coefsToCos)(coefs).T cov(coefs) nabla(coefsToCos)(coefs) 
-        var_cos[n_epochs] = agl.get_cos(mean_coefs[:,n_epoch,:], mean_coefs[0,n_epoch,:]) 
+        var_cos[n_epoch] = agl.get_cos(mean_coefs[:,n_epoch,:], mean_coefs[0,n_epoch,:]) 
         
-        lower[n_epoch] = mean_cos[n_epoch] - 0.675 * var_cos[n_epochs] 
-        upper[n_epoch] = 0.675 * var_cos[n_epochs] - mean_cos[n_epoch] 
+        lower_cos[n_epoch] = mean_cos[n_epoch] - 0.675 * var_cos[n_epoch] 
+        upper_cos[n_epoch] = 0.675 * var_cos[n_epoch] - mean_cos[n_epoch] 
         
-        print('epoch', gv.epoch, 'cos', mean[n_epoch], 'lower', lower[n_epoch], 'upper', upper[n_epoch]) 
+        print('epoch', gv.epoch, 'cos', mean_cos[n_epoch], 'lower', lower_cos[n_epoch], 'upper', upper_cos[n_epoch]) 
     
     return mean_cos, lower_cos, upper_cos, cos_boot 
 
