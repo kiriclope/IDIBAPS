@@ -20,8 +20,8 @@ def cos_between(v1, v2):
 
 def get_angle(coefs, v0):
     """ Returns the angle in radians between vectors 'v1' and 'v2':: """    
-    alpha=np.empty(coefs.shape[0])
-    for i in np.arange(0, coefs.shape[0]):     
+    alpha=np.empty(coefs.shape[0]) 
+    for i in np.arange(0, coefs.shape[0]): 
         alpha[i] = angle_between(v0, coefs[i])
     return alpha 
 

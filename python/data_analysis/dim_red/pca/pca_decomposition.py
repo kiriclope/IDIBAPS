@@ -10,7 +10,7 @@ class pca_methods():
         self.pca_method = pca_method
         self.explained_variance = explained_variance 
         self.scaler = StandardScaler(with_mean=True, with_std=False) 
-        self.inflection = inflection
+        self.inflection = inflection 
         self.minka_mle = minka_mle 
         self.verbose = verbose
         
@@ -26,14 +26,14 @@ class pca_methods():
         cov = np.dot(X,X.transpose())/float(X.shape[0]) 
         U,s,v = np.linalg.svd(cov)
         S_nn = sum(s) 
-
-        for num_components in range(0, np.minimum(X.shape[0], X.shape[1]) ):
+        
+        for num_components in range(0, s.shape[0] ):
             temp_s = s[0:num_components]
             S_ii = sum(temp_s)
             if (1 - S_ii/float(S_nn)) <= 1 - self.explained_variance: 
                 return num_components
             
-        return np.maximum(np.minimum(X.shape[0], X.shape[1]), 1) 
+        return np.maximum(s.shape[0], 1) 
 
     def trial_hybrid(self, X_trials): 
         
@@ -64,7 +64,7 @@ class pca_methods():
         if self.inflection:
             n_components = self.get_inflection_point(explained_variance) 
             pca = PCA(n_components=n_components) 
-            pca.fit(X_avg.T)
+            pca.fit(X_avg.T) 
             
             n_components = pca.n_components_ 
             explained_variance = pca.explained_variance_ratio_ 
@@ -101,8 +101,8 @@ class pca_methods():
         else:
             n_components = self.get_optimal_number_of_components(X_concat.T) 
             
-        print(X_concat.shape, n_components)
-
+        print(X_concat.shape, n_components) 
+        
         # pca on X: trials x neurons 
         pca = PCA(n_components=n_components) 
         pca.fit(X_concat.T)
@@ -114,7 +114,7 @@ class pca_methods():
             n_components = self.get_inflection_point(explained_variance) 
             pca = PCA(n_components=n_components) 
             X_concat = pca.fit_transform(X_concat.T).T 
-
+            
             n_components = pca.n_components_ 
             explained_variance = pca.explained_variance_ratio_ 
         else:
@@ -138,9 +138,9 @@ class pca_methods():
             print('X_proj', X_proj.shape)
             
         return X_proj 
-
+    
     def trial_averaged(self, X_trials):
-
+        
         trial_averages = []
         for n_trial in range(len(gv.trials)) : 
             X_S1 = np.mean(X_trials[n_trial,0], axis=0) 
@@ -148,7 +148,7 @@ class pca_methods():
             X_S1_S2 = np.hstack((X_S1, X_S2))             
             trial_averages.append(X_S1_S2) 
         
-        X_avg = np.hstack(trial_averages)
+        X_avg = np.hstack(trial_averages) 
         # standardize neurons/features across trials/samples 
         X_avg = self.scaler.fit_transform(X_avg.T).T 
         
