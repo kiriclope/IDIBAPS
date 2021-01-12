@@ -59,42 +59,47 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
     get_epochs() 
     coefs = np.empty((len(gv.trials), len(gv.epochs), gv.n_boots, X_trials.shape[3])) 
     
-    for n_trial, gv.trial in enumerate(gv.trials):         
-        X_S1_S2 = np.vstack( ( X_trials[n_trial,0], X_trials[n_trial,1] ) ) 
+    for n_trial, gv.trial in enumerate(gv.trials): 
+        X_S1_S2 = np.vstack( ( X_trials[n_trial,0], X_trials[n_trial,1] ) )
+        
+        if gv.list_n_components is not None: 
+            X_S1_S2 = X_S1_S2[:,0:int(gv.list_n_components[n_trial])] 
+        
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
         X_S1_S2 = pp.avg_epochs(X_S1_S2, y) 
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
-        if gv.cos_trials:
+        if gv.cos_trials: 
             # fixing the random seed for each trial 
             np.random.seed(np.random.randint(0,1e6)) 
         
         for n_epochs, gv.epoch in enumerate(gv.epochs): 
             if not gv.cos_trials: 
                 # fixing the random seed for each epoch 
-                np.random.seed(np.random.randint(0,1e6)) 
+                np.random.seed(np.random.randint(0,1e6))  
             
             X = X_S1_S2[:,:,n_epochs] 
-            Vh = None
+            Vh = None 
             
             # if gv.pls_method is not None: 
             #     # print('pls decomposition') 
             #     X = my_pls.fit_transform(X, y) 
-            #     print('X', X.shape)
+            #     print('X', X.shape) 
             
-            if gv.LASSOCV:
+            if gv.LASSOCV: 
                 gv.lassoCV.fit(X, y) 
-                selected = np.argwhere(gv.lassoCV[-1].coef_==0)
+                selected = np.argwhere(gv.lassoCV[-1].coef_==0) 
                 if len(selected)<X.shape[1]: 
                     X = np.delete(X, selected, axis=1) 
                 
             # print('X', X.shape, 'y', y.shape) 
             
             if gv.TIBSHIRANI_TRICK and (penalty=='l2' or 'LDA' in gv.clf_name or 'PLS' in gv.clf_name): 
-                X, Vh = SVD_trick(X)
+                X, Vh = SVD_trick(X) 
                 
             boots_coefs = boots_model.get_coefs(X, y, Vh)
+            print(boots_coefs.shape) 
             coefs[n_trial, n_epochs,:, 0:boots_coefs.shape[1]] = boots_coefs 
             
     return coefs 
@@ -113,13 +118,13 @@ def get_cos_epochs(coefs, bootstrap=0):
     cos_sample = np.empty( (len(gv.trials), len(gv.epochs), gv.n_boots ) ) 
     
     mean_cos = np.empty((len(gv.trials), len(gv.epochs))) 
-    upper_cos = np.empty( (len(gv.trials), len(gv.epochs))) 
+    upper_cos = np.empty( (len(gv.trials), len(gv.epochs)))  
     lower_cos = np.empty((len(gv.trials), len(gv.epochs))) 
     
     for n_trial, gv.trial in enumerate(gv.trials):  # 'ND', 'D1', 'D2' 
-        x =  coefs[n_trial, 0] # 'ED' 
+        x =  coefs[n_trial, 0, 0:int(gv.list_n_components[n_trial])] # 'ED' 
         for n_epoch, epoch in enumerate(gv.epochs): # 'ED', 'MD', 'LD' 
-            y =  coefs[n_trial, n_epoch]
+            y =  coefs[n_trial, n_epoch, 0:int(gv.list_n_components[n_trial])] 
             
             if bootstrap: 
                 cos_name = '%s cos ED vs %s' % (gv.trial, gv.epoch) 
@@ -161,7 +166,7 @@ def get_cos_trials(coefs, bootstrap=0):
         for n_trial, gv.trial in enumerate(gv.trials):  # 'ND', 'D1', 'D2' 
             y =  coefs[n_trial, n_epoch] 
             
-            if bootstrap:
+            if bootstrap: 
                 cos_name = '%s cos ND vs %s' % (gv.epoch, gv.trial) 
                 with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=gv.n_boots)) as progress_bar: 
                     dum = Parallel(n_jobs=gv.num_cores)(delayed(boot_cos)(x,y) for _ in range(gv.n_boots) ) 
@@ -268,7 +273,7 @@ def get_corr_trials(coefs, n_boots):
             # for n_boot in range(n_boots): 
             #     idx = np.random.choice(np.arange(len(x)), size=len(x)) 
             #     x_sample = x[idx] 
-            #     y_sample = y[idx]                 
+            #     y_sample = y[idx] 
             #     corr_sample[n_trial, n_epoch, n_boot] = np.corrcoef(x_sample, y_sample)[1,0]
             
             corr_name = '%s corr ND vs %s' % (gv.trial, gv.epoch) 
@@ -370,9 +375,10 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     # PCA parameters 
     gv.explained_variance = .90 
     gv.n_components = None 
+    gv.list_n_components = None
     gv.inflection = False 
     gv.minka_mle = False 
-    gv.pca_method = 'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.pca_method = 'concatenated' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     gv.spca_scoring = 'roc_auc' # 'mse', 'log_loss' or 'roc_auc' 
@@ -402,7 +408,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in [gv.sessions[-1]] : 
+        for gv.session in gv.sessions : 
             X_trials, y = fct.get_X_y_mouse_session() 
             
             if gv.ED_MD_LD: 
@@ -414,7 +420,10 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
             if (gv.pca_method is not None) or (gv.pls_method is not None): 
                                     
                 if gv.pca_method is not None: 
-                    X_trials = my_pca.fit_transform(X_trials, y) 
+                    X_trials = my_pca.fit_transform(X_trials, y)
+                    gv.list_n_components = my_pca.list_n_components 
+                    print(gv.list_n_components)
+                    
                 elif gv.pls_method is not None: 
                     X_trials = my_pls.trial_hybrid(X_trials, y) 
                     

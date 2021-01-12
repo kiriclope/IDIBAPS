@@ -18,15 +18,15 @@ def t_test(x,y,alternative='both-sided'):
             pval = 1.0 - double_p/2.
     return pval
 
-def get_p_values(cos_boot):
+def get_p_values(cos_sample):
 
-    p_values = np.empty( ( cos_boot.shape[0]-1, cos_boot.shape[1]-1) ) 
-    for n_trial in range(1, cos_boot.shape[0]): # trials 
-        for n_epoch in range(1, cos_boot.shape[1]): # epochs 
-            sample_1  = cos_boot[0, n_epoch] # boots 
-            sample_2  = cos_boot[n_trial, n_epoch]
-            p_values[n_trial-1, n_epoch-1] = t_test(sample_2, sample_1, alternative='both-sided')
-            # note sample_2 then sample_1 for H0: S2>=S1, Ha S1>S2
+    p_values = np.empty( ( cos_sample.shape[0]-1, cos_sample.shape[1]-1) ) 
+    for n_trial in range(1, cos_sample.shape[0]): # trials 
+        for n_epoch in range(1, cos_sample.shape[1]): # epochs 
+            sample_1  = cos_sample[0, n_epoch] # boots 
+            sample_2  = cos_sample[n_trial, n_epoch] 
+            p_values[n_trial-1, n_epoch-1] = t_test(sample_2, sample_1, alternative='both-sided') 
+            # note sample_2 then sample_1 for H0: S2>=S1, Ha S1>S2 
     return p_values
 
 def add_pvalue(p_values): 

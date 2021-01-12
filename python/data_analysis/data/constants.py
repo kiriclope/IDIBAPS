@@ -186,3 +186,6 @@ minka_mle=0
 global cos_trials, bootstrap_cos
 cos_trials=0 
 bootstrap_cos=0
+
+global list_n_components
+list_n_components = None
