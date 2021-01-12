@@ -183,5 +183,6 @@ pair_trials = 0
 global minka_mle
 minka_mle=0
 
-global cos_trials
-cos_trials =0 
+global cos_trials, bootstrap_cos
+cos_trials=0 
+bootstrap_cos=0

@@ -1,9 +1,8 @@
-import sys 
-sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis')
 import data.progressbar as pg
+import data.constants as gv
 
-import warnings
-warnings.filterwarnings("ignore")
+import warnings 
+warnings.filterwarnings("ignore") 
 
 import numpy as np
 
@@ -83,7 +82,8 @@ class bootstrap():
                 self.scaler.fit(X) 
 
         if self.n_boots>1:
-            with pg.tqdm_joblib(pg.tqdm(desc= self.bootstrap_method, total=self.n_boots)) as progress_bar: 
+            bar_name = gv.trial + ' ' + gv.epoch +', '+ self.bootstrap_method + ' bootstrap' 
+            with pg.tqdm_joblib(pg.tqdm(desc=bar_name, total=self.n_boots)) as progress_bar: 
                 boots_coefs = Parallel(n_jobs=self.n_jobs)(delayed(self.my_bootstrap_loop)(X, y) for _ in range(self.n_boots) ) 
             self._coefs = np.array(boots_coefs)
         else:

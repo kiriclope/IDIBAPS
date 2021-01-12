@@ -68,11 +68,12 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
         
         if gv.cos_trials:
             # fixing the random seed for each trial 
-            np.random.seed(np.random.randint(0,1e6))
-        
-        for n_epochs in range(X_S1_S2.shape[2]): 
-            # fixing the random seed for each epoch 
             np.random.seed(np.random.randint(0,1e6)) 
+        
+        for n_epochs, gv.epoch in enumerate(gv.epochs): 
+            if not gv.cos_trials: 
+                # fixing the random seed for each epoch 
+                np.random.seed(np.random.randint(0,1e6)) 
             
             X = X_S1_S2[:,:,n_epochs] 
             Vh = None
@@ -98,26 +99,41 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
             
     return coefs 
 
-def get_cos_epochs(coefs):
+def boot_cos(x,y):
+    idx = np.random.choice(np.arange(len(x)), size=len(x)) 
+    x_sample = x[idx] 
+    y_sample = y[idx]    
+    return agl.cos_between(x_sample, y_sample) 
+
+def get_cos_epochs(coefs, bootstrap=0): 
     
+    if bootstrap:
+        coefs = np.mean(coefs, axis=2) 
+        
     cos_sample = np.empty( (len(gv.trials), len(gv.epochs), gv.n_boots ) ) 
     
-    mean_cos = np.empty((len(gv.trials), len(gv.epochs)))
-    upper_cos = np.empty( (len(gv.trials), len(gv.epochs)) )
-    lower_cos = np.empty((len(gv.trials), len(gv.epochs)))
+    mean_cos = np.empty((len(gv.trials), len(gv.epochs))) 
+    upper_cos = np.empty( (len(gv.trials), len(gv.epochs))) 
+    lower_cos = np.empty((len(gv.trials), len(gv.epochs))) 
     
     for n_trial, gv.trial in enumerate(gv.trials):  # 'ND', 'D1', 'D2' 
         x =  coefs[n_trial, 0] # 'ED' 
         for n_epoch, epoch in enumerate(gv.epochs): # 'ED', 'MD', 'LD' 
-            y =  coefs[n_trial, n_epoch] 
+            y =  coefs[n_trial, n_epoch]
             
-            # for n_boot in range(gv.n_boots): 
-            #     cos_sample[n_trial, n_epoch, n_boot] = agl.cos_between(x[n_boot], y[n_boot]) 
-            
-            cos_name = '%s cos ND vs %s' % (gv.trial, gv.epoch) 
-            with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=gv.n_boots)) as progress_bar: 
-                dum = Parallel(n_jobs=gv.num_cores)(delayed(agl.cos_between)(x[n_boot],y[n_boot]) for n_boot in range(gv.n_boots) ) 
-            cos_sample[n_trial, n_epoch] = np.array(dum)
+            if bootstrap: 
+                cos_name = '%s cos ED vs %s' % (gv.trial, gv.epoch) 
+                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=gv.n_boots)) as progress_bar: 
+                    dum = Parallel(n_jobs=gv.num_cores)(delayed(boot_cos)(x,y) for _ in range(gv.n_boots) ) 
+                cos_sample[n_trial, n_epoch] = np.array(dum) 
+            else:                
+                # for n_boot in range(gv.n_boots): 
+                #     cos_sample[n_trial, n_epoch, n_boot] = agl.cos_between(x[n_boot], y[n_boot]) 
+                
+                cos_name = '%s cos ED vs %s' % (gv.trial, gv.epoch) 
+                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=gv.n_boots)) as progress_bar: 
+                    dum = Parallel(n_jobs=gv.num_cores)(delayed(agl.cos_between)(x[n_boot],y[n_boot]) for n_boot in range(gv.n_boots) ) 
+                cos_sample[n_trial, n_epoch] = np.array(dum) 
             
     mean_cos = np.mean(cos_sample, axis=-1) 
     lower_cos = mean_cos - np.percentile(cos_sample, 25, axis=-1) 
@@ -128,97 +144,37 @@ def get_cos_epochs(coefs):
         
     return mean_cos, lower_cos, upper_cos, cos_sample 
 
-# def get_cos_epochs(coefs, n_boots): 
-#     ''' Compute the coselation between the coefficient vector of the glm 
-#     fitted on the average normalized fluo 
-#     coefs is N_condition x N_time x N_boots x N_neurons
-#     mean_coefs is N_condition x N_time x N_neurons 
-#     for example, we compute coscoef(mean_coefs['ND','ED'], mean_coefs['ND','MD']) 
-#     we bootstrap with replacement to get some statistics
-#     ''' 
-#     mean_coefs = np.mean(coefs, axis=2) 
+def get_cos_trials(coefs, bootstrap=0): 
     
-#     mean_cos = np.empty( (len(gv.trials), coefs.shape[1]) ) 
-#     lower_cos = np.empty( (len(gv.trials), coefs.shape[1] ) ) 
-#     upper_cos = np.empty( (len(gv.trials), coefs.shape[1] ) ) 
+    if bootstrap:
+        coefs = np.mean(coefs, axis=2) 
+        
+    cos_sample = np.empty( (len(gv.epochs), len(gv.trials), gv.n_boots ) ) 
     
-#     cos_sample = np.empty( (len(gv.trials), len(gv.epochs), n_boots) ) 
+    mean_cos = np.empty((len(gv.trials), len(gv.epochs))).T 
+    upper_cos = np.empty( (len(gv.trials), len(gv.epochs))).T 
+    lower_cos = np.empty((len(gv.trials), len(gv.epochs))).T 
     
-#     def boot_cos(x,y):
-#         idx = np.random.choice(np.arange(len(x)), size=len(x)) 
-#         x_sample = x[idx] 
-#         y_sample = y[idx] 
-#         return agl.cos_between(x_sample, y_sample) 
+    for n_epoch, gv.epoch in enumerate(gv.epochs): # 'ED', 'MD', 'LD' 
+        x =  coefs[0, n_epoch] # 'ND' 
+        
+        for n_trial, gv.trial in enumerate(gv.trials):  # 'ND', 'D1', 'D2' 
+            y =  coefs[n_trial, n_epoch] 
             
-#     # resampling (x_i, y_i) pairs 
-#     for n_trial, gv.trial in enumerate(gv.trials): 
-#         x =  mean_coefs[n_trial, 0] # 'ED'
-
-#         for n_epoch, epoch in enumerate(gv.epochs): # 'ED', 'MD', 'LD' 
-#             y =  mean_coefs[n_trial, n_epoch] 
-            
-#             # for n_boot in range(n_boots): 
-#             #     idx = np.random.choice(np.arange(len(x)), size=len(x)) 
-#             #     x_sample = x[idx] 
-#             #     y_sample = y[idx]                 
-#             #     cos_sample[n_trial, n_epoch, n_boot] = np.corrcoef(x_sample, y_sample)[1,0] 
-            
-#             cos_name = '%s cos ND vs %s' % (gv.trial, gv.epoch) 
-#             with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=n_boots)) as progress_bar: 
-#                 dum = Parallel(n_jobs=gv.num_cores)(delayed(boot_cos)(x,y) for _ in range(n_boots) ) 
-#             cos_sample[n_trial, n_epoch] = np.array(dum) 
+            if bootstrap:
+                cos_name = '%s cos ND vs %s' % (gv.epoch, gv.trial) 
+                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=gv.n_boots)) as progress_bar: 
+                    dum = Parallel(n_jobs=gv.num_cores)(delayed(boot_cos)(x,y) for _ in range(gv.n_boots) ) 
+                cos_sample[n_epoch, n_trial] = np.array(dum) 
+            else:
+                # for n_boot in range(gv.n_boots): 
+                #     cos_sample[n_epoch, n_trial, n_boot] = agl.cos_between(x[n_boot], y[n_boot]) 
                 
-#     mean_cos = np.mean(cos_sample, axis=-1) 
-#     lower_cos = mean_cos - np.percentile(cos_sample, 25, axis=-1) 
-#     upper_cos = np.percentile(cos_sample, 75, axis=-1) - mean_cos 
-        
-#     for n_trial, gv.trial in enumerate(gv.trials): 
-#         print('trial', gv.trial, 'cos', mean_cos[n_trial], 'lower', lower_cos[n_trial], 'upper', upper_cos[n_trial]) 
-        
-#     return mean_cos, lower_cos, upper_cos, cos_sample 
-
-def get_cos_trials(coefs, n_boots): 
-    ''' Compute the coselation between the coefficient vector of the glm 
-    fitted on the average normalized fluo 
-    coefs is N_condition x N_time x N_boots x N_neurons
-    mean_coefs is N_condition x N_time x N_neurons 
-    for example, we compute coscoef(mean_coefs['ND','ED'], mean_coefs['ND','MD']) 
-    we bootstrap with replacement to get some statistics
-    ''' 
-    
-    mean_coefs = np.mean(coefs, axis=2)
-    mean_coefs = np.moveaxis(mean_coefs, 0, 1) 
-    
-    mean_cos = np.empty( (len(gv.epochs), coefs.shape[1]) ) 
-    lower_cos = np.empty( (len(gv.epochs), coefs.shape[1] ) ) 
-    upper_cos = np.empty( (len(gv.epochs), coefs.shape[1] ) ) 
-    
-    cos_sample = np.empty( (len(gv.epochs), len(gv.trials), n_boots) ) 
-    
-    def boot_cos(x,y):
-        idx = np.random.choice(np.arange(len(x)), size=len(x)) 
-        x_sample = x[idx] 
-        y_sample = y[idx]                 
-        return agl.cos_between(x_sample, y_sample) 
+                cos_name = '%s cos ND vs %s' % (gv.epoch, gv.trial) 
+                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=gv.n_boots)) as progress_bar: 
+                    dum = Parallel(n_jobs=gv.num_cores)(delayed(agl.cos_between)(x[n_boot],y[n_boot]) for n_boot in range(gv.n_boots) ) 
+                cos_sample[n_epoch, n_trial] = np.array(dum) 
             
-    # resampling (x_i, y_i) pairs 
-    for n_epoch, gv.epoch in enumerate(gv.epochs): 
-        x =  mean_coefs[n_epoch, 0] # 'ND'
-        
-        for n_trial, gv.trial in enumerate(gv.trials): # 'ND', 'D1', 'D2' 
-            y =  mean_coefs[n_epoch, n_trial] 
-            
-            # for n_boot in range(n_boots): 
-            #     idx = np.random.choice(np.arange(len(x)), size=len(x)) 
-            #     x_sample = x[idx] 
-            #     y_sample = y[idx]                 
-            #     cos_sample[n_trial, n_epoch, n_boot] = agl.cos_between(x_sample, y_sample) 
-            
-            cos_name = '%s cos ND vs %s' % (gv.trial, gv.epoch) 
-            with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=n_boots)) as progress_bar: 
-                dum = Parallel(n_jobs=gv.num_cores)(delayed(boot_cos)(x,y) for _ in range(n_boots) ) 
-            cos_sample[n_epoch, n_trial] = np.array(dum) 
-                
     mean_cos = np.mean(cos_sample, axis=-1) 
     lower_cos = mean_cos - np.percentile(cos_sample, 25, axis=-1) 
     upper_cos = np.percentile(cos_sample, 75, axis=-1) - mean_cos 
@@ -336,9 +292,9 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
     coefs = bootstrap_coefs_epochs(X_trials, bootstrap_method, C, penalty, solver, loss, cv, l1_ratio, shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling) 
 
     if gv.cos_trials:
-        mean_cos, lower_cos, upper_cos, cos_sample = get_cos_trials(coefs) 
+        mean_cos, lower_cos, upper_cos, cos_sample = get_cos_trials(coefs, gv.bootstrap_cos) 
     else: 
-        mean_cos, lower_cos, upper_cos, cos_sample = get_cos_epochs(coefs) 
+        mean_cos, lower_cos, upper_cos, cos_sample = get_cos_epochs(coefs, gv.bootstrap_cos) 
     
     pl.bar_trials_epochs(mean_cos, lower_cos, upper_cos) 
     p_values_cos = get_p_values(cos_sample) 
@@ -377,6 +333,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.pair_trials = 0 
     
     gv.cos_trials = 0 
+    gv.bootstrap_cos = 1 
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
     # classification parameters
@@ -411,11 +368,11 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
     # PCA parameters 
-    gv.explained_variance = .99
+    gv.explained_variance = .90 
     gv.n_components = None 
     gv.inflection = False 
     gv.minka_mle = False 
-    gv.pca_method = None # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.pca_method = 'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     gv.spca_scoring = 'roc_auc' # 'mse', 'log_loss' or 'roc_auc' 
