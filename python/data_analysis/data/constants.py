@@ -183,9 +183,13 @@ pair_trials = 0
 global minka_mle
 minka_mle=0
 
-global cos_trials, bootstrap_cos
+global cos_trials, bootstrap_cos, n_cos_boots
 cos_trials=0 
 bootstrap_cos=0
+n_cos_boots= int(1e3)
 
 global list_n_components
 list_n_components = None
+
+global pca_model
+pca_model = 'PCA'

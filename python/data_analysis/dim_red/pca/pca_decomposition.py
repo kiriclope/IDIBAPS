@@ -1,13 +1,19 @@
 import data.constants as gv 
 
 import numpy as np
-from sklearn.decomposition import PCA 
+from sklearn.decomposition import PCA, SparsePCA 
 from sklearn.preprocessing import StandardScaler 
 
 class pca_methods():
     
-    def __init__(self, pca_method='hybrid', explained_variance=0.9, inflection=False, minka_mle=False, verbose=True):
-        self.pca_method = pca_method
+    def __init__(self, pca_model='pca', pca_method='hybrid', explained_variance=0.9, inflection=False, minka_mle=False, verbose=True):
+
+        if 'sparse' in pca_model:
+            self.pca_model = SparsePCA
+        else: 
+            self.pca_model = PCA 
+            
+        self.pca_method = pca_method 
         self.explained_variance = explained_variance 
         self.scaler = StandardScaler(with_mean=True, with_std=False) 
         self.inflection = inflection 
@@ -28,19 +34,23 @@ class pca_methods():
         U,s,v = np.linalg.svd(cov)
         S_nn = sum(s) 
         
-        for num_components in range(0, s.shape[0] ):
+        for num_components in range(0, s.shape[0] ): 
             temp_s = s[0:num_components]
             S_ii = sum(temp_s)
             if (1 - S_ii/float(S_nn)) <= 1 - self.explained_variance: 
-                return num_components
+                return num_components 
             
         return np.maximum(s.shape[0], 1) 
 
-    def trial_hybrid(self, X_trials): 
+    def trial_hybrid(self, X_trials):
+
         # concatenate average over trials 
         X_avg = np.empty( (len(gv.trials), gv.n_neurons, len(gv.samples) * X_trials.shape[-1] ) ) 
-        for n_trial in range(len(gv.trials)) :
-            X_avg[n_trial] = np.hstack( ( np.mean(X_trials[n_trial,0], axis=0), np.mean(X_trials[n_trial,1], axis=0) ) ) 
+            
+        for n_trial in range(len(gv.trials)): 
+            X_S1 = X_trials[n_trial,0] 
+            X_S2 = X_trials[n_trial,1] 
+            X_avg[n_trial] = np.hstack( ( np.mean(X_S1, axis=0), np.mean(X_S2, axis=0) ) ) 
             
         # X_avg = np.hstack(X_avg) 
         if self.verbose :
@@ -57,31 +67,39 @@ class pca_methods():
             if self.minka_mle:
                 n_components = 'mle'
             else:
-                n_components = self.get_optimal_number_of_components(X_avg[n_trial].T)
-            
-            pca = PCA(n_components=n_components) 
+                if not 'sparse' in self.pca_model.__name__ :
+                    n_components = self.get_optimal_number_of_components(X_avg[n_trial].T)
+                else:
+                    n_components = None
+                    
+            pca = self.pca_model(n_components=n_components) 
             pca.fit(X_avg[n_trial].T) 
         
             n_components = pca.n_components_  
-            explained_variance = pca.explained_variance_ratio_
+            if self.pca_model==PCA :
+                explained_variance = pca.explained_variance_ratio_ 
             self.list_n_components[n_trial] = n_components 
             
             if self.inflection:
                 n_components = self.get_inflection_point(explained_variance) 
-                pca = PCA(n_components=n_components) 
+                pca = self.pca_model(n_components=n_components) 
                 pca.fit(X_avg[n_trial].T) 
             
                 n_components = pca.n_components_ 
-                explained_variance = pca.explained_variance_ratio_ 
+                if self.pca_model==PCA :
+                    explained_variance = pca.explained_variance_ratio_ 
                 self.list_n_components[n_trial] = int(n_components) 
             
             if self.verbose :
-                print('trial', gv.trials[n_trial], 'n_pc', n_components,
-                      'explained_variance', explained_variance[0:3], 'total' , np.cumsum(explained_variance)[-1]) 
-        
+                if self.pca_model==PCA :
+                    print('trial', gv.trials[n_trial], 'n_pc', n_components,
+                          'explained_variance', explained_variance[0:3], 'total' , np.cumsum(explained_variance)[-1]) 
+                else:
+                    print('trial', gv.trials[n_trial], 'n_pc', n_components)
+                    
             # X_proj = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), n_components, X_trials.shape[-1]) ) 
-            for j in range(X_trials.shape[1]): 
-                for k in range(X_trials.shape[2]): 
+            for j in range(X_trials.shape[1]): # sample 
+                for k in range(X_trials.shape[2]): # trial 
                     trial = self.scaler.transform(X_trials[n_trial,j,k,:,:].T).T # neurons x time = features x samples 
                     X_proj[n_trial,j,k,0:n_components] = pca.transform(trial.T).T 
                 
@@ -92,43 +110,48 @@ class pca_methods():
     
     def trial_concatenated(self, X_trials):
 
-        # concatenate individual trials 
         X_proj = np.empty( ( len(gv.trials), len(gv.samples), int( gv.n_trials/len(gv.samples) ), X_trials.shape[-2] , X_trials.shape[-1]) ) 
         # trials = []
+        # For each condition (ND, D1, D2), concatenate individual trials for each sample 
         for n_trial in range(len(gv.trials)) : 
-            X_S1_S2 = np.hstack( (np.hstack(X_trials[n_trial,0]), np.hstack(X_trials[n_trial,1])) ) 
+            X_S1_S2 = np.hstack( (np.hstack(X_trials[n_trial,0]), np.hstack(X_trials[n_trial,1])) ) # N_neurons x (N_trials * N_times)
             # trials.append(X_S1_S2) 
             
-            # X_concat = np.hstack(trials) 
-            X_concat = X_S1_S2
+            # X_concat = np.hstack(trials) # N_neurons x (N_conditions * N_trials * N_times) 
+            X_concat = X_S1_S2 # N_neurons x (N_trials * N_times) 
             
-            # standardize neurons/features across trials/samples 
+            # center neurons/features across trials/samples 
             self.scaler.fit(X_concat.T) 
             X_concat = self.scaler.transform(X_concat.T).T 
          
             if self.minka_mle: 
                 n_components = 'mle' 
             else: 
-                n_components = self.get_optimal_number_of_components(X_concat.T) 
-            
+                if not 'sparse' in self.pca_model.__name__ :
+                    n_components = self.get_optimal_number_of_components(X_concat.T) 
+                else:
+                    n_components = None
+                    
             print(X_concat.shape, n_components) 
         
-            # pca on X: trials x neurons 
-            pca = PCA(n_components=n_components) 
-            pca.fit(X_concat.T)
+            # pca on (N_samples x N_features), ie X is N_trials x N_neurons 
+            pca = self.pca_model(n_components=n_components) 
+            pca.fit(X_concat.T) 
         
             n_components = pca.n_components_ 
             self.list_n_components[n_trial] = n_components 
-            explained_variance = pca.explained_variance_ratio_ 
-        
+            if self.pca_model==PCA :
+                explained_variance = pca.explained_variance_ratio_ 
+            
             if self.inflection:
                 n_components = self.get_inflection_point(explained_variance) 
-                pca = PCA(n_components=n_components) 
+                pca = self.pca_model(n_components=n_components) 
                 X_concat = pca.fit_transform(X_concat.T).T 
             
                 n_components = pca.n_components_ 
                 self.list_n_components[n_trial] = n_components 
-                explained_variance = pca.explained_variance_ratio_ 
+                if self.pca_model==PCA :
+                    explained_variance = pca.explained_variance_ratio_ 
             else:
                 X_concat = pca.transform(X_concat.T).T 
         
@@ -136,14 +159,17 @@ class pca_methods():
                 print('X_concat', X_concat.shape) 
         
             if self.verbose :
-                print('n_pc', n_components,'explained_variance', explained_variance[0:3], 'total' , np.cumsum(explained_variance)[-1]*100) 
+                if self.pca_model==PCA :
+                    print('n_pc', n_components,'explained_variance', explained_variance[0:3], 'total' , np.cumsum(explained_variance)[-1]*100) 
+                else:
+                    print('trial', gv.trials[n_trial], 'n_pc', n_components)
         
             # X_proj = np.empty( ( len(gv.trials), len(gv.samples), int( gv.n_trials/len(gv.samples) ), n_components , X_trials.shape[-1]) ) 
             # for i in range( len(gv.trials) ): 
             for j in range( len(gv.samples) ) : 
                 for k in range( int( gv.n_trials/len(gv.samples) ) ) : 
                     for l in range(n_components) : 
-                        # m = i*len(gv.samples)* int( gv.n_trials/len(gv.samples) ) + j * int( gv.n_trials/len(gv.samples) )  + k 
+                        # m = i*len(gv.samples)* int( gv.n_trials/len(gv.samples) ) + j * int( gv.n_trials/len(gv.samples) )  + k
                         m = j * int( gv.n_trials/len(gv.samples) ) + k 
                         X_proj[n_trial,j,k,l] = X_concat[l, X_trials.shape[-1] * m: X_trials.shape[-1] * (m + 1)].flatten() 
             
@@ -168,26 +194,34 @@ class pca_methods():
         if self.minka_mle:
             n_components = 'mle'
         else:
-            n_components = self.get_optimal_number_of_components(X_avg.T) 
-            
-        pca = PCA(n_components=n_components) 
+            if not 'sparse' in self.pca_model.__name__ :
+                n_components = self.get_optimal_number_of_components(X_avg.T) 
+            else:
+                n_components = None
+                
+        pca = self.pca_model(n_components=n_components) 
         pca.fit(X_avg.T)
         
         n_components = pca.n_components_ 
-        explained_variance = pca.explained_variance_ratio_ 
+        if self.pca_model==PCA :
+            explained_variance = pca.explained_variance_ratio_ 
         
         if self.inflection:
             n_components = self.get_inflection_point(explained_variance) 
-            pca = PCA(n_components=n_components) 
+            pca = self.pca_model(n_components=n_components) 
             X_proj = pca.fit_transform(X_avg.T).T
             
-            n_components = pca.n_components_ 
-            explained_variance = pca.explained_variance_ratio_ 
+            n_components = pca.n_components_
+            if self.pca_model==PCA :
+                explained_variance = pca.explained_variance_ratio_ 
         else:
             X_proj = pca.transform(X_avg.T).T 
             
         if self.verbose :
-            print('n_pc', n_components,'explained_variance', explained_variance, 'total' , np.cumsum(explained_variance)[-1]) 
+            if self.pca_model==PCA :
+                print('n_pc', n_components,'explained_variance', explained_variance, 'total' , np.cumsum(explained_variance)[-1]) 
+            else:
+                print('trial', gv.trials[n_trial], 'n_pc', n_components)
         
         X_proj = np.asarray(X_proj) 
         X_proj = X_proj.reshape(n_components, len(gv.trials), len(gv.samples), X_trials.shape[-1]) 

@@ -98,8 +98,8 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
             if gv.TIBSHIRANI_TRICK and (penalty=='l2' or 'LDA' in gv.clf_name or 'PLS' in gv.clf_name): 
                 X, Vh = SVD_trick(X) 
                 
-            boots_coefs = boots_model.get_coefs(X, y, Vh)
-            print(boots_coefs.shape) 
+            boots_coefs = boots_model.get_coefs(X, y, Vh) 
+            # print(boots_coefs.shape) 
             coefs[n_trial, n_epochs,:, 0:boots_coefs.shape[1]] = boots_coefs 
             
     return coefs 
@@ -110,34 +110,53 @@ def boot_cos(x,y):
     y_sample = y[idx]    
     return agl.cos_between(x_sample, y_sample) 
 
-def get_cos_epochs(coefs, bootstrap=0): 
+def get_cos_epochs(coefs, bootstrap=0, n_boots=int(1e3)): 
     
     if bootstrap:
         coefs = np.mean(coefs, axis=2) 
         
-    cos_sample = np.empty( (len(gv.trials), len(gv.epochs), gv.n_boots ) ) 
+    cos_sample = np.empty( (len(gv.trials), len(gv.epochs), n_boots ) ) 
     
     mean_cos = np.empty((len(gv.trials), len(gv.epochs))) 
     upper_cos = np.empty( (len(gv.trials), len(gv.epochs)))  
     lower_cos = np.empty((len(gv.trials), len(gv.epochs))) 
     
-    for n_trial, gv.trial in enumerate(gv.trials):  # 'ND', 'D1', 'D2' 
-        x =  coefs[n_trial, 0, 0:int(gv.list_n_components[n_trial])] # 'ED' 
+    for n_trial, gv.trial in enumerate(gv.trials):  # 'ND', 'D1', 'D2'
+        if bootstrap:
+            if gv.list_n_components is not None:
+                x =  coefs[n_trial, 0, 0:int(gv.list_n_components[n_trial])] # 'ED'
+            else:                
+                x =  coefs[n_trial, 0] # 'ED'              
+        else:
+            if gv.list_n_components is not None:
+                x =  coefs[n_trial, 0, :, 0:int(gv.list_n_components[n_trial])] # 'ED'
+            else:
+                x =  coefs[n_trial, 0] # 'ED'
+        
         for n_epoch, epoch in enumerate(gv.epochs): # 'ED', 'MD', 'LD' 
-            y =  coefs[n_trial, n_epoch, 0:int(gv.list_n_components[n_trial])] 
+            if bootstrap:
+                if gv.list_n_components is not None:
+                    y =  coefs[n_trial, n_epoch, 0:int(gv.list_n_components[n_trial])]
+                else:
+                    y =  coefs[n_trial, n_epoch] 
+            else:            
+                if gv.list_n_components is not None:
+                    y =  coefs[n_trial, n_epoch, :, 0:int(gv.list_n_components[n_trial])] 
+                else:
+                    y =  coefs[n_trial, n_epoch] 
             
             if bootstrap: 
                 cos_name = '%s cos ED vs %s' % (gv.trial, gv.epoch) 
-                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=gv.n_boots)) as progress_bar: 
-                    dum = Parallel(n_jobs=gv.num_cores)(delayed(boot_cos)(x,y) for _ in range(gv.n_boots) ) 
+                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=n_boots)) as progress_bar: 
+                    dum = Parallel(n_jobs=gv.num_cores)(delayed(boot_cos)(x,y) for _ in range(n_boots) ) 
                 cos_sample[n_trial, n_epoch] = np.array(dum) 
             else:                
-                # for n_boot in range(gv.n_boots): 
+                # for n_boot in range(n_boots): 
                 #     cos_sample[n_trial, n_epoch, n_boot] = agl.cos_between(x[n_boot], y[n_boot]) 
                 
                 cos_name = '%s cos ED vs %s' % (gv.trial, gv.epoch) 
-                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=gv.n_boots)) as progress_bar: 
-                    dum = Parallel(n_jobs=gv.num_cores)(delayed(agl.cos_between)(x[n_boot],y[n_boot]) for n_boot in range(gv.n_boots) ) 
+                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=n_boots)) as progress_bar: 
+                    dum = Parallel(n_jobs=gv.num_cores)(delayed(agl.cos_between)(x[n_boot],y[n_boot]) for n_boot in range(n_boots) ) 
                 cos_sample[n_trial, n_epoch] = np.array(dum) 
             
     mean_cos = np.mean(cos_sample, axis=-1) 
@@ -149,12 +168,12 @@ def get_cos_epochs(coefs, bootstrap=0):
         
     return mean_cos, lower_cos, upper_cos, cos_sample 
 
-def get_cos_trials(coefs, bootstrap=0): 
+def get_cos_trials(coefs, bootstrap=0, n_boots=int(1e3)): 
     
     if bootstrap:
         coefs = np.mean(coefs, axis=2) 
         
-    cos_sample = np.empty( (len(gv.epochs), len(gv.trials), gv.n_boots ) ) 
+    cos_sample = np.empty( (len(gv.epochs), len(gv.trials), n_boots ) ) 
     
     mean_cos = np.empty((len(gv.trials), len(gv.epochs))).T 
     upper_cos = np.empty( (len(gv.trials), len(gv.epochs))).T 
@@ -168,16 +187,16 @@ def get_cos_trials(coefs, bootstrap=0):
             
             if bootstrap: 
                 cos_name = '%s cos ND vs %s' % (gv.epoch, gv.trial) 
-                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=gv.n_boots)) as progress_bar: 
-                    dum = Parallel(n_jobs=gv.num_cores)(delayed(boot_cos)(x,y) for _ in range(gv.n_boots) ) 
+                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=n_boots)) as progress_bar: 
+                    dum = Parallel(n_jobs=gv.num_cores)(delayed(boot_cos)(x,y) for _ in range(n_boots) ) 
                 cos_sample[n_epoch, n_trial] = np.array(dum) 
             else:
-                # for n_boot in range(gv.n_boots): 
+                # for n_boot in range(n_boots): 
                 #     cos_sample[n_epoch, n_trial, n_boot] = agl.cos_between(x[n_boot], y[n_boot]) 
                 
                 cos_name = '%s cos ND vs %s' % (gv.epoch, gv.trial) 
-                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=gv.n_boots)) as progress_bar: 
-                    dum = Parallel(n_jobs=gv.num_cores)(delayed(agl.cos_between)(x[n_boot],y[n_boot]) for n_boot in range(gv.n_boots) ) 
+                with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=n_boots)) as progress_bar: 
+                    dum = Parallel(n_jobs=gv.num_cores)(delayed(agl.cos_between)(x[n_boot],y[n_boot]) for n_boot in range(n_boots) ) 
                 cos_sample[n_epoch, n_trial] = np.array(dum) 
             
     mean_cos = np.mean(cos_sample, axis=-1) 
@@ -248,7 +267,7 @@ def get_corr_trials(coefs, n_boots):
     we bootstrap with replacement to get some statistics
     ''' 
     
-    mean_coefs = np.mean(coefs, axis=2)
+    mean_coefs = np.mean(coefs, axis=2) 
     mean_coefs = np.moveaxis(mean_coefs, 0, 1) 
     
     mean_corr = np.empty( (len(gv.epochs), coefs.shape[1]) ) 
@@ -297,18 +316,18 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
     coefs = bootstrap_coefs_epochs(X_trials, bootstrap_method, C, penalty, solver, loss, cv, l1_ratio, shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling) 
 
     if gv.cos_trials:
-        mean_cos, lower_cos, upper_cos, cos_sample = get_cos_trials(coefs, gv.bootstrap_cos) 
+        mean_cos, lower_cos, upper_cos, cos_sample = get_cos_trials(coefs, gv.bootstrap_cos, n_boots=gv.n_cos_boots) 
     else: 
-        mean_cos, lower_cos, upper_cos, cos_sample = get_cos_epochs(coefs, gv.bootstrap_cos) 
+        mean_cos, lower_cos, upper_cos, cos_sample = get_cos_epochs(coefs, gv.bootstrap_cos, n_boots=gv.n_cos_boots) 
     
     pl.bar_trials_epochs(mean_cos, lower_cos, upper_cos) 
     p_values_cos = get_p_values(cos_sample) 
     add_pvalue(p_values_cos) 
     
     if np.all(mean_cos>-0.1): 
-        plt.ylim([-0.1, 1.4]) 
+        plt.ylim([-0.1, 1.5]) 
     else: 
-        plt.ylim([-1, 1.4]) 
+        plt.ylim([-1.1, 1.5]) 
        
     figtitle = '%s_%s_bars_cos_alp' % (gv.mouse, gv.session) 
     pl.save_fig(figtitle) 
@@ -337,8 +356,12 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.correct_trial = 0 
     gv.pair_trials = 0 
     
+    # bootstrap parameters 
+    gv.n_boots = int(1e3) 
+    gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     gv.cos_trials = 0 
     gv.bootstrap_cos = 1 
+    gv.n_cos_boots = int(1e3) 
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
     # classification parameters
@@ -349,11 +372,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         
     gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
     gv.TIBSHIRANI_TRICK = 0  
-    
-    # bootstrap parameters 
-    gv.n_boots = int(1e3) 
-    gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
-    
+        
     # preprocessing parameters 
     gv.T_WINDOW = 0.5 
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
@@ -363,7 +382,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.DELAY_ONLY = 0 
     
     gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 0 # z_score with BL mean and std 
+    gv.Z_SCORE = 1 # z_score with BL mean and std 
     
     # feature selection 
     gv.FEATURE_SELECTION = 0 
@@ -375,10 +394,11 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     # PCA parameters 
     gv.explained_variance = .90 
     gv.n_components = None 
-    gv.list_n_components = None
+    gv.list_n_components = None 
     gv.inflection = False 
-    gv.minka_mle = False 
-    gv.pca_method = 'concatenated' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.minka_mle = False
+    gv.pca_model = 'sparsePCA'
+    gv.pca_method = 'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     gv.spca_scoring = 'roc_auc' # 'mse', 'log_loss' or 'roc_auc' 
@@ -389,7 +409,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         if gv.pca_method in 'supervised': 
             my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance, cv=gv.spca_cv, max_threshold=gv.max_threshold, n_thresholds=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores, scoring=gv.spca_scoring) 
         else: 
-            my_pca = pca_methods(pca_method=gv.pca_method,
+            my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method,
                                  explained_variance=gv.explained_variance, inflection=gv.inflection,
                                  minka_mle=gv.minka_mle, verbose=True) 
     # PLS parameters 
@@ -408,14 +428,17 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in gv.sessions : 
+        for gv.session in gv.sessions: 
             X_trials, y = fct.get_X_y_mouse_session() 
-            
+                
             if gv.ED_MD_LD: 
                 X_trials = X_trials[:,:,:,:,gv.bins_ED_MD_LD] 
             if gv.DELAY_ONLY: 
                 X_trials = X_trials[:,:,:,:,gv.bins_delay] 
                 gv.bin_start = gv.bins_delay[0] 
+
+            # X_trials = pp.avg_epochs(X_trials) 
+            # print('X_trials', X_trials.shape) 
             
             if (gv.pca_method is not None) or (gv.pls_method is not None): 
                                     

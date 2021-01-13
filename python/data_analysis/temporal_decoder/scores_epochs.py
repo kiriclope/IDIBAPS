@@ -47,21 +47,29 @@ def get_epochs():
         gv.epochs = ['Stim', 'ED', 'MD', 'LD'] 
         print('angle btw STIM and other epochs') 
 
-def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shrinkage='auto'): 
+def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shrinkage='auto', l1_ratio=0): 
     pl.figDir() 
 
-    clf_param = ''
-    if 'LogisticRegression' in gv.clf_name or 'glmnet' in gv.clf_name: 
-        clf_param = '/C_%.3f_penalty_%s_solver_%s/' % (C, penalty, solver) 
-    elif gv.clf_name in 'LinearSVC': 
-        clf_param = '/C_%.3f_penalty_%s_loss_%s/' % (C, penalty, loss) 
-    elif gv.clf_name in 'LDA': 
-        clf_param = '/shrinkage_%s_solver_lsqr/' % shrinkage 
-        
-    gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param + '/' + gv.scoring 
-    
+    gv.figdir = gv.figdir +'/scores_epochs' 
+
     if not gv.my_decoder:
-        gv.figdir = gv.figdir + '/mne'
+        gv.figdir = gv.figdir + '/mne' 
+    else:
+        gv.figdir = gv.figdir + '/my_decoder' 
+        
+    clf_param = ''
+    if 'LogisticRegressionCV' in gv.clf_name: 
+        clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, cv) 
+    elif 'LogisticRegression' in gv.clf_name: 
+        clf_param = '/C_%.3f_penalty_%s_solver_%s' % (C, penalty, solver) 
+    elif gv.clf_name in 'LinearSVC': 
+        clf_param = '/C_%.3f_penalty_%s_loss_%s' % (C, penalty, loss) 
+    elif gv.clf_name in 'LDA': 
+        clf_param = '/shrinkage_%s_solver_lsqr' % shrinkage 
+    elif 'glmnet' in gv.clf_name: 
+        clf_param = '/C_%.3f_l1_ratio_%.2f_cv_%d' % (C, l1_ratio, cv) 
+            
+    gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param + '/' + gv.scoring     
 
     if 'stratified' in gv.fold_type: 
         gv.figdir = gv.figdir + '/stratified_kfold_%d' % cv
@@ -89,7 +97,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shr
 
 def get_scores(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio=None, loss='lsqr', shrinkage='auto'): 
     
-    get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, normalize=False)
+    get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, normalize=False) 
     
     decoder = cross_temp_decoder(gv.clf, scoring=gv.scoring, cv=cv, shuffle=gv.shuffle, random_state=gv.random_state, mne_decoder=not(gv.my_decoder), fold_type=gv.fold_type, standardize=gv.standardize, n_jobs=gv.num_cores, n_iter=gv.n_iter) 
     
@@ -102,10 +110,13 @@ def get_scores(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio
         X_S2 = X_trials[n_trial,1] 
         
         # if gv.SELECTIVE: 
-        #     X_S1, X_S2, idx = pp.selectiveNeurons(X_S1, X_S2, .1)
+        #     X_S1, X_S2, idx = pp.selectiveNeurons(X_S1, X_S2, .1) 
         
         X_S1_S2 = np.vstack((X_S1, X_S2)) 
-        X_S1_S2 = pp.avg_epochs(X_S1_S2)        
+        if gv.list_n_components is not None: 
+            X_S1_S2 = X_S1_S2[:,0:int(gv.list_n_components[n_trial])] 
+            
+        X_S1_S2 = pp.avg_epochs(X_S1_S2) 
         
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
@@ -147,31 +158,35 @@ def plot_scores_mat(scores):
     
 def plot_scores_epochs(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio=None, loss='lsqr', shrinkage='auto'):
 
-    create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss, shrinkage=shrinkage)
+    create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss, shrinkage=shrinkage, l1_ratio=l1_ratio) 
     
-    scores = get_scores(X_trials, C=C, penalty=penalty, solver=solver, cv=cv, l1_ratio=l1_ratio, loss=loss, shrinkage=shrinkage)
+    scores = get_scores(X_trials, C=C, penalty=penalty, solver=solver, cv=cv, l1_ratio=l1_ratio, loss=loss, shrinkage=shrinkage) 
 
     for n_trial, gv.trial in enumerate(gv.trials):
         plot_scores_mat(scores[n_trial]) 
         figtitle = '%s_session_%s_trial_%s_cross_temp_decoder' % (gv.mouse,gv.session,gv.trial)
         pl.save_fig(figtitle) 
 
-def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
+def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
     
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
-    gv.my_decoder = 1 
+    gv.my_decoder = 0 
     gv.n_iter = 100 
     
     gv.shuffle= True
     gv.random_state= None  
     
     gv.IF_SAVE = 1 
-    gv.SYNTHETIC = 0 
+    gv.SYNTHETIC = 0  
     gv.correct_trial = 0 
     
     # classification parameters 
-    gv.clf_name = 'LogisticRegressionCV' 
-    gv.scoring =  'accuracy' # 'accuracy' 'roc_auc' 
+    if clf is None: 
+        gv.clf_name = 'glmnet' 
+    else:
+        gv.clf_name = clf
+        
+    gv.scoring =  'roc_auc' # 'accuracy' 'roc_auc' 
     gv.fold_type = 'stratified'
     gv.standardize = True # safety for dummies 
     
@@ -186,15 +201,16 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
     gv.DELAY_ONLY = 0 
     
     gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 1 # z_score with BL mean and std 
+    gv.Z_SCORE = 0 # z_score with BL mean and std 
     
     # feature selection 
     gv.FEATURE_SELECTION = 0 
     gv.LASSOCV = 0 
         
     # PCA parameters 
-    gv.explained_variance = 0.90 
-    gv.inflexion = True 
+    gv.explained_variance = .9
+    gv.list_n_components = None 
+    gv.inflection = False 
     gv.pca_method = 'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
@@ -203,7 +219,7 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         if gv.pca_method in 'supervised': 
             my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
         else: 
-            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflexion=gv.inflexion) 
+            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflection=gv.inflection) 
             
     # PLS parameters 
     gv.pls_max_comp = 100 # 'full', int or None 
@@ -215,29 +231,32 @@ def plot_loop_mice_sessions(C=1e0, penalty='l2', solver = 'liblinear', loss='squ
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in gv.mice : 
+    for gv.mouse in [gv.mice[1]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in gv.sessions :
+        for gv.session in [gv.sessions[-1]] : 
             if gv.SYNTHETIC: 
                 X_trials, y = syn.synthetic_data(0.5) 
-            else:
+            else: 
                 X_trials, y = fct.get_X_y_mouse_session() 
-            
-            if (gv.pca_method is not None) or (gv.pls_method is not None): 
+
+            if gv.ED_MD_LD: 
+                X_trials = X_trials[:,:,:,:,gv.bins_ED_MD_LD] 
+            if gv.DELAY_ONLY: 
+                X_trials = X_trials[:,:,:,:,gv.bins_delay] 
+                gv.bin_start = gv.bins_delay[0] 
                 
-                if gv.ED_MD_LD: 
-                    X_trials = X_trials[:,:,:,:,gv.bins_ED_MD_LD] 
-                if gv.DELAY_ONLY: 
-                    X_trials = X_trials[:,:,:,:,gv.bins_delay] 
-                    gv.bin_start = gv.bins_delay[0] 
-                    
-                if gv.pca_method is not None: 
-                    X_trials = my_pca.fit_transform(X_trials, y) 
-                elif gv.pls_method is not None: 
-                    X_trials = my_pls.trial_hybrid(X_trials, y) 
+            # X_trials = pp.avg_epochs(X_trials) 
+            # print('X_trials', X_trials.shape) 
+            
+            if gv.pca_method is not None: 
+                X_trials = my_pca.fit_transform(X_trials, y) 
+                gv.list_n_components = my_pca.list_n_components
+                print(gv.list_n_components)
+            elif gv.pls_method is not None: 
+                X_trials = my_pls.trial_hybrid(X_trials, y) 
                     
             print('decoder:', gv.my_decoder, 'clf:', gv.clf_name, 
                   ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', cv:', cv, 

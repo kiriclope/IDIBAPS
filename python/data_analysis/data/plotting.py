@@ -29,37 +29,7 @@ def figDir():
     
     if gv.SYNTHETIC :
         gv.figdir = gv.figdir + '/synthetic' 
-        
-    if gv.pca_method is not None: 
-        if gv.pca_method in 'supervised': 
-            gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f/threshold_%d_Cs_%d' % (gv.pca_method, gv.explained_variance,
-                                                                                                    gv.max_threshold, gv.n_thresholds ) 
-        elif gv.inflection: 
-            gv.figdir = gv.figdir + '/dim_red/pca/%s/inflection_point' % gv.pca_method
-            
-        elif gv.minka_mle: 
-            gv.figdir = gv.figdir + '/dim_red/pca/%s/minka_mle' % gv.pca_method
-            
-        else:
-            gv.figdir = gv.figdir + '/dim_red/pca/%s/explained_variance_%.2f' % (gv.pca_method, gv.explained_variance) 
-            
-            
-    if gv.pls_method is not None: 
-        if isinstance(gv.pls_max_comp, str): 
-            gv.figdir = gv.figdir + '/dim_red/pls/%s/max_comp_%s_cv_%.2f' % (gv.pls_method, gv.pls_max_comp, gv.pls_cv) 
-        else: 
-            gv.figdir = gv.figdir + '/dim_red/pls/%s/max_comp_%d_cv_%.2f' % (gv.pls_method, gv.pls_max_comp, gv.pls_cv) 
-            
-        if gv.ED_MD_LD : 
-            gv.figdir = gv.figdir + '/ED_MD_LD' 
-        if gv.DELAY_ONLY:
-            gv.figdir = gv.figdir + '/delay_only'
-
-    if gv.ED_MD_LD :
-        gv.figdir = gv.figdir + '/ED_MD_LD' 
-    if gv.DELAY_ONLY:
-        gv.figdir = gv.figdir + '/delay_only'
-        
+                
     if gv.trialsXepochs: 
         gv.figdir = gv.figdir + '/trialsXepochs' 
         
@@ -79,15 +49,41 @@ def figDir():
 
     if gv.Z_SCORE : 
         gv.figdir = gv.figdir + '/z_score' 
-        
-    if gv.scaling is not None:
-        gv.figdir = gv.figdir + '/%s' % gv.scaling
-        
+                
     if gv.TIBSHIRANI_TRICK:
         gv.figdir = gv.figdir + '/tibshirani_trick'
 
     if gv.FEATURE_SELECTION:
         gv.figdir = gv.figdir + '/feature_selection'
+
+    if gv.pca_method is not None: 
+        if gv.pca_method in 'supervised': 
+            gv.figdir = gv.figdir + '/dim_red/supervisedPCA/%s/explained_variance_%.2f/threshold_%d_Cs_%d' % (gv.pca_method, gv.explained_variance,
+                                                                                                              gv.max_threshold, gv.n_thresholds ) 
+        elif gv.inflection: 
+            gv.figdir = gv.figdir + '/dim_red/%s/%s/inflection_point' % (gv.pca_model, gv.pca_method)
+            
+        elif gv.minka_mle: 
+            gv.figdir = gv.figdir + '/dim_red/%s/%s/minka_mle' % (gv.pca_model, gv.pca_method)
+            
+        else:
+            gv.figdir = gv.figdir + '/dim_red/%s/%s/explained_variance_%.2f' % (gv.pca_model, gv.pca_method, gv.explained_variance) 
+
+        if gv.ED_MD_LD :
+            gv.figdir = gv.figdir + '/ED_MD_LD' 
+        if gv.DELAY_ONLY:
+            gv.figdir = gv.figdir + '/delay_only'
+            
+    if gv.pls_method is not None: 
+        if isinstance(gv.pls_max_comp, str): 
+            gv.figdir = gv.figdir + '/dim_red/pls/%s/max_comp_%s_cv_%.2f' % (gv.pls_method, gv.pls_max_comp, gv.pls_cv) 
+        else: 
+            gv.figdir = gv.figdir + '/dim_red/pls/%s/max_comp_%d_cv_%.2f' % (gv.pls_method, gv.pls_max_comp, gv.pls_cv) 
+            
+        if gv.ED_MD_LD : 
+            gv.figdir = gv.figdir + '/ED_MD_LD' 
+        if gv.DELAY_ONLY:
+            gv.figdir = gv.figdir + '/delay_only'
         
     if not os.path.isdir(gv.figdir):
         os.makedirs(gv.figdir)

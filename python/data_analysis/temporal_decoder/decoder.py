@@ -2,7 +2,7 @@ import data.progressbar as pg
 
 import numpy as np
 
-from sklearn.metrics import hamming_loss, make_scorer
+from sklearn.metrics import hamming_loss, make_scorer, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold, StratifiedKFold 
 from sklearn.pipeline import make_pipeline
@@ -67,9 +67,9 @@ class cross_temp_decoder():
             self.clf.fit(X_train, y_train) 
             scores.append(self.clf.score(X_test, y_test)) 
             
-        return np.mean(scores)
+        return np.mean(scores) 
     
-    def cross_temp_scores(self, X, y):
+    def cross_temp_scores(self, X, y): 
         
         with pg.tqdm_joblib(pg.tqdm(desc="cross validation", total=int(X.shape[2]*X.shape[2]*self.n_iter))) as progress_bar: 
             scores = Parallel(n_jobs=self.n_jobs)(delayed(self.cross_val_loop)(X, y, t_train, t_test) 
