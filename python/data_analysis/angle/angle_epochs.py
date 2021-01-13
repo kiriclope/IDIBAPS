@@ -67,8 +67,8 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
         
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
-        X_S1_S2 = pp.avg_epochs(X_S1_S2, y) 
-        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
+        # X_S1_S2 = pp.avg_epochs(X_S1_S2, y) 
+        # y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
         if gv.cos_trials: 
             # fixing the random seed for each trial 
@@ -354,13 +354,13 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     # gv.num_cores =  int( np.sqrt(0.9*multiprocessing.cpu_count()) ) 
     gv.IF_SAVE = 1 
     gv.correct_trial = 0 
-    gv.pair_trials = 0 
+    gv.pair_trials = 1 
     
     # bootstrap parameters 
     gv.n_boots = int(1e3) 
     gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     gv.cos_trials = 0 
-    gv.bootstrap_cos = 1 
+    gv.bootstrap_cos = 1  
     gv.n_cos_boots = int(1e3) 
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
@@ -371,7 +371,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         gv.clf_name = clf 
         
     gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
-    gv.TIBSHIRANI_TRICK = 0  
+    gv.TIBSHIRANI_TRICK = 0 
         
     # preprocessing parameters 
     gv.T_WINDOW = 0.5 
@@ -392,26 +392,28 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
     # PCA parameters 
-    gv.explained_variance = .90 
-    gv.n_components = None 
+    gv.explained_variance = .75
+    gv.n_components = 10 
     gv.list_n_components = None 
-    gv.inflection = False 
-    gv.minka_mle = False
-    gv.pca_model = 'sparsePCA'
-    gv.pca_method = 'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.inflection = False  
+    gv.minka_mle = False 
+    gv.pca_model = None # PCA, sparsePCA, supervisedPCA or None 
+    gv.sparse_alpha = 1 
+    gv.ridge_alpha = .01 
+    gv.pca_method = 'concatenated' # 'hybrid', 'concatenated', 'averaged' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     gv.spca_scoring = 'roc_auc' # 'mse', 'log_loss' or 'roc_auc' 
     gv.spca_cv = 5 
     
-    if gv.pca_method is not None: 
+    if gv.pca_model is not None: 
         # gv.scaling = None # safety for dummies 
-        if gv.pca_method in 'supervised': 
+        if gv.pca_model in 'supervisedPCA' : 
             my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance, cv=gv.spca_cv, max_threshold=gv.max_threshold, n_thresholds=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores, scoring=gv.spca_scoring) 
         else: 
-            my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method,
-                                 explained_variance=gv.explained_variance, inflection=gv.inflection,
-                                 minka_mle=gv.minka_mle, verbose=True) 
+            my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method, n_components= gv.n_components,
+                                 total_explained_variance=gv.explained_variance, inflection=gv.inflection,
+                                 minka_mle=gv.minka_mle, verbose=True, ridge_alpha=gv.ridge_alpha, alpha=gv.sparse_alpha) 
     # PLS parameters 
     # gv.pls_n_comp = None 
     gv.pls_max_comp = 30 # 'full', int or None 
@@ -437,13 +439,13 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
                 X_trials = X_trials[:,:,:,:,gv.bins_delay] 
                 gv.bin_start = gv.bins_delay[0] 
 
-            # X_trials = pp.avg_epochs(X_trials) 
+            X_trials = pp.avg_epochs(X_trials) 
             # print('X_trials', X_trials.shape) 
             
-            if (gv.pca_method is not None) or (gv.pls_method is not None): 
+            if (gv.pca_model is not None) or (gv.pls_method is not None): 
                                     
-                if gv.pca_method is not None: 
-                    X_trials = my_pca.fit_transform(X_trials, y)
+                if gv.pca_model is not None: 
+                    X_trials = my_pca.fit_transform(X_trials, y) 
                     gv.list_n_components = my_pca.list_n_components 
                     print(gv.list_n_components)
                     

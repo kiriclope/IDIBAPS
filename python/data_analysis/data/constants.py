@@ -191,5 +191,7 @@ n_cos_boots= int(1e3)
 global list_n_components
 list_n_components = None
 
-global pca_model
+global pca_model, sparse_alpha, ridge_alpha
 pca_model = 'PCA'
+sparse_alpha=1
+ridge_alpha=.01 

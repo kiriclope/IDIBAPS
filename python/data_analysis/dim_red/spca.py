@@ -1,5 +1,3 @@
-import sys 
-sys.path.insert(1, '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis') 
 import data.constants as gv 
 import data.progressbar as pg 
 
@@ -38,6 +36,7 @@ class supervisedPCA(BaseEstimator, ClassifierMixin):
         self._X_proj = None 
         self._dropouts = None
         self._pca = None
+        self.list_n_components = np.empty(len(gv.trials)) 
         
     def get_inflexion_point(self, explained_variance): 
         d2_var = np.gradient(np.gradient(explained_variance)) 
@@ -135,7 +134,7 @@ class supervisedPCA_CV(supervisedPCA):
             
         for self._threshold in ( pg.tqdm(thresholds, desc='spca_cv') if self._verbose else thresholds): 
             super().fit(X, y) 
-            y_cv = cross_val_predict(self._model, self._X_proj, y, cv=self._cv) 
+            y_cv = cross_val_predict(self._model, self._X_proj, y, cv=3) 
             mlhs.append(scorer(y, y_cv)) 
             
         mlh = np.argmin(mlhs) 
@@ -161,31 +160,32 @@ class supervisedPCA_CV(supervisedPCA):
     def trial_hybrid(self, X_trials, y): 
         
         X_avg = np.empty( (len(gv.trials), gv.n_neurons, len(gv.samples) * X_trials.shape[-1] ) ) 
+        X_proj = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), X_trials.shape[-2], X_trials.shape[-1]) ) 
         for n_trial in range(len(gv.trials)) : 
             X_avg[n_trial] = np.hstack( ( np.mean(X_trials[n_trial,0], axis=0), np.mean(X_trials[n_trial,1], axis=0) ) ) 
             
-        X_avg = np.hstack(X_avg) # n_features X n_trials
-        y_avg = np.array([np.zeros(int(X_avg.shape[1]/2)), np.ones(int(X_avg.shape[1]/2))]).flatten() 
+            # X_avg = np.hstack(X_avg) # n_features X n_trials
+            y_avg = np.array([np.zeros(int(X_avg[n_trial].shape[1]/2)), np.ones(int(X_avg[n_trial].shape[1]/2))]).flatten() 
         
-        if self._verbose : 
-            print('X_avg', X_avg.shape, 'y_avg', y_avg.shape) 
+            if self._verbose : 
+                print('X_avg', X_avg[n_trial].shape, 'y_avg', y_avg.shape) 
             
-        # standardize neurons/features across trials/samples 
-        self.scaler.fit(X_avg.T, y_avg)  # n_trials X n_features 
-        X_avg = self.scaler.transform(X_avg.T).T # n_trials X n_features 
+            # standardize neurons/features across trials/samples 
+            self.scaler.fit(X_avg[n_trial].T, y_avg)  # n_trials X n_features 
+            X_avg[n_trial] = self.scaler.transform(X_avg[n_trial].T).T # n_trials X n_features 
         
-        # supervised PCA the trial averaged data 
-        self.fit(X_avg.T, y_avg) # n_trials X n_features 
-        
-        if self._verbose : 
-            print('n_pc', self._n_components,'explained_variance', self._explained_variance, 'pca', self._pca) 
+            # supervised PCA the trial averaged data 
+            self.fit(X_avg[n_trial].T, y_avg) # n_trials X n_features 
+            self.list_n_components[n_trial] = self._n_components 
+            if self._verbose : 
+                print('n_pc', self._n_components,'explained_variance', self._explained_variance, 'pca', self._pca) 
             
-        X_proj = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), self._n_components, X_trials.shape[-1]) ) 
-        for i in range(X_trials.shape[0]): 
+            # X_proj = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), self._n_components, X_trials.shape[-1]) ) 
+            # for i in range(X_trials.shape[0]): 
             for j in range(X_trials.shape[1]): 
                 for k in range(X_trials.shape[2]): 
                     # scaling
-                    trial = self.scaler.transform(X_trials[i,j,k,:,:].T).T # neurons x time = features x samples 
+                    trial = self.scaler.transform(X_trials[n_trial,j,k,:,:].T).T # neurons x time = features x samples 
                     # remove dropouts 
                     if (len(self._dropouts) == X_trials.shape[3]):  # all features have coef less than the threshold 
                         warnings.warn('All features_coefs below threshold: %.2f, try a smaller threshold' % self._threshold ) 
@@ -193,7 +193,7 @@ class supervisedPCA_CV(supervisedPCA):
                         trial = np.delete(trial, self._dropouts, 0)
                     # decomposition
                     trial_proj = self._pca.transform(trial.T).T
-                    X_proj[i,j,k,0:trial_proj.shape[0]] = trial_proj 
+                    X_proj[n_trial,j,k,0:trial_proj.shape[0]] = trial_proj 
                     
         if self._verbose:            
             print('X_proj', X_proj.shape) 

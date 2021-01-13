@@ -138,7 +138,7 @@ def get_S1_S2_trials(X_data, y_labels):
     X_S1 = X_data[y_S1] 
     X_S2 = X_data[y_S2] 
     
-    print('X_S1', X_S1.shape, 'X_S2', X_S2.shape)
+    # print('X_S1', X_S1.shape, 'X_S2', X_S2.shape)
     
     return X_S1, X_S2 
 

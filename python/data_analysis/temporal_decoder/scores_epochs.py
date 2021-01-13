@@ -78,7 +78,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shr
     else: 
         gv.figdir = gv.figdir + '/kfold_%d' % cv 
         
-    gv.figdir = gv.figdir + '/n_iter_%d' % gv.n_iter 
+    gv.figdir = gv.figdir + '_n_iter_%d' % gv.n_iter 
         
     if gv.AVG_EPOCHS: 
         gv.figdir = gv.figdir + '/avg_epochs' 
@@ -116,7 +116,7 @@ def get_scores(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio
         if gv.list_n_components is not None: 
             X_S1_S2 = X_S1_S2[:,0:int(gv.list_n_components[n_trial])] 
             
-        X_S1_S2 = pp.avg_epochs(X_S1_S2) 
+        # X_S1_S2 = pp.avg_epochs(X_S1_S2) 
         
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
@@ -170,7 +170,7 @@ def plot_scores_epochs(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, 
 def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
     
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
-    gv.my_decoder = 0 
+    gv.my_decoder = 1 
     gv.n_iter = 100 
     
     gv.shuffle= True
@@ -201,7 +201,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.DELAY_ONLY = 0 
     
     gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 0 # z_score with BL mean and std 
+    gv.Z_SCORE = 1 # z_score with BL mean and std 
     
     # feature selection 
     gv.FEATURE_SELECTION = 0 
@@ -211,7 +211,8 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.explained_variance = .9
     gv.list_n_components = None 
     gv.inflection = False 
-    gv.pca_method = 'hybrid' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.pca_model = 'PCA'
+    gv.pca_method = 'concatenated' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     
@@ -219,7 +220,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         if gv.pca_method in 'supervised': 
             my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
         else: 
-            my_pca = pca_methods(pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflection=gv.inflection) 
+            my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflection=gv.inflection) 
             
     # PLS parameters 
     gv.pls_max_comp = 100 # 'full', int or None 
@@ -231,12 +232,12 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in [gv.mice[1]] : 
+    for gv.mouse in [gv.mice[0]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in [gv.sessions[-1]] : 
+        for gv.session in gv.sessions : 
             if gv.SYNTHETIC: 
                 X_trials, y = syn.synthetic_data(0.5) 
             else: 
@@ -248,7 +249,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
                 X_trials = X_trials[:,:,:,:,gv.bins_delay] 
                 gv.bin_start = gv.bins_delay[0] 
                 
-            # X_trials = pp.avg_epochs(X_trials) 
+            X_trials = pp.avg_epochs(X_trials) 
             # print('X_trials', X_trials.shape) 
             
             if gv.pca_method is not None: 

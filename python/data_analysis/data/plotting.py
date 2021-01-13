@@ -56,18 +56,20 @@ def figDir():
     if gv.FEATURE_SELECTION:
         gv.figdir = gv.figdir + '/feature_selection'
 
-    if gv.pca_method is not None: 
-        if gv.pca_method in 'supervised': 
-            gv.figdir = gv.figdir + '/dim_red/supervisedPCA/%s/explained_variance_%.2f/threshold_%d_Cs_%d' % (gv.pca_method, gv.explained_variance,
-                                                                                                              gv.max_threshold, gv.n_thresholds ) 
-        elif gv.inflection: 
-            gv.figdir = gv.figdir + '/dim_red/%s/%s/inflection_point' % (gv.pca_model, gv.pca_method)
-            
-        elif gv.minka_mle: 
-            gv.figdir = gv.figdir + '/dim_red/%s/%s/minka_mle' % (gv.pca_model, gv.pca_method)
-            
-        else:
-            gv.figdir = gv.figdir + '/dim_red/%s/%s/explained_variance_%.2f' % (gv.pca_model, gv.pca_method, gv.explained_variance) 
+    if gv.pca_model is not None:
+        gv.figdir = gv.figdir + '/dim_red/%s/%s ' % (gv.pca_model, gv.pca_method) 
+        
+        if gv.pca_model in 'supervised': 
+            gv.figdir = gv.figdir + '/explained_variance_%.2f/threshold_%d_Cs_%d' % (gv.explained_variance, gv.max_threshold, gv.n_thresholds ) 
+        elif gv.pca_model in 'sparsePCA': 
+            gv.figdir = gv.figdir + '/explained_variance_%.2f/alpha_%d_ridge_alpha_%.2f' % (gv.explained_variance, gv.sparse_alpha, gv.ridge_alpha) 
+        else: 
+            if gv.inflection: 
+                gv.figdir = gv.figdir + '/inflection_point' 
+            elif gv.minka_mle: 
+                gv.figdir = gv.figdir + '/minka_mle' 
+            else:            
+                gv.figdir = gv.figdir + '/explained_variance_%.2f' % gv.explained_variance 
 
         if gv.ED_MD_LD :
             gv.figdir = gv.figdir + '/ED_MD_LD' 
