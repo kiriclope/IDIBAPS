@@ -9,6 +9,7 @@ from sklearn.preprocessing import PolynomialFeatures
 # from oasis.functions import deconvolve 
 
 from joblib import Parallel, delayed, parallel_backend
+from meegkit.detrend import detrend
 
 import scipy.signal
 
@@ -41,12 +42,12 @@ def conf_inter(y):
 
     return ci
 
-def dFF0(X, AVG_TRIALS=0):
+def dFF0(X, AVG_TRIALS=1): 
     if not AVG_TRIALS:
-        F0 = np.mean(X[:,:,gv.bins_BL],axis=2) 
-        F0 = F0[:,:, np.newaxis] 
+        F0 = np.mean(X[...,gv.bins_BL],axis=-1) 
+        F0 = F0[..., np.newaxis] 
     else: 
-        F0 = np.mean( np.mean(X[:,:,gv.bins_BL],axis=2), axis=0) 
+        F0 = np.mean( np.mean(X[...,gv.bins_BL],axis=-1), axis=0) 
         F0 = F0[np.newaxis,:, np.newaxis] 
     return (X-F0) / (F0 + gv.eps) 
 
@@ -140,6 +141,19 @@ def bin_data(data, bin_step, bin_size):
     bin_array = np.array(bin_array)
     bin_array = np.rollaxis(bin_array,0,3)
     return bin_array
+
+def detrend_loop(X, trial, neuron, order):
+    X_det, _, _ = detrend(X[trial, neuron], order)
+    return X_det
+
+def detrend_X(X, order=3):
+    with pg.tqdm_joblib(pg.tqdm(desc='trial ' + gv.trial +' detrend X', total=int(X.shape[0]*X.shape[1]) ) ) as progress_bar: 
+        dum = Parallel(n_jobs=gv.num_cores)(delayed(detrend_loop)(X, trial, neuron, order) 
+                                            for trial in range(X.shape[0]) 
+                                            for neuron in range(X.shape[1]) )
+               
+        X = np.asarray(dum).reshape(X.shape[0], X.shape[1], X.shape[2])
+    return X
 
 def detrend_data(X_trial, poly_fit=1, degree=7): 
     """ Detrending of the data, if poly_fit=1 uses polynomial fit else linear fit. """

@@ -2,6 +2,10 @@ from .libs import *
 from . import constants as gv 
 from . import preprocessing as pp 
 from . import featureSel as fs 
+from . import progressbar as pg
+
+from joblib import Parallel, delayed
+from meegkit.detrend import detrend
 
 def get_delays_times():
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
@@ -311,7 +315,6 @@ def get_X_y_mouse_session(synthetic=False):
         X_S2 = pp.dFF0(X_S2) 
         
         if gv.SAVGOL: 
-            print('savgol_filter') 
             for trial in range(X_S2.shape[0]): 
                 X_S1[trial] = savgol_filter(X_S1[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
                 X_S2[trial] = savgol_filter(X_S2[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
@@ -323,6 +326,10 @@ def get_X_y_mouse_session(synthetic=False):
             min_S1_S2 = X_trials.shape[2] 
             
         mins.append(min_S1_S2)
+        
+        if gv.DETREND :
+            X_S1 = pp.detrend_X(X_S1,7)
+            X_S2 = pp.detrend_X(X_S2,7)
             
         if gv.Z_SCORE : 
             for trial in range(min_S1_S2): 

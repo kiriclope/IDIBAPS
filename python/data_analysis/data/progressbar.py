@@ -17,7 +17,7 @@ def tqdm_joblib(tqdm_object):
     old_batch_callback = joblib.parallel.BatchCompletionCallBack
     joblib.parallel.BatchCompletionCallBack = TqdmBatchCompletionCallback
     try:
-        yield tqdm_object
+        yield tqdm_object 
     finally:
         joblib.parallel.BatchCompletionCallBack = old_batch_callback
         tqdm_object.close() 

@@ -59,7 +59,7 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shr
         
     clf_param = ''
     if 'LogisticRegressionCV' in gv.clf_name: 
-        clf_param = '/C_%.3f_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, cv) 
+        clf_param = '/Cs_%d_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, cv) 
     elif 'LogisticRegression' in gv.clf_name: 
         clf_param = '/C_%.3f_penalty_%s_solver_%s' % (C, penalty, solver) 
     elif gv.clf_name in 'LinearSVC': 
@@ -67,10 +67,10 @@ def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shr
     elif gv.clf_name in 'LDA': 
         clf_param = '/shrinkage_%s_solver_lsqr' % shrinkage 
     elif 'glmnet' in gv.clf_name: 
-        clf_param = '/C_%.3f_l1_ratio_%.2f_cv_%d' % (C, l1_ratio, cv) 
+        clf_param = '/Cs_%d_l1_ratio_%.2f_cv_%d' % (C, l1_ratio, cv) 
             
     gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param + '/' + gv.scoring     
-
+    
     if 'stratified' in gv.fold_type: 
         gv.figdir = gv.figdir + '/stratified_kfold_%d' % cv
     elif 'loo' in gv.fold_type:
@@ -154,7 +154,7 @@ def plot_scores_mat(scores):
     ax.set_title(gv.trial) 
     ax.grid(False)
     cbar = plt.colorbar(im, ax=ax) 
-    cbar.set_label('accuracy', rotation=90)
+    cbar.set_label('score', rotation=90)
     
 def plot_scores_epochs(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio=None, loss='lsqr', shrinkage='auto'):
 
@@ -170,14 +170,14 @@ def plot_scores_epochs(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, 
 def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
     
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
-    gv.my_decoder = 1 
+    gv.my_decoder = 1  
     gv.n_iter = 100 
     
-    gv.shuffle= True
+    gv.shuffle= True 
     gv.random_state= None  
     
     gv.IF_SAVE = 1 
-    gv.SYNTHETIC = 0  
+    gv.SYNTHETIC = 0 
     gv.correct_trial = 0 
     
     # classification parameters 
@@ -187,13 +187,13 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         gv.clf_name = clf
         
     gv.scoring =  'roc_auc' # 'accuracy' 'roc_auc' 
-    gv.fold_type = 'stratified'
+    gv.fold_type = 'stratified' 
     gv.standardize = True # safety for dummies 
     
     gv.TIBSHIRANI_TRICK = 0 
-        
+    
     # preprocessing parameters 
-    gv.T_WINDOW = 0.5 
+    gv.T_WINDOW = 0. 
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
     
     # only useful with dim red methods 
@@ -201,23 +201,23 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.DELAY_ONLY = 0 
     
     gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 1 # z_score with BL mean and std 
+    gv.Z_SCORE = 0 # z_score with BL mean and std 
     
     # feature selection 
     gv.FEATURE_SELECTION = 0 
     gv.LASSOCV = 0 
         
     # PCA parameters 
-    gv.explained_variance = .9
+    gv.explained_variance = .9 
     gv.list_n_components = None 
     gv.inflection = False 
-    gv.pca_model = 'PCA'
+    gv.pca_model = None 
     gv.pca_method = 'concatenated' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
     
-    if gv.pca_method is not None: 
-        if gv.pca_method in 'supervised': 
+    if gv.pca_model is not None: 
+        if 'supervised' in gv.pca_model: 
             my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
         else: 
             my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflection=gv.inflection) 
@@ -232,7 +232,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in [gv.mice[0]] : 
+    for gv.mouse in [gv.mice[1]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
@@ -252,7 +252,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
             X_trials = pp.avg_epochs(X_trials) 
             # print('X_trials', X_trials.shape) 
             
-            if gv.pca_method is not None: 
+            if gv.pca_model is not None: 
                 X_trials = my_pca.fit_transform(X_trials, y) 
                 gv.list_n_components = my_pca.list_n_components
                 print(gv.list_n_components)

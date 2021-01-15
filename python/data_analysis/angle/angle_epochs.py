@@ -58,6 +58,8 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
     
     get_epochs() 
     coefs = np.empty((len(gv.trials), len(gv.epochs), gv.n_boots, X_trials.shape[3])) 
+
+    seed = np.random.randint(0,1e6)
     
     for n_trial, gv.trial in enumerate(gv.trials): 
         X_S1_S2 = np.vstack( ( X_trials[n_trial,0], X_trials[n_trial,1] ) )
@@ -70,15 +72,18 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
         # X_S1_S2 = pp.avg_epochs(X_S1_S2, y) 
         # y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
-        if gv.cos_trials: 
-            # fixing the random seed for each trial 
-            np.random.seed(np.random.randint(0,1e6)) 
+        if not gv.cos_trials: 
+            # same seed for each epoch but different for each trial
+            seed = np.random.randint(0,1e6) 
         
         for n_epochs, gv.epoch in enumerate(gv.epochs): 
-            if not gv.cos_trials: 
-                # fixing the random seed for each epoch 
-                np.random.seed(np.random.randint(0,1e6))  
-            
+            if gv.cos_trials: 
+                # same seed for each trial but different for each epoch 
+                np.random.seed(seed * n_trial)  
+            else:
+                # same seed for each epoch but different for each trial 
+                np.random.seed(seed) 
+                
             X = X_S1_S2[:,:,n_epochs] 
             Vh = None 
             
@@ -354,13 +359,13 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     # gv.num_cores =  int( np.sqrt(0.9*multiprocessing.cpu_count()) ) 
     gv.IF_SAVE = 1 
     gv.correct_trial = 0 
-    gv.pair_trials = 1 
+    gv.pair_trials = 0  
     
     # bootstrap parameters 
     gv.n_boots = int(1e3) 
     gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     gv.cos_trials = 0 
-    gv.bootstrap_cos = 1  
+    gv.bootstrap_cos = 1 
     gv.n_cos_boots = int(1e3) 
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
@@ -374,15 +379,16 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.TIBSHIRANI_TRICK = 0 
         
     # preprocessing parameters 
-    gv.T_WINDOW = 0.5 
+    gv.T_WINDOW = 0.0  
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
     
     # only useful with dim red methods 
     gv.ED_MD_LD = 1 
     gv.DELAY_ONLY = 0 
-    
-    gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 1 # z_score with BL mean and std 
+
+    gv.DETREND = 0
+    gv.Z_SCORE = 0 # z_score with BL mean and std 
+    gv.SAVGOL = 1 # sav_gol filter 
     
     # feature selection 
     gv.FEATURE_SELECTION = 0 

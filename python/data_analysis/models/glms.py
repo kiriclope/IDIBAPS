@@ -1,7 +1,10 @@
-from .libs import * 
+from .libs import *
+
 import data.constants as gv 
-# from .glmnet import glmnet_Logit 
-from glmnet import LogitNet 
+
+# from .glmnet_wrapper import logitnet, logitnetCV
+
+from glmnet import LogitNet, LogitNetOffDiag
 from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical, CCA 
 
 def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', normalize=True, fit_intercept=True, intercept_scaling=1e2, tol=1e-4, max_iter=1e5): 
@@ -32,21 +35,36 @@ def get_clf(C=1, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None
         gv.clf = LinearSVC(C=C, penalty=penalty, loss=loss, dual=False,
                            tol=tol, max_iter=int(max_iter), multi_class='ovr',
                            fit_intercept=fit_intercept, intercept_scaling=intercept_scaling,
-                           class_weight=None, verbose=0, random_state=None) 
+                           class_weight=None, verbose=0, random_state=None)
 
-    elif 'glmnet' in gv.clf_name:
+    elif 'glmnet_off_diag' in gv.clf_name: 
+        gv.clf = LogitNetOffDiag(alpha=l1_ratio, n_lambda=C, min_lambda_ratio=1e-4,
+                                 lambda_path=None, standardize=False, fit_intercept=fit_intercept,
+                                 lower_limits=-np.inf, upper_limits=np.inf,
+                                 cut_point=1.0, n_splits=cv, scoring=gv.scoring, n_jobs=None, tol=1e-7,
+                                 max_iter=100000, random_state=None, max_features=None, verbose=False)
+        
+    elif 'glmnet' in gv.clf_name: 
         gv.clf = LogitNet(alpha=l1_ratio, n_lambda=C, min_lambda_ratio=1e-4,
                           lambda_path=None, standardize=False, fit_intercept=fit_intercept,
                           lower_limits=-np.inf, upper_limits=np.inf,
-                          cut_point=1.0, n_splits=cv, scoring=gv.scoring, n_jobs=gv.num_cores, tol=1e-7,
+                          cut_point=1.0, n_splits=cv, scoring=gv.scoring, n_jobs=None, tol=1e-7,
                           max_iter=100000, random_state=None, max_features=None, verbose=False)
 
+    elif 'logitnetCV' in gv.clf_name:
+        gv.clf = logitnetCV(alpha=l1_ratio, nlambda=C, nfolds=cv, standardize=False, fit_intercept=fit_intercept, 
+                            scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores) 
+
+    elif 'logitnet' in gv.clf_name:
+        gv.clf = logitnet(alpha=l1_ratio, nlambda=C, standardize=False, fit_intercept=fit_intercept,
+                          scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores)        
+        
     elif 'pycasso' in gv.clf_name:
         gv.clf = pycasso.Solver(X,Y, lambdas=(100,0.05), family="binomial", penalty="l1")         
 
     elif 'CCA' in gv.clf_name:
         gv.clf = CCA(n_components=20, scale=False, max_iter=500, tol=1e-06, copy=True) 
-        
+    
     clf = LassoCV(eps=0.001, n_alphas=100, alphas=None, fit_intercept=False, normalize=False, precompute='auto', max_iter=1000, tol=0.0001, copy_X=True, cv=10, verbose=False, n_jobs=None, positive=False, random_state=None, selection='random') 
     gv.lassoCV = Pipeline([('scaler', StandardScaler()), ('clf', clf)]) 
         

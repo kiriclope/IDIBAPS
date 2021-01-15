@@ -103,9 +103,9 @@ t_stim_delay = []
 global scaling
 scaling = None
 
-global pca_method, detrend, bootstrap_trials, inflection
+global pca_method, DETREND, bootstrap_trials, inflection
 pca_method = 'hybrid' 
-detrend = 0
+DETREND = 0
 bootstrap_trials=0
 inflection= False 
 

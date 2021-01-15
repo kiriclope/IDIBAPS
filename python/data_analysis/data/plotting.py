@@ -33,26 +33,26 @@ def figDir():
     if gv.trialsXepochs: 
         gv.figdir = gv.figdir + '/trialsXepochs' 
         
-    if gv.detrend :
-        gv.figdir = gv.figdir + '/detrend' 
-        
     if gv.EDvsLD : 
         gv.figdir = gv.figdir + '/EDvsLD'
     else : 
         gv.figdir = gv.figdir + '/stimVsDelay' 
         
     if gv.T_WINDOW!=0 :
-        gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW 
-
+        gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW
+        
+    if gv.DETREND :
+        gv.figdir = gv.figdir + '/detrend'  
+        
     if gv.SAVGOL :
         gv.figdir = gv.figdir + '/savgol' 
-
+        
     if gv.Z_SCORE : 
-        gv.figdir = gv.figdir + '/z_score' 
+        gv.figdir = gv.figdir + '/z_score'        
                 
     if gv.TIBSHIRANI_TRICK:
         gv.figdir = gv.figdir + '/tibshirani_trick'
-
+        
     if gv.FEATURE_SELECTION:
         gv.figdir = gv.figdir + '/feature_selection'
 

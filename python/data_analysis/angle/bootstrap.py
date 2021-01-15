@@ -1,6 +1,4 @@
-import data.progressbar as pg
-import data.constants as gv
-
+from copy import deepcopy
 import warnings 
 warnings.filterwarnings("ignore") 
 
@@ -13,6 +11,9 @@ from sklearn.model_selection import GridSearchCV
 
 from bayesian_bootstrap import bootstrap as bayes 
 from joblib import Parallel, delayed
+
+import data.progressbar as pg
+import data.constants as gv
 
 class bootstrap():
     
@@ -64,12 +65,13 @@ class bootstrap():
                     idx_neurons = np.random.randint(0, X.shape[1], X.shape[1]) 
                     X_sample[trial] = X[trial, idx_neurons] 
                 
-        if self.scaling is not None:
-            if not 'sample' in self.scaling: 
-                X_sample = self.scaler.transform(X_sample) 
-            
-        self.pipe.fit(X_sample, y_sample) 
-        boots_coefs = self.pipe[-1].coef_.flatten() 
+        # if self.scaling is not None:
+        #     if 'sample' in self.scaling: 
+        #         X_sample = self.scaler.transform(X_sample) 
+        
+        pipe_copy = deepcopy(self.pipe)
+        pipe_copy.fit(X_sample, y_sample) 
+        boots_coefs = pipe_copy[-1].coef_.flatten() 
         
         if self.Vh is not None: 
             boots_coefs = self.Vh.T.dot(boots_coefs).flatten() 
