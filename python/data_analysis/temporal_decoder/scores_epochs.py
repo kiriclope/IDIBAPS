@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore")
 
 import models.glms 
 reload(models.glms) 
-from models.glms import get_clf 
+from models.glms import set_options, get_clf 
 
 import dim_red.pca.pca_decomposition 
 reload(dim_red.pca.pca_decomposition) 
@@ -39,138 +39,62 @@ from . import decoder
 reload(decoder)
 from .decoder import cross_temp_decoder 
 
-def get_epochs():
-    if gv.EDvsLD: 
-        gv.epochs = ['ED', 'MD', 'LD'] 
-        print('angle btw ED and other epochs') 
-    else: 
-        gv.epochs = ['Stim', 'ED', 'MD', 'LD'] 
-        print('angle btw STIM and other epochs') 
+from . import utils
+reload(utils)
+from .utils import *
 
-def create_fig_dir(C=1, penalty='l1', solver='liblinear', cv=0, loss='lsqr', shrinkage='auto', l1_ratio=0): 
-    pl.figDir() 
-
-    gv.figdir = gv.figdir +'/scores_epochs' 
-
-    if not gv.my_decoder:
-        gv.figdir = gv.figdir + '/mne' 
-    else:
-        gv.figdir = gv.figdir + '/my_decoder' 
-        
-    clf_param = ''
-    if 'LogisticRegressionCV' in gv.clf_name: 
-        clf_param = '/Cs_%d_penalty_%s_solver_%s_cv_%d' % (C, penalty, solver, cv) 
-    elif 'LogisticRegression' in gv.clf_name: 
-        clf_param = '/C_%.3f_penalty_%s_solver_%s' % (C, penalty, solver) 
-    elif gv.clf_name in 'LinearSVC': 
-        clf_param = '/C_%.3f_penalty_%s_loss_%s' % (C, penalty, loss) 
-    elif gv.clf_name in 'LDA': 
-        clf_param = '/shrinkage_%s_solver_lsqr' % shrinkage 
-    elif 'glmnet' in gv.clf_name: 
-        clf_param = '/Cs_%d_l1_ratio_%.2f_cv_%d' % (C, l1_ratio, cv) 
-            
-    gv.figdir = gv.figdir +'/'+ gv.clf_name + clf_param + '/' + gv.scoring     
+def get_scores(X_trials, **kwargs): 
     
-    if 'stratified' in gv.fold_type: 
-        gv.figdir = gv.figdir + '/stratified_kfold_%d' % cv
-    elif 'loo' in gv.fold_type:
-        gv.figdir = gv.figdir + '/loo' 
-    else: 
-        gv.figdir = gv.figdir + '/kfold_%d' % cv 
-        
-    gv.figdir = gv.figdir + '_n_iter_%d' % gv.n_iter 
-        
-    if gv.AVG_EPOCHS: 
-        gv.figdir = gv.figdir + '/avg_epochs' 
-        
-    if gv.standardize:
-        gv.figdir = gv.figdir + '/standardize'
-    else:
-        gv.figdir = gv.figdir + '/not_standardize'
-        
-    day = '/day_%d' % (list(gv.sessions).index(gv.session) + 1 ) 
-    gv.figdir = gv.figdir + day 
-        
-    if not os.path.isdir(gv.figdir): 
-        os.makedirs(gv.figdir) 
-        print('created: ', gv.figdir) 
-
-def get_scores(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio=None, loss='lsqr', shrinkage='auto'): 
+    options = set_options(**kwargs) 
+    get_clf(**kwargs) 
     
-    get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, normalize=False) 
-    
-    decoder = cross_temp_decoder(gv.clf, scoring=gv.scoring, cv=cv, shuffle=gv.shuffle, random_state=gv.random_state, mne_decoder=not(gv.my_decoder), fold_type=gv.fold_type, standardize=gv.standardize, n_jobs=gv.num_cores, n_iter=gv.n_iter) 
+    decoder = cross_temp_decoder(gv.clf, scoring=gv.scoring, cv=kwargs['n_splits'], shuffle=gv.shuffle, random_state=gv.random_state, mne_decoder=not(gv.my_decoder), fold_type=gv.fold_type, standardize=gv.standardize, n_jobs=gv.num_cores, n_iter=gv.n_iter) 
     
     get_epochs() 
     
-    scores = np.empty((len(gv.trials), len(gv.epochs), len(gv.epochs) ))
+    if gv.scores_trials:
+        X_trials = np.moveaxis(X_trials, 0, -1) 
+
+    scores = np.empty((X_trials.shape[0], X_trials.shape[-1], X_trials.shape[-1] ))
     
-    for n_trial, gv.trial in enumerate(gv.trials): 
-        X_S1 = X_trials[n_trial,0] 
-        X_S2 = X_trials[n_trial,1] 
-        
-        # if gv.SELECTIVE: 
-        #     X_S1, X_S2, idx = pp.selectiveNeurons(X_S1, X_S2, .1) 
+    for n_cond in range(X_trials.shape[0]): 
+        X_S1 = X_trials[n_cond,0] 
+        X_S2 = X_trials[n_cond,1] 
         
         X_S1_S2 = np.vstack((X_S1, X_S2)) 
         if gv.list_n_components is not None: 
-            X_S1_S2 = X_S1_S2[:,0:int(gv.list_n_components[n_trial])] 
+            X_S1_S2 = X_S1_S2[:,0:int(gv.list_n_components[n_cond])] 
             
-        # X_S1_S2 = pp.avg_epochs(X_S1_S2) 
-        
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
-        print('trial:', gv.trial, 'X', X_S1_S2.shape,'y', y.shape) 
-        scores[n_trial] = decoder.fit(X_S1_S2, y) 
+        if gv.scores_trials:
+            print('epoch:', gv.epochs[n_cond], 'X', X_S1_S2.shape,'y', y.shape) 
+        else: 
+            print('trial:', gv.trials[n_cond], 'X', X_S1_S2.shape,'y', y.shape) 
+            
+        scores[n_cond] = decoder.fit(X_S1_S2, y) 
         
     return scores 
-
-def plot_scores_mat(scores):
-
-    figtitle = '%s_session_%s_trial_%s_cross_temp_decoder' % (gv.mouse,gv.session,gv.trial)
-    ax = plt.figure(figtitle).add_subplot() 
     
-    if gv.EDvsLD:
-        im = ax.imshow(scores, cmap='jet', vmin=0.5, vmax=1, origin='lower')
-        
-        xticks = np.arange(0,len(gv.epochs)) 
-        yticks = np.arange(0,len(gv.epochs))
-        
-        ax.set_xticks(xticks) ; 
-        ax.set_xticklabels(gv.epochs) ; 
-        
-        ax.set_yticks(yticks) ; 
-        ax.set_yticklabels(gv.epochs) ; 
-    else:
-        im = ax.imshow(scores, cmap='jet', origin='lower', vmin=0.5, vmax=1, extent = [-2 , gv.duration-2, -2 , gv.duration-2]) 
-        pl.vlines_delay(ax) 
-        pl.hlines_delay(ax) 
-        
-        plt.xlim([gv.t_delay[0]-2, gv.t_delay[-1]-2]); 
-        plt.ylim([gv.t_delay[0]-2, gv.t_delay[-1]-2]); 
-        
-    ax.set_xlabel('Testing Time (s)')
-    ax.set_ylabel('Training Time (s)')    
-    ax.set_title(gv.trial) 
-    ax.grid(False)
-    cbar = plt.colorbar(im, ax=ax) 
-    cbar.set_label('score', rotation=90)
+def plot_scores_epochs(X_trials, **kwargs):
     
-def plot_scores_epochs(X_trials, C=1e0, penalty='l1', solver='liblinear', cv=8, l1_ratio=None, loss='lsqr', shrinkage='auto'):
-
-    create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss, shrinkage=shrinkage, l1_ratio=l1_ratio) 
+    options = set_options(**kwargs) 
+    create_fig_dir(**options) 
     
-    scores = get_scores(X_trials, C=C, penalty=penalty, solver=solver, cv=cv, l1_ratio=l1_ratio, loss=loss, shrinkage=shrinkage) 
-
-    for n_trial, gv.trial in enumerate(gv.trials):
-        plot_scores_mat(scores[n_trial]) 
-        figtitle = '%s_session_%s_trial_%s_cross_temp_decoder' % (gv.mouse,gv.session,gv.trial)
+    scores = get_scores(X_trials, **options) 
+    
+    for n_cond in range(X_trials.shape[0]):
+        gv.trial = gv.trials[n_cond] 
+        plot_scores_mat(scores[n_cond]) 
+        figtitle = '%s_session_%s_trial_%s_cross_temp_decoder' % (gv.mouse, gv.session, gv.trials[n_cond]) 
         pl.save_fig(figtitle) 
+        
+def plot_loop_mice_sessions(**kwargs):
 
-def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=10, l1_ratio=None, shrinkage='auto'): 
-    
+    options = set_options(**kwargs) 
+
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
-    gv.my_decoder = 1  
+    gv.my_decoder = 1 
     gv.n_iter = 100 
     
     gv.shuffle= True 
@@ -181,11 +105,8 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.correct_trial = 0 
     
     # classification parameters 
-    if clf is None: 
-        gv.clf_name = 'glmnet' 
-    else:
-        gv.clf_name = clf
-        
+    gv.clf_name = options['clf_name'] 
+    n_splits = options['n_splits'] 
     gv.scoring =  'roc_auc' # 'accuracy' 'roc_auc' 
     gv.fold_type = 'stratified' 
     gv.standardize = True # safety for dummies 
@@ -232,7 +153,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in [gv.mice[1]] : 
+    for gv.mouse in gv.mice : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
@@ -260,11 +181,11 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
                 X_trials = my_pls.trial_hybrid(X_trials, y) 
                     
             print('decoder:', gv.my_decoder, 'clf:', gv.clf_name, 
-                  ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', cv:', cv, 
+                  ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', n_splits:', n_splits, 
                   ', pca_method:', gv.pca_method, ', pls_method:', gv.pls_method,
                   ', n_components', X_trials.shape[3]) 
             
             matplotlib.use('Agg') # so that fig saves when in the in the background 
             # matplotlib.use('GTK3cairo') 
-            plot_scores_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage) 
+            plot_scores_epochs(X_trials, **options) 
             plt.close('all') 

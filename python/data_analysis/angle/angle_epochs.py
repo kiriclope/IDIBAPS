@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore")
 
 import models.glms 
 reload(models.glms) 
-from models.glms import get_clf 
+from models.glms import set_options, get_clf 
 
 import dim_red.pca.pca_decomposition 
 reload(dim_red.pca.pca_decomposition) 
@@ -46,22 +46,25 @@ from .statistics import get_p_values, add_pvalue
 
 from .utils import *
 
-def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty='l2', solver='liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=True, intercept_scaling=1e2): 
-
+def bootstrap_coefs(X_trials, **kwargs): 
+    
+    options = set_options(**kwargs)
+    
     # if gv.pls_method is not None: 
     #     my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
     
-    get_clf(C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio,
-            shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling= intercept_scaling) 
+    get_clf(**options) 
     
-    boots_model = bootstrap(gv.clf, bootstrap_method=bootstrap_method, n_boots=gv.n_boots, scaling=gv.scaling, n_jobs=gv.num_cores) 
+    boots_model = bootstrap(gv.clf, bootstrap_method=gv.bootstrap_method, n_boots=gv.n_boots, scaling=gv.scaling, n_jobs=gv.num_cores) 
+    get_epochs()
     
-    get_epochs() 
     coefs = np.empty((len(gv.trials), len(gv.epochs), gv.n_boots, X_trials.shape[3])) 
-
-    seed = np.random.randint(0,1e6)
     
+    # fix random seed 
+    seed = np.random.randint(0,1e6)
+        
     for n_trial, gv.trial in enumerate(gv.trials): 
+        gv.trial = gv.trials[n_trial] 
         X_S1_S2 = np.vstack( ( X_trials[n_trial,0], X_trials[n_trial,1] ) )
         
         if gv.list_n_components is not None: 
@@ -69,17 +72,14 @@ def bootstrap_coefs_epochs(X_trials, bootstrap_method='standard', C=1e0, penalty
         
         y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
         
-        # X_S1_S2 = pp.avg_epochs(X_S1_S2, y) 
-        # y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
-        
         if not gv.cos_trials: 
             # same seed for each epoch but different for each trial
             seed = np.random.randint(0,1e6) 
-        
+            
         for n_epochs, gv.epoch in enumerate(gv.epochs): 
             if gv.cos_trials: 
                 # same seed for each trial but different for each epoch 
-                np.random.seed(seed * n_trial)  
+                np.random.seed(seed * n_trial) 
             else:
                 # same seed for each epoch but different for each trial 
                 np.random.seed(seed) 
@@ -155,7 +155,7 @@ def get_cos_epochs(coefs, bootstrap=0, n_boots=int(1e3)):
                 with pg.tqdm_joblib(pg.tqdm(desc=cos_name, total=n_boots)) as progress_bar: 
                     dum = Parallel(n_jobs=gv.num_cores)(delayed(boot_cos)(x,y) for _ in range(n_boots) ) 
                 cos_sample[n_trial, n_epoch] = np.array(dum) 
-            else:                
+            else: 
                 # for n_boot in range(n_boots): 
                 #     cos_sample[n_trial, n_epoch, n_boot] = agl.cos_between(x[n_boot], y[n_boot]) 
                 
@@ -314,17 +314,17 @@ def get_corr_trials(coefs, n_boots):
         
     return mean_corr, lower_corr, upper_corr, corr_sample 
 
-def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=1e2): 
-
-    create_fig_dir(C=C, penalty=penalty, solver=solver, cv=cv, loss=loss, l1_ratio=l1_ratio, shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling) 
-
-    coefs = bootstrap_coefs_epochs(X_trials, bootstrap_method, C, penalty, solver, loss, cv, l1_ratio, shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling) 
-
+def plot_cos_epochs(X_trials, **kwargs):
+    
+    options = set_options(**kwargs) 
+    create_fig_dir(**options) 
+    coefs = bootstrap_coefs(X_trials, **options) 
+    
     if gv.cos_trials:
         mean_cos, lower_cos, upper_cos, cos_sample = get_cos_trials(coefs, gv.bootstrap_cos, n_boots=gv.n_cos_boots) 
     else: 
         mean_cos, lower_cos, upper_cos, cos_sample = get_cos_epochs(coefs, gv.bootstrap_cos, n_boots=gv.n_cos_boots) 
-    
+        
     pl.bar_trials_epochs(mean_cos, lower_cos, upper_cos) 
     p_values_cos = get_p_values(cos_sample) 
     add_pvalue(p_values_cos) 
@@ -353,28 +353,26 @@ def plot_cos_epochs(X_trials, bootstrap_method='block', C=1e0, penalty='l2', sol
     # figtitle = '%s_%s_bars_corr' % (gv.mouse, gv.session) 
     # pl.save_fig(figtitle) 
     
-def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear', loss='squared_hinge', cv=None, l1_ratio=None, shrinkage='auto', fit_intercept=False, intercept_scaling=1e2): 
+def plot_loop_mice_sessions(**kwargs): 
+
+    options = set_options(**kwargs)
     
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
     # gv.num_cores =  int( np.sqrt(0.9*multiprocessing.cpu_count()) ) 
     gv.IF_SAVE = 1 
     gv.correct_trial = 0 
-    gv.pair_trials = 0  
+    gv.pair_trials = 0 
     
     # bootstrap parameters 
     gv.n_boots = int(1e3) 
-    gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
+    gv.bootstrap_method = options['bootstrap_method'] # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     gv.cos_trials = 0 
     gv.bootstrap_cos = 1 
     gv.n_cos_boots = int(1e3) 
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
-    # classification parameters
-    if clf is None: 
-        gv.clf_name = 'glmnet' 
-    else:
-        gv.clf_name = clf 
-        
+    # classification parameters 
+    gv.clf_name = options['clf_name']    
     gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
     gv.TIBSHIRANI_TRICK = 0 
         
@@ -388,7 +386,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
 
     gv.DETREND = 0
     gv.Z_SCORE = 0 # z_score with BL mean and std 
-    gv.SAVGOL = 1 # sav_gol filter 
+    gv.SAVGOL = 0 # sav_gol filter 
     
     # feature selection 
     gv.FEATURE_SELECTION = 0 
@@ -398,7 +396,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
     # PCA parameters 
-    gv.explained_variance = .75
+    gv.explained_variance = .75 
     gv.n_components = 10 
     gv.list_n_components = None 
     gv.inflection = False  
@@ -415,7 +413,9 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
     if gv.pca_model is not None: 
         # gv.scaling = None # safety for dummies 
         if gv.pca_model in 'supervisedPCA' : 
-            my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance, cv=gv.spca_cv, max_threshold=gv.max_threshold, n_thresholds=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores, scoring=gv.spca_scoring) 
+            my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance,
+                                      cv=gv.spca_cv, max_threshold=gv.max_threshold, n_thresholds=gv.n_thresholds,
+                                      verbose=True, n_jobs=gv.num_cores, scoring=gv.spca_scoring) 
         else: 
             my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method, n_components= gv.n_components,
                                  total_explained_variance=gv.explained_variance, inflection=gv.inflection,
@@ -431,7 +431,7 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in [gv.mice[1]] : 
+    for gv.mouse in gv.mice : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
@@ -440,9 +440,9 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
             X_trials, y = fct.get_X_y_mouse_session() 
                 
             if gv.ED_MD_LD: 
-                X_trials = X_trials[:,:,:,:,gv.bins_ED_MD_LD] 
+                X_trials = X_trials[...,gv.bins_ED_MD_LD] 
             if gv.DELAY_ONLY: 
-                X_trials = X_trials[:,:,:,:,gv.bins_delay] 
+                X_trials = X_trials[...,gv.bins_delay] 
                 gv.bin_start = gv.bins_delay[0] 
 
             X_trials = pp.avg_epochs(X_trials) 
@@ -459,10 +459,10 @@ def plot_loop_mice_sessions(clf=None, C=1e0, penalty='l2', solver = 'liblinear',
                     X_trials = my_pls.trial_hybrid(X_trials, y) 
                     
             print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name, 
-                  ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', cv:', cv, 
+                  ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', n_splits:', options['n_splits'], 
                   ', pca_method:', gv.pca_method, ', pls_method:', gv.pls_method, ', n_components', X_trials.shape[3]) 
             
             matplotlib.use('Agg') # so that fig saves when in the in the background 
             # matplotlib.use('GTK3cairo') 
-            plot_cos_epochs(X_trials, C=C, penalty=penalty, solver=solver, loss=loss, cv=cv, l1_ratio=l1_ratio, shrinkage=shrinkage, fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, bootstrap_method=gv.bootstrap_method) 
+            plot_cos_epochs(X_trials, **options) 
             plt.close('all') 

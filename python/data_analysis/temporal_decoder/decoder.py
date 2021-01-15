@@ -65,7 +65,7 @@ class cross_temp_decoder():
         X_t_test = X[:,:,t_test] 
         clf_copy = deepcopy(self.clf) 
         
-        scores = []
+        scores = [] 
         for idx_train, idx_test in folds.split(X_t_train, y): 
             X_train, y_train = X_t_train[idx_train], y[idx_train] 
             X_test, y_test = X_t_test[idx_test], y[idx_test] 

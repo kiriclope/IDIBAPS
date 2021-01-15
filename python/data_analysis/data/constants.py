@@ -195,3 +195,6 @@ global pca_model, sparse_alpha, ridge_alpha
 pca_model = 'PCA'
 sparse_alpha=1
 ridge_alpha=.01 
+
+global scores_trials
+scores_trials=0
