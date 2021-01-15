@@ -4,8 +4,6 @@ import data.constants as gv
 reload(gv)
 import data.utils as fct 
 reload(fct)
-import data.plotting as pl 
-reload(pl)
 import data.preprocessing as pp 
 reload(pp)
 import data.angle as agl 
@@ -51,9 +49,11 @@ def get_scores(X_trials, **kwargs):
     decoder = cross_temp_decoder(gv.clf, scoring=gv.scoring, cv=kwargs['n_splits'], shuffle=gv.shuffle, random_state=gv.random_state, mne_decoder=not(gv.my_decoder), fold_type=gv.fold_type, standardize=gv.standardize, n_jobs=gv.num_cores, n_iter=gv.n_iter) 
     
     get_epochs() 
-    
+
+    print(X_trials.shape)
     if gv.scores_trials:
-        X_trials = np.moveaxis(X_trials, 0, -1) 
+        X_trials = np.swapaxes(X_trials, 0, -1) 
+    print(X_trials.shape)
 
     scores = np.empty((X_trials.shape[0], X_trials.shape[-1], X_trials.shape[-1] ))
     
@@ -84,17 +84,21 @@ def plot_scores_epochs(X_trials, **kwargs):
     scores = get_scores(X_trials, **options) 
     
     for n_cond in range(X_trials.shape[0]):
-        gv.trial = gv.trials[n_cond] 
+
+        if gv.scores_trials:
+            gv.trial = gv.epochs[n_cond] 
+        else:
+            gv.trial = gv.trials[n_cond]
+            
         plot_scores_mat(scores[n_cond]) 
-        figtitle = '%s_session_%s_trial_%s_cross_temp_decoder' % (gv.mouse, gv.session, gv.trials[n_cond]) 
-        pl.save_fig(figtitle) 
         
 def plot_loop_mice_sessions(**kwargs):
 
     options = set_options(**kwargs) 
 
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
-    gv.my_decoder = 1 
+    gv.my_decoder = 1
+    gv.scores_trials=1 
     gv.n_iter = 100 
     
     gv.shuffle= True 
@@ -107,7 +111,7 @@ def plot_loop_mice_sessions(**kwargs):
     # classification parameters 
     gv.clf_name = options['clf_name'] 
     n_splits = options['n_splits'] 
-    gv.scoring =  'roc_auc' # 'accuracy' 'roc_auc' 
+    gv.scoring =  options['scoring'] # 'accuracy' 'roc_auc' 
     gv.fold_type = 'stratified' 
     gv.standardize = True # safety for dummies 
     
@@ -171,7 +175,7 @@ def plot_loop_mice_sessions(**kwargs):
                 gv.bin_start = gv.bins_delay[0] 
                 
             X_trials = pp.avg_epochs(X_trials) 
-            # print('X_trials', X_trials.shape) 
+            print('X_trials', X_trials.shape) 
             
             if gv.pca_model is not None: 
                 X_trials = my_pca.fit_transform(X_trials, y) 

@@ -22,6 +22,7 @@ def set_options(**kwargs):
     opts['fit_intercept']=False
     opts['Normalize']=False 
     opts['intercept_scaling']=1e2
+    opts['scoring']='roc_auc'
     opts['tol']=1e-4
     opts['max_iter']=1e5 
     opts['bootstrap_method']='block'

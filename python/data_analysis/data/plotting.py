@@ -162,7 +162,7 @@ def bar_trials_epochs(mean, lower=None, upper=None, var_name='cos_alp'):
         plt.xlabel('Epochs')
         
     if 'cos_alp' in var_name:
-        plt.ylabel('Cos($\\alpha$)')
+        plt.ylabel('Cos($\\alpha$)') 
     else:
         plt.ylabel('Corr')
 

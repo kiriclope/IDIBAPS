@@ -257,8 +257,9 @@ def avg_epochs(X, y=None, threshold=.1):
         X_epochs[1] = X_ED 
         X_epochs[2] = X_MD 
         X_epochs[3] = X_LD 
-        
-    X_epochs = np.moveaxis(X_epochs,0,-1) 
+
+    X_epochs = np.moveaxis(X_epochs,0,-1)  
+
     return X_epochs 
 
 def selectiveNeurons(X_S1, X_S2, Threshold=.01):

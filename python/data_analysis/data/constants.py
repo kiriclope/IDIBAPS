@@ -39,6 +39,7 @@ global epochs
 # epochs = ['Baseline','Stim','ED','Dist','MD','Cue','LD','Test'] 
 # epochs = ['ED','Dist','MD','Cue','LD','Test']
 epochs = ['ED','MD','LD'] 
+epoch = None
 
 global bins, bins_BL, bins_STIM, bins_ED, bins_DIST, bins_MD, bins_LD, bins_cue, bins_DRT_rwd, bins_test
 bins = []

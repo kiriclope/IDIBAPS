@@ -273,7 +273,7 @@ def get_corr_trials(coefs, n_boots):
     ''' 
     
     mean_coefs = np.mean(coefs, axis=2) 
-    mean_coefs = np.moveaxis(mean_coefs, 0, 1) 
+    mean_coefs = np.swapaxes(mean_coefs, 0, 1) 
     
     mean_corr = np.empty( (len(gv.epochs), coefs.shape[1]) ) 
     lower_corr = np.empty( (len(gv.epochs), coefs.shape[1] ) ) 
@@ -289,7 +289,7 @@ def get_corr_trials(coefs, n_boots):
             
     # resampling (x_i, y_i) pairs 
     for n_epoch, gv.epoch in enumerate(gv.epochs): 
-        x =  mean_coefs[n_epoch, 0] # 'ND'
+        x =  mean_coefs[n_epoch, 0] # 'ND' 
         
         for n_trial, gv.trial in enumerate(gv.trials): # 'ND', 'D1', 'D2' 
             y =  mean_coefs[n_epoch, n_trial] 
@@ -366,7 +366,7 @@ def plot_loop_mice_sessions(**kwargs):
     # bootstrap parameters 
     gv.n_boots = int(1e3) 
     gv.bootstrap_method = options['bootstrap_method'] # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
-    gv.cos_trials = 0 
+    gv.cos_trials = 1  
     gv.bootstrap_cos = 1 
     gv.n_cos_boots = int(1e3) 
     # gv.trials = ['ND_D1', 'ND_D2'] 
