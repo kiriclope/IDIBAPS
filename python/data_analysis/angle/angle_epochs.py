@@ -360,31 +360,32 @@ def plot_loop_mice_sessions(**kwargs):
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
     # gv.num_cores =  int( np.sqrt(0.9*multiprocessing.cpu_count()) ) 
     gv.IF_SAVE = 1 
+    gv.cos_trials = 0 
     gv.correct_trial = 0 
     gv.pair_trials = 0 
     
     # bootstrap parameters 
     gv.n_boots = int(1e3) 
-    gv.bootstrap_method = options['bootstrap_method'] # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
-    gv.cos_trials = 1  
-    gv.bootstrap_cos = 1 
+    gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
+    gv.bootstrap_cos = 1  
     gv.n_cos_boots = int(1e3) 
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
     # classification parameters 
-    gv.clf_name = options['clf_name']    
+    gv.clf_name = options['clf_name']     
     gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
     gv.TIBSHIRANI_TRICK = 0 
         
     # preprocessing parameters 
-    gv.T_WINDOW = 0.0  
+    gv.T_WINDOW = 0.5
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
     
     # only useful with dim red methods 
     gv.ED_MD_LD = 1 
     gv.DELAY_ONLY = 0 
 
-    gv.DETREND = 0
+    gv.DECONVOLVE=1
+    gv.DETREND = 0 # detrend the data
     gv.Z_SCORE = 0 # z_score with BL mean and std 
     gv.SAVGOL = 0 # sav_gol filter 
     

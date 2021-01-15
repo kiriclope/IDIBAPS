@@ -1,17 +1,15 @@
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+from scipy.signal import savgol_filter
+
+from joblib import Parallel, delayed, parallel_backend
+from meegkit.detrend import detrend
+from oasis.functions import deconvolve
+
 from .libs import * 
 from . import constants as gv
 from . import progressbar as pg
 from . import featureSel as fs
-
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
-
-# from oasis.functions import deconvolve 
-
-from joblib import Parallel, delayed, parallel_backend
-from meegkit.detrend import detrend
-
-import scipy.signal
 
 def center(X):
     scaler = StandardScaler(with_mean=True, with_std=False)
@@ -285,47 +283,51 @@ def selectiveNeurons(X_S1, X_S2, Threshold=.01):
     
     return X_S1, X_S2, idx
 
-# def deconvolve_X(X):
-
-#     F0 = np.mean(X[:,gv.bins_BL],axis=1) 
-#     with pg.tqdm_joblib(pg.tqdm(desc='deconvolve', total=X.shape[0])) as progress_bar: 
-#         result = Parallel(n_jobs=gv.num_cores)(delayed(deconvolve)(X[n_neuron], penalty=1, b=F0) for n_neuron in range(X.shape[0]) )
-
-#     result = np.array(result).T
-#     # print(result.shape)
-#     X_deconv = (np.stack(result[0])-F0[:, np.newaxis])/(F0[:, np.newaxis] + gv.eps) 
-#     # print(X_deconv.shape)
+def deconvolveFluo(X):
     
-#     # F0 = np.mean(X[:,:,gv.bins_BL],axis=2)     
-#     # with pg.tqdm_joblib(pg.tqdm(desc='deconvolve', total=int( X.shape[0] * X.shape[1] ) )) as progress_bar: 
-#     #     result = Parallel(n_jobs=gv.num_cores)(delayed(deconvolve)(X[trial, n_neuron], penalty=1, b=F0[trial, n_neuron] ) for trial in range(X.shape[0]) for n_neuron in range(X.shape[1]) ) 
-
-#     # result = np.array(result).T
-#     # result = np.array(result).reshape( (5, X.shape[0], X.shape[1]) )
-#     # result = np.moveaxis(result, 1, 2)
-#     # # print(result.shape)
+    F0 = np.mean(X[...,gv.bins_BL],axis=-1)
+            
+    def X_loop(X, F0, n_trial, n_neuron):
+        X_ij = X[n_trial, n_neuron]
+        F0_ij = F0[n_trial, n_neuron]
+        c, s, b, g, lam = deconvolve(X_ij, penalty=1, b=F0_ij)
+        return c
     
-#     # X_deconv = np.stack( np.hstack(result[0]) ).reshape( (X.shape[0], X.shape[1], X.shape[2]) ) 
-#     # # print(X_denoised.shape)
-
-#     # X_spikes = np.stack( np.hstack(result[1]) ).reshape( (X.shape[0], X.shape[1], X.shape[2]) ) 
-#     # print(X_denoised.shape)
+    def S_loop(X, F0, n_trial, n_neuron):
+        X_ij = X[n_trial, n_neuron]
+        F0_ij = F0[n_trial, n_neuron]
+        c, s, b, g, lam = deconvolve(X_ij, penalty=1, b=F0_ij)
+        return s
     
-#     # X_denoised = np.empty( (X.shape[0], X.shape[1]) )
-#     # X_spikes = np.empty( (X.shape[0], X.shape[1]) ) 
-
-#     # for n_neuron in range(X.shape[0]):
-#     #     X_denoised[n_neuron], X_spikes[n_neuron], F0, g, lam = deconvolve(X[n_neuron], penalty=1) 
-
-#     return X_deconv
-
-# def remove_outliers(X):
-#     ''' for each trial remove outlier neurons ''' 
-#     q25, q75 = np.percentile(X, 25, axis=-1), np.percentile(X, 75, axis=-1) 
-#     iqr = q75 - q25
+    # # loop over trials and neurons 
+    # with pg.tqdm_joblib(pg.tqdm(desc='denoise', total=X.shape[0]*X.shape[1])) as progress_bar: 
+    #     X_dcv = Parallel(n_jobs=gv.num_cores)(delayed(X_loop)(X, F0, n_trial, n_neuron) 
+    #                                         for n_trial in range(X.shape[0]) 
+    #                                         for n_neuron in range(X.shape[1]) ) 
+    # X_dcv = np.array(X_dcv).reshape(X.shape) 
     
-#     cut_off = iqr * 1.5 
-#     lower, upper = q25 - cut_off, q75 + cut_off 
+    with pg.tqdm_joblib(pg.tqdm(desc='deconvolve', total=X.shape[0]*X.shape[1])) as progress_bar: 
+        S_dcv = Parallel(n_jobs=gv.num_cores)(delayed(S_loop)(X, F0, n_trial, n_neuron) 
+                                              for n_trial in range(X.shape[0]) 
+                                              for n_neuron in range(X.shape[1]) ) 
+        
+    S_dcv = np.array(S_dcv).reshape(X.shape)    
+    S_flt = savgol_filter(S_dcv, int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0)
     
-#     outliers = [neuron for neuron in X[] if x < lower or x > upper]
-#     outliers_removed = [x for x in X if x > lower and x < upper]
+    if gv.Z_SCORE:
+        
+        def scaler_loop(S, n_trial):
+            S_i = S[n_trial]
+            scaler = StandardScaler()
+            scaler.fit(S_i[:,gv.bins_BL].T) 
+            return scaler.fit_transform(S_i.T).T 
+        
+        with pg.tqdm_joblib(pg.tqdm(desc='standardize', total=X.shape[0])) as progress_bar: 
+            S_scaled = Parallel(n_jobs=gv.num_cores)(delayed(scaler_loop)(S_flt, n_trial) 
+                                                     for n_trial in range(X.shape[0]) ) 
+            
+        S_scaled = np.array(S_scaled) 
+            
+        return S_scaled 
+        
+    return S_flt 

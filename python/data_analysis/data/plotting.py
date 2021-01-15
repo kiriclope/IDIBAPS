@@ -41,6 +41,9 @@ def figDir():
     if gv.T_WINDOW!=0 :
         gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW
         
+    if gv.DECONVOLVE : 
+        gv.figdir = gv.figdir + '/deconvolve' 
+        
     if gv.DETREND :
         gv.figdir = gv.figdir + '/detrend'  
         
@@ -49,6 +52,7 @@ def figDir():
         
     if gv.Z_SCORE : 
         gv.figdir = gv.figdir + '/z_score'        
+
                 
     if gv.TIBSHIRANI_TRICK:
         gv.figdir = gv.figdir + '/tibshirani_trick'

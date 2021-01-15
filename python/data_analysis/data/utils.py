@@ -280,23 +280,23 @@ def get_X_y_trials(X_data, y_labels):
     return X_trials, y_trials
 
 def get_X_y_mouse_session(synthetic=False):
-    
+
     X, y = get_fluo_data() 
     print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
     
     get_delays_times() 
     get_bins() # .9 or 1 
         
-    if gv.mouse in [gv.mice[0]]:
-        if 'ND_D1' in gv.trials:
-            gv.n_trials = 40*2
-        else:
-            gv.n_trials = 40
+    if gv.mouse in [gv.mice[0]]: 
+        if 'ND_D1' in gv.trials: 
+            gv.n_trials = 40*2 
+        else: 
+            gv.n_trials = 40 
     else: 
-        if 'ND_D1' in gv.trials:
-            gv.n_trials = 32*2
+        if 'ND_D1' in gv.trials: 
+            gv.n_trials = 32*2 
         else:        
-            gv.n_trials = 32
+            gv.n_trials = 32 
             
     X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) ) 
         
@@ -309,39 +309,47 @@ def get_X_y_mouse_session(synthetic=False):
             X_S1, X_S2 = get_S1_S2_trials(X, y)
 
         get_trial_types(X_S1) 
+
+        if not gv.DECONVOLVE:
+            # compute DF over F0 
+            X_S1 = pp.dFF0(X_S1) 
+            X_S2 = pp.dFF0(X_S2) 
             
-        # compute DF over F0 
-        X_S1 = pp.dFF0(X_S1) 
-        X_S2 = pp.dFF0(X_S2) 
-        
-        if gv.SAVGOL: 
-            for trial in range(X_S2.shape[0]): 
-                X_S1[trial] = savgol_filter(X_S1[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
-                X_S2[trial] = savgol_filter(X_S2[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
-                
+            if gv.SAVGOL: 
+                for trial in range(X_S2.shape[0]): 
+                    X_S1[trial] = savgol_filter(X_S1[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
+                    X_S2[trial] = savgol_filter(X_S2[trial], int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0) 
+                    
+            if gv.DETREND :
+                X_S1 = pp.detrend_X(X_S1,7)
+                X_S2 = pp.detrend_X(X_S2,7)
+            
+            if gv.Z_SCORE : 
+                for trial in range(min_S1_S2): 
+                    X_S1[trial] = pp.z_score(X_S1[trial]) 
+                    X_S2[trial] = pp.z_score(X_S2[trial]) 
+
         if X_S1.shape[0]!=X_trials.shape[2] or X_S2.shape[0]!=X_trials.shape[2]: 
             print('X_trials', X_trials.shape[2], 'X_S1', X_S1.shape[0], 'X_S2', X_S2.shape[0]) 
             min_S1_S2 = np.amin([X_S1.shape[0], X_S2.shape[0]]) 
         else: 
-            min_S1_S2 = X_trials.shape[2] 
+            min_S1_S2 = X_trials.shape[2]
             
         mins.append(min_S1_S2)
         
-        if gv.DETREND :
-            X_S1 = pp.detrend_X(X_S1,7)
-            X_S2 = pp.detrend_X(X_S2,7)
-            
-        if gv.Z_SCORE : 
-            for trial in range(min_S1_S2): 
-                X_S1[trial] = pp.z_score(X_S1[trial]) 
-                X_S2[trial] = pp.z_score(X_S2[trial]) 
+        if gv.DECONVOLVE:
+            X_S1 = pp.deconvolveFluo(X_S1) 
+            X_S2 = pp.deconvolveFluo(X_S2) 
             
         X_trials[n_trial, 0, 0:X_S1.shape[0]] = X_S1 
         X_trials[n_trial, 1, 0:X_S2.shape[0]] = X_S2 
         
+            
     mins = np.amin(mins) 
     y = np.array([np.zeros(mins), np.ones(mins)]).flatten() 
-    X_trials = X_trials[:,:,0:mins] 
+    X_trials = X_trials[:,:,0:mins]
+    
+    
     print('X_trials', X_trials.shape, 'y', y.shape) 
     
     return X_trials, y 

@@ -149,8 +149,9 @@ FEATURE_SELECTION=0
 global TIBSHIRANI_TRICK
 TIBSHIRANI_TRICK=0
 
-global Z_SCORE
+global Z_SCORE, DECONVOLVE
 Z_SCORE=0
+DECONVOLVE=0
 
 global pls_method, pls_max_comp, pls_cv
 pls_method = 'PLSRegression'
