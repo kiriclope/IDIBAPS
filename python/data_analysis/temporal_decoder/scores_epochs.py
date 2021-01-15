@@ -46,14 +46,15 @@ def get_scores(X_trials, **kwargs):
     options = set_options(**kwargs) 
     get_clf(**kwargs) 
     
-    decoder = cross_temp_decoder(gv.clf, scoring=gv.scoring, cv=kwargs['n_splits'], shuffle=gv.shuffle, random_state=gv.random_state, mne_decoder=not(gv.my_decoder), fold_type=gv.fold_type, standardize=gv.standardize, n_jobs=gv.num_cores, n_iter=gv.n_iter) 
+    decoder = cross_temp_decoder(gv.clf, scoring=gv.scoring, cv=kwargs['n_splits'],
+                                 shuffle=gv.shuffle, random_state=gv.random_state,
+                                 mne_decoder=not(gv.my_decoder),
+                                 fold_type=gv.fold_type, standardize=gv.standardize, n_jobs=gv.num_cores, n_iter=gv.n_iter) 
     
     get_epochs() 
 
-    print(X_trials.shape)
     if gv.scores_trials:
         X_trials = np.swapaxes(X_trials, 0, -1) 
-    print(X_trials.shape)
 
     scores = np.empty((X_trials.shape[0], X_trials.shape[-1], X_trials.shape[-1] ))
     
@@ -86,7 +87,7 @@ def plot_scores_epochs(X_trials, **kwargs):
     for n_cond in range(X_trials.shape[0]):
 
         if gv.scores_trials:
-            gv.trial = gv.epochs[n_cond] 
+            gv.epoch = gv.epochs[n_cond] 
         else:
             gv.trial = gv.trials[n_cond]
             
@@ -169,9 +170,9 @@ def plot_loop_mice_sessions(**kwargs):
                 X_trials, y = fct.get_X_y_mouse_session() 
 
             if gv.ED_MD_LD: 
-                X_trials = X_trials[:,:,:,:,gv.bins_ED_MD_LD] 
+                X_trials = X_trials[...,gv.bins_ED_MD_LD] 
             if gv.DELAY_ONLY: 
-                X_trials = X_trials[:,:,:,:,gv.bins_delay] 
+                X_trials = X_trials[...,gv.bins_delay] 
                 gv.bin_start = gv.bins_delay[0] 
                 
             X_trials = pp.avg_epochs(X_trials) 
