@@ -99,7 +99,7 @@ def plot_loop_mice_sessions(**kwargs):
 
     gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
     gv.my_decoder = 1
-    gv.scores_trials=1 
+    gv.scores_trials=0 
     gv.n_iter = 100 
     
     gv.shuffle= True 
@@ -119,13 +119,14 @@ def plot_loop_mice_sessions(**kwargs):
     gv.TIBSHIRANI_TRICK = 0 
     
     # preprocessing parameters 
-    gv.T_WINDOW = 0. 
+    gv.T_WINDOW = 0.0 
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
     
     # only useful with dim red methods 
     gv.ED_MD_LD = 1 
     gv.DELAY_ONLY = 0 
-    
+
+    gv.DECONVOLVE = 1 
     gv.SAVGOL = 0 # sav_gol filter 
     gv.Z_SCORE = 0 # z_score with BL mean and std 
     

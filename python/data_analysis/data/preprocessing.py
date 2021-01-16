@@ -1,6 +1,7 @@
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from scipy.signal import savgol_filter
+from scipy.ndimage import uniform_filter1d
 
 from joblib import Parallel, delayed, parallel_backend
 from meegkit.detrend import detrend
@@ -312,22 +313,30 @@ def deconvolveFluo(X):
                                               for n_neuron in range(X.shape[1]) ) 
         
     S_dcv = np.array(S_dcv).reshape(X.shape)    
-    S_flt = savgol_filter(S_dcv, int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0)
+    # S_flt = savgol_filter(S_dcv, int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0)
+    
+    def threshold_spikes(S_dcv): 
+        S_dcv[S_dcv<.5] = 0 
+        S_dcv[S_dcv>=.5] = 1 
+        S_dcv = uniform_filter1d( S_dcv, int(gv.frame_rate/4) ) 
+        return S_dcv * 1000 
+    
+    S_th = threshold_spikes(S_dcv) 
     
     if gv.Z_SCORE:
         
-        def scaler_loop(S, n_trial):
+        def scaler_loop(S, n_trial, bins_BL): 
             S_i = S[n_trial]
-            scaler = StandardScaler()
-            scaler.fit(S_i[:,gv.bins_BL].T) 
-            return scaler.fit_transform(S_i.T).T 
+            scaler = StandardScaler() 
+            scaler.fit(S_i[:,bins_BL].T) 
+            return scaler.transform(S_i.T).T 
         
         with pg.tqdm_joblib(pg.tqdm(desc='standardize', total=X.shape[0])) as progress_bar: 
-            S_scaled = Parallel(n_jobs=gv.num_cores)(delayed(scaler_loop)(S_flt, n_trial) 
+            S_scaled = Parallel(n_jobs=gv.num_cores)(delayed(scaler_loop)(S_th, n_trial, gv.bins_BL) 
                                                      for n_trial in range(X.shape[0]) ) 
             
         S_scaled = np.array(S_scaled) 
             
         return S_scaled 
         
-    return S_flt 
+    return S_th 
