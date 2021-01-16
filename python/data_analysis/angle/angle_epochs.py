@@ -361,13 +361,13 @@ def plot_loop_mice_sessions(**kwargs):
     # gv.num_cores =  int( np.sqrt(0.9*multiprocessing.cpu_count()) ) 
     gv.IF_SAVE = 1 
     gv.cos_trials = 0 
-    gv.correct_trial = 0 
+    gv.correct_trial = 0  
     gv.pair_trials = 0 
     
     # bootstrap parameters 
-    gv.n_boots = int(1e3) 
+    gv.n_boots = int(1e0) 
     gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
-    gv.bootstrap_cos = 1  
+    gv.bootstrap_cos = 1 
     gv.n_cos_boots = int(1e3) 
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
@@ -377,7 +377,7 @@ def plot_loop_mice_sessions(**kwargs):
     gv.TIBSHIRANI_TRICK = 0 
         
     # preprocessing parameters 
-    gv.T_WINDOW = 0.5
+    gv.T_WINDOW = 0.5 
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
     
     # only useful with dim red methods 
@@ -385,8 +385,9 @@ def plot_loop_mice_sessions(**kwargs):
     gv.DELAY_ONLY = 0 
 
     gv.DECONVOLVE=1
-    gv.DETREND = 0 # detrend the data
-    gv.Z_SCORE = 1 # z_score with BL mean and std 
+    gv.DETREND = 0 # detrend the data 
+    gv.Z_SCORE = 0 # z_score 
+    gv.Z_SCORE_BL = 1 # z_score with BL mean and std 
     gv.SAVGOL = 0 # sav_gol filter 
     
     # feature selection 

@@ -18,10 +18,11 @@ def center(X):
     return Xc
 
 def z_score(X): 
-    scaler = StandardScaler() 
-    scaler.fit(X[:,gv.bins_BL].T) 
-    Xz = scaler.transform(X.T).T 
-    # Xz = scaler.fit_transform(X.T).T 
+    scaler = StandardScaler()
+    if gv.Z_SCORE:
+        Xz = scaler.fit_transform(X.T).T
+    elif gv.Z_SCORE_BL :
+        Xz = scaler.transform(X.T).T 
     return Xz 
 
 def normalize(X):
@@ -323,16 +324,21 @@ def deconvolveFluo(X):
     
     S_th = threshold_spikes(S_dcv) 
     
-    if gv.Z_SCORE:
+    if gv.Z_SCORE | gv.Z_SCORE_BL:
         
-        def scaler_loop(S, n_trial, bins_BL): 
+        if gv.Z_SCORE_BL:
+            gv.bins_z_score = gv.bins_BL
+        else :
+            gv.bins_z_score = gv.bins 
+            
+        def scaler_loop(S, n_trial, bins): 
             S_i = S[n_trial]
             scaler = StandardScaler() 
-            scaler.fit(S_i[:,bins_BL].T) 
+            scaler.fit(S_i[:,bins].T) 
             return scaler.transform(S_i.T).T 
         
         with pg.tqdm_joblib(pg.tqdm(desc='standardize', total=X.shape[0])) as progress_bar: 
-            S_scaled = Parallel(n_jobs=gv.num_cores)(delayed(scaler_loop)(S_th, n_trial, gv.bins_BL) 
+            S_scaled = Parallel(n_jobs=gv.num_cores)(delayed(scaler_loop)(S_th, n_trial, gv.bins_z_score) 
                                                      for n_trial in range(X.shape[0]) ) 
             
         S_scaled = np.array(S_scaled) 

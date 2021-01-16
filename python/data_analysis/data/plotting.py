@@ -44,15 +44,18 @@ def figDir():
     if gv.DECONVOLVE : 
         gv.figdir = gv.figdir + '/deconvolve' 
         
-    if gv.DETREND :
+    elif gv.DETREND :
         gv.figdir = gv.figdir + '/detrend'  
         
     if gv.SAVGOL :
         gv.figdir = gv.figdir + '/savgol' 
         
     if gv.Z_SCORE : 
-        gv.figdir = gv.figdir + '/z_score'        
-
+        gv.figdir = gv.figdir + '/z_score'
+        
+    elif gv.Z_SCORE_BL : 
+        gv.figdir = gv.figdir + '/z_score_bl'
+        
                 
     if gv.TIBSHIRANI_TRICK:
         gv.figdir = gv.figdir + '/tibshirani_trick'

@@ -129,6 +129,7 @@ def plot_loop_mice_sessions(**kwargs):
     gv.DECONVOLVE = 1 
     gv.SAVGOL = 0 # sav_gol filter 
     gv.Z_SCORE = 0 # z_score with BL mean and std 
+    gv.Z_SCORE_BL = 0 # z_score with BL mean and std 
     
     # feature selection 
     gv.FEATURE_SELECTION = 0 
@@ -159,7 +160,7 @@ def plot_loop_mice_sessions(**kwargs):
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in gv.mice : 
+    for gv.mouse in [gv.mice[1]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
