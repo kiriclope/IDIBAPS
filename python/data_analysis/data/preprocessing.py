@@ -292,8 +292,8 @@ def deconvolveFluo(X):
     def X_loop(X, F0, n_trial, n_neuron):
         X_ij = X[n_trial, n_neuron]
         F0_ij = F0[n_trial, n_neuron]
-        c, s, b, g, lam = deconvolve(X_ij, penalty=1, b=F0_ij)
-        return c
+        c, s, b, g, lam = deconvolve(X_ij, penalty=1, b=F0_ij) 
+        return c 
     
     def S_loop(X, F0, n_trial, n_neuron):
         X_ij = X[n_trial, n_neuron]
@@ -316,19 +316,19 @@ def deconvolveFluo(X):
     S_dcv = np.array(S_dcv).reshape(X.shape)    
     # S_flt = savgol_filter(S_dcv, int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0)
     
-    def threshold_spikes(S_dcv): 
-        S_dcv[S_dcv<.5] = 0 
-        S_dcv[S_dcv>=.5] = 1 
+    def threshold_spikes(S_dcv, threshold): 
+        S_dcv[S_dcv<threshold] = 0 
+        S_dcv[S_dcv>=threshold] = 1 
         S_dcv = uniform_filter1d( S_dcv, int(gv.frame_rate/4) ) 
         return S_dcv * 1000 
     
-    S_th = threshold_spikes(S_dcv) 
+    S_th = threshold_spikes(S_dcv, gv.DCV_THRESHOLD) 
     
-    if gv.Z_SCORE | gv.Z_SCORE_BL:
+    if gv.Z_SCORE | gv.Z_SCORE_BL: 
         
-        if gv.Z_SCORE_BL:
-            gv.bins_z_score = gv.bins_BL
-        else :
+        if gv.Z_SCORE_BL: 
+            gv.bins_z_score = gv.bins_BL 
+        else: 
             gv.bins_z_score = gv.bins 
             
         def scaler_loop(S, n_trial, bins): 

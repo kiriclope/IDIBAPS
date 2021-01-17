@@ -42,7 +42,7 @@ def figDir():
         gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW
         
     if gv.DECONVOLVE : 
-        gv.figdir = gv.figdir + '/deconvolve' 
+        gv.figdir = gv.figdir + '/deconvolve_th_%.2f' % gv.DCV_THRESHOLD 
         
     elif gv.DETREND :
         gv.figdir = gv.figdir + '/detrend'  
