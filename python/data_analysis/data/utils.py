@@ -283,9 +283,13 @@ def get_X_y_mouse_session(synthetic=False):
 
     X, y = get_fluo_data() 
     print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
-    
     get_delays_times() 
     get_bins() # .9 or 1 
+    
+    # compute DF over F0 
+    if gv.F0_THRESHOLD is not None: 
+        X = pp.dFF0_remove_silent(X) 
+        gv.n_neurons = X.shape[1] 
         
     if gv.mouse in [gv.mice[0]]: 
         if 'ND_D1' in gv.trials: 
@@ -312,8 +316,8 @@ def get_X_y_mouse_session(synthetic=False):
 
         if not gv.DECONVOLVE:
             # compute DF over F0 
-            X_S1 = pp.dFF0(X_S1) 
-            X_S2 = pp.dFF0(X_S2) 
+            # X_S1 = pp.dFF0(X_S1) 
+            # X_S2 = pp.dFF0(X_S2) 
             
             if gv.SAVGOL: 
                 for trial in range(X_S2.shape[0]): 
@@ -329,11 +333,11 @@ def get_X_y_mouse_session(synthetic=False):
                     X_S1[trial] = pp.z_score(X_S1[trial]) 
                     X_S2[trial] = pp.z_score(X_S2[trial]) 
 
-        if X_S1.shape[0]!=X_trials.shape[2] or X_S2.shape[0]!=X_trials.shape[2]: 
-            print('X_trials', X_trials.shape[2], 'X_S1', X_S1.shape[0], 'X_S2', X_S2.shape[0]) 
-            min_S1_S2 = np.amin([X_S1.shape[0], X_S2.shape[0]]) 
+        if X_S1.shape[1]!=X_trials.shape[3] or X_S2.shape[1]!=X_trials.shape[3]: 
+            print('X_trials', X_trials.shape[3], 'X_S1', X_S1.shape[1], 'X_S2', X_S2.shape[1]) 
+            min_S1_S2 = np.amin([X_S1.shape[1], X_S2.shape[1]]) 
         else: 
-            min_S1_S2 = X_trials.shape[2]
+            min_S1_S2 = X_trials.shape[3]
             
         mins.append(min_S1_S2)
         
@@ -341,8 +345,9 @@ def get_X_y_mouse_session(synthetic=False):
             X_S1 = pp.deconvolveFluo(X_S1) 
             X_S2 = pp.deconvolveFluo(X_S2) 
             
-        X_trials[n_trial, 0, 0:X_S1.shape[0]] = X_S1 
-        X_trials[n_trial, 1, 0:X_S2.shape[0]] = X_S2 
+        X_trials[n_trial, 0, 0:X_S1.shape[0], 0:X_S1.shape[1]] = X_S1 
+        X_trials[n_trial, 1, 0:X_S2.shape[0], 0:X_S2.shape[1]] = X_S2 
+        print('X_trials', X_trials.shape[3], 'X_S1', X_S1.shape[1], 'X_S2', X_S2.shape[1]) 
         
             
     mins = np.amin(mins) 

@@ -8,8 +8,8 @@ class pca_methods():
     
     def __init__(self, pca_model='pca', pca_method='hybrid', n_components=None, total_explained_variance=0.9, inflection=False, minka_mle=False, ridge_alpha=.01, alpha=1, verbose=True):
 
-        if 'sparse' in pca_model:
-            self.pca_model = SparsePCA
+        if 'sparse' in pca_model: 
+            self.pca_model = SparsePCA 
         else: 
             self.pca_model = PCA 
             
@@ -28,8 +28,8 @@ class pca_methods():
         self.explained_variance = None 
         self.verbose = verbose
         
-    def get_inflection_point(self, total_explained_variance): 
-        d2_var = np.gradient(np.gradient(total_explained_variance))
+    def get_inflection_point(self, explained_variance): 
+        d2_var = np.gradient(np.gradient(explained_variance))
         try :
             inflection_point = np.argwhere(np.diff(np.sign(d2_var)))[0][0]
         except:
@@ -100,10 +100,13 @@ class pca_methods():
                     pca = self.pca_model(n_components=self.n_components, ridge_alpha=self.ridge_alpha, alpha=self.alpha) 
                     
             pca.fit(X_avg[n_trial].T)             
-            self.n_components = pca.n_components_ 
+            self.n_components = pca.n_components_
+            
+            if self.pca_model==PCA :
+                self.explained_variance = pca.explained_variance_ratio_                 
             
             if self.inflection:
-                self.n_components = self.get_inflection_point(self.total_explained_variance) 
+                self.n_components = self.get_inflection_point(self.explained_variance) 
                 pca = self.pca_model(n_components=self.n_components) 
                 pca.fit(X_avg[n_trial].T) 
                 self.n_components = pca.n_components_
@@ -163,6 +166,8 @@ class pca_methods():
             # pca on (N_samples x N_features), ie X is N_trials x N_neurons 
             pca.fit(X_concat.T) 
             self.n_components = pca.n_components_ 
+            if self.pca_model==PCA :
+                self.explained_variance = pca.explained_variance_ratio_                 
             
             if self.inflection:
                 self.n_components = self.get_inflection_point(self.explained_variance) 

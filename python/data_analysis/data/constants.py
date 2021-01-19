@@ -203,3 +203,10 @@ ridge_alpha=.01
 
 global scores_trials
 scores_trials=0
+
+global F0_THRESHOLD, AVG_F0_TRIALS
+F0_THRESHOLD=0 
+AVG_F0_TRIALS=0
+
+global AVG_BEFORE_PCA
+AVG_BEFORE_PCA=0

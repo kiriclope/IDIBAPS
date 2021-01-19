@@ -52,22 +52,25 @@ def get_scores(X_trials, **kwargs):
                                  fold_type=gv.fold_type, standardize=gv.standardize, n_jobs=gv.num_cores, n_iter=gv.n_iter) 
     
     get_epochs() 
-
-    if gv.scores_trials:
+    
+    if gv.scores_trials: 
         X_trials = np.swapaxes(X_trials, 0, -1) 
-
+        
+    if not gv.AVG_BEFORE_PCA: 
+        X_trials = pp.avg_epochs(X_trials) 
+        
     scores = np.empty((X_trials.shape[0], X_trials.shape[-1], X_trials.shape[-1] ))
     
     for n_cond in range(X_trials.shape[0]): 
         X_S1 = X_trials[n_cond,0] 
         X_S2 = X_trials[n_cond,1] 
         
-        X_S1_S2 = np.vstack((X_S1, X_S2)) 
+        X_S1_S2 = np.vstack((X_S1, X_S2))
+        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten()
+        
         if gv.list_n_components is not None: 
             X_S1_S2 = X_S1_S2[:,0:int(gv.list_n_components[n_cond])] 
-            
-        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
-        
+                    
         if gv.scores_trials:
             print('epoch:', gv.epochs[n_cond], 'X', X_S1_S2.shape,'y', y.shape) 
         else: 
@@ -97,13 +100,14 @@ def plot_loop_mice_sessions(**kwargs):
 
     options = set_options(**kwargs) 
 
-    gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
-    gv.my_decoder = 1
-    gv.scores_trials=0 
+    gv.num_cores =  int(0.9*multiprocessing.cpu_count())
+    gv.laser_on = options['laser_on'] 
+    gv.my_decoder = 1 
+    gv.scores_trials = options['scores_trials']
     gv.n_iter = 100 
     
     gv.shuffle= True 
-    gv.random_state= None  
+    gv.random_state= None   
     
     gv.IF_SAVE = 1 
     gv.SYNTHETIC = 0 
@@ -112,21 +116,27 @@ def plot_loop_mice_sessions(**kwargs):
     # classification parameters 
     gv.clf_name = options['clf_name'] 
     n_splits = options['n_splits'] 
-    gv.scoring =  options['scoring'] # 'accuracy' 'roc_auc' 
+    gv.scoring =  options['scoring'] # 'accuracy' 'roc_auc'
+    
     gv.fold_type = 'stratified' 
     gv.standardize = True # safety for dummies 
     
     gv.TIBSHIRANI_TRICK = 0 
     
     # preprocessing parameters 
-    gv.T_WINDOW = 0.0 
+    gv.T_WINDOW = 0.0  
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
+    
+    gv.F0_THRESHOLD = options['F0_THRESHOLD']
+    gv.AVG_F0_TRIALS = 0  
     
     # only useful with dim red methods 
     gv.ED_MD_LD = 1 
     gv.DELAY_ONLY = 0 
-
-    gv.DECONVOLVE = 1 
+    
+    gv.DECONVOLVE = 0 
+    gv.DCV_THRESHOLD = 0.0 
+    
     gv.SAVGOL = 0 # sav_gol filter 
     gv.Z_SCORE = 0 # z_score with BL mean and std 
     gv.Z_SCORE_BL = 0 # z_score with BL mean and std 
@@ -136,19 +146,28 @@ def plot_loop_mice_sessions(**kwargs):
     gv.LASSOCV = 0 
         
     # PCA parameters 
+    gv.AVG_BEFORE_PCA = 1 
     gv.explained_variance = .9 
+    gv.n_components = 10 
     gv.list_n_components = None 
-    gv.inflection = False 
-    gv.pca_model = None 
-    gv.pca_method = 'concatenated' # 'hybrid', 'concatenated', 'averaged', 'supervised' or None 
+    gv.inflection = None 
+    gv.minka_mle = False 
+    gv.pca_model = None # PCA, sparsePCA, supervisedPCA or None 
+    gv.sparse_alpha = 1 
+    gv.ridge_alpha = .01 
+    gv.pca_method = 'concatenated' # 'hybrid', 'concatenated', 'averaged' or None 
     gv.max_threshold = 10 
     gv.n_thresholds = 100 
+    gv.spca_scoring = 'accuracy' # 'mse', 'log_loss' or 'roc_auc' 
+    gv.spca_cv = 5 
     
     if gv.pca_model is not None: 
-        if 'supervised' in gv.pca_model: 
+        if 'supervisedPCA'==gv.pca_model: 
             my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
         else: 
-            my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method, explained_variance=gv.explained_variance, inflection=gv.inflection) 
+            my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method, n_components= gv.n_components,
+                                 total_explained_variance=gv.explained_variance, inflection=gv.inflection,
+                                 minka_mle=gv.minka_mle, verbose=True, ridge_alpha=gv.ridge_alpha, alpha=gv.sparse_alpha) 
             
     # PLS parameters 
     gv.pls_max_comp = 100 # 'full', int or None 
@@ -160,24 +179,25 @@ def plot_loop_mice_sessions(**kwargs):
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in [gv.mice[1]] : 
+    for gv.mouse in gv.mice : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in gv.sessions : 
+        for gv.session in [gv.sessions[-1]] : 
             if gv.SYNTHETIC: 
                 X_trials, y = syn.synthetic_data(0.5) 
             else: 
                 X_trials, y = fct.get_X_y_mouse_session() 
-
+                
             if gv.ED_MD_LD: 
                 X_trials = X_trials[...,gv.bins_ED_MD_LD] 
             if gv.DELAY_ONLY: 
                 X_trials = X_trials[...,gv.bins_delay] 
                 gv.bin_start = gv.bins_delay[0] 
-                
-            X_trials = pp.avg_epochs(X_trials) 
+
+            if gv.AVG_BEFORE_PCA:
+                X_trials = pp.avg_epochs(X_trials) 
             print('X_trials', X_trials.shape) 
             
             if gv.pca_model is not None: 

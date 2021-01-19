@@ -58,20 +58,22 @@ def bootstrap_coefs(X_trials, **kwargs):
     boots_model = bootstrap(gv.clf, bootstrap_method=gv.bootstrap_method, n_boots=gv.n_boots, scaling=gv.scaling, n_jobs=gv.num_cores) 
     get_epochs()
     
+    if not gv.AVG_BEFORE_PCA: 
+        X_trials = pp.avg_epochs(X_trials) 
+        
     coefs = np.empty((len(gv.trials), len(gv.epochs), gv.n_boots, X_trials.shape[3])) 
     
     # fix random seed 
     seed = np.random.randint(0,1e6)
         
     for n_trial, gv.trial in enumerate(gv.trials): 
-        gv.trial = gv.trials[n_trial] 
-        X_S1_S2 = np.vstack( ( X_trials[n_trial,0], X_trials[n_trial,1] ) )
+        
+        X_S1_S2 = np.vstack( ( X_trials[n_trial,0], X_trials[n_trial,1] ) )         
+        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten()
         
         if gv.list_n_components is not None: 
             X_S1_S2 = X_S1_S2[:,0:int(gv.list_n_components[n_trial])] 
-        
-        y = np.array([np.zeros(int(X_S1_S2.shape[0]/2)), np.ones(int(X_S1_S2.shape[0]/2))]).flatten() 
-        
+            
         if not gv.cos_trials: 
             # same seed for each epoch but different for each trial
             seed = np.random.randint(0,1e6) 
@@ -116,9 +118,10 @@ def boot_cos(x,y):
     return agl.cos_between(x_sample, y_sample) 
 
 def get_cos_epochs(coefs, bootstrap=0, n_boots=int(1e3)): 
+    ''' coefs: N_trials, N_epochs, N_boots, N_neurons'''
     
     if bootstrap:
-        coefs = np.mean(coefs, axis=2) 
+        coefs = np.mean(coefs, axis=2) # average over boots 
         
     cos_sample = np.empty( (len(gv.trials), len(gv.epochs), n_boots ) ) 
     
@@ -127,14 +130,14 @@ def get_cos_epochs(coefs, bootstrap=0, n_boots=int(1e3)):
     lower_cos = np.empty((len(gv.trials), len(gv.epochs))) 
     
     for n_trial, gv.trial in enumerate(gv.trials):  # 'ND', 'D1', 'D2'
-        if bootstrap:
-            if gv.list_n_components is not None:
+        if bootstrap: 
+            if gv.list_n_components is not None: 
                 x =  coefs[n_trial, 0, 0:int(gv.list_n_components[n_trial])] # 'ED'
             else:                
                 x =  coefs[n_trial, 0] # 'ED'              
         else:
             if gv.list_n_components is not None:
-                x =  coefs[n_trial, 0, :, 0:int(gv.list_n_components[n_trial])] # 'ED'
+                x =  coefs[n_trial, 0, :, 0:int(gv.list_n_components[n_trial])] # 'ED' 
             else:
                 x =  coefs[n_trial, 0] # 'ED'
         
@@ -337,18 +340,18 @@ def plot_cos_epochs(X_trials, **kwargs):
     figtitle = '%s_%s_bars_cos_alp' % (gv.mouse, gv.session) 
     pl.save_fig(figtitle) 
     
-    # if gv.cos_trials:
+    # if gv.cos_trials: 
     #     mean_corr, lower_corr, upper_corr, corr_sample = get_corr_trials(coefs, 1000) 
-    # else:
-    #     mean_corr, lower_corr, upper_corr, corr_sample = get_corr_epochs(coefs, 1000)
+    # else: 
+    #     mean_corr, lower_corr, upper_corr, corr_sample = get_corr_epochs(coefs, 1000) 
         
     # p_values_corr = get_p_values(corr_sample) 
     # pl.bar_trials_epochs(mean_corr, lower_corr, upper_corr, var_name='corr') 
     # add_pvalue(p_values_corr) 
     # if np.all(mean_corr>-0.1): 
     #     plt.ylim([-0.1, 1.1]) 
-    # else:
-    #     plt.ylim([-1, 1.1])  
+    # else: 
+    #     plt.ylim([-1, 1.1]) 
     
     # figtitle = '%s_%s_bars_corr' % (gv.mouse, gv.session) 
     # pl.save_fig(figtitle) 
@@ -357,35 +360,39 @@ def plot_loop_mice_sessions(**kwargs):
 
     options = set_options(**kwargs)
     
-    gv.num_cores =  int(0.9*multiprocessing.cpu_count()) 
-    # gv.num_cores =  int( np.sqrt(0.9*multiprocessing.cpu_count()) ) 
+    gv.num_cores =  int(0.9*multiprocessing.cpu_count())
+    gv.laser_on = options['laser_on']
+    gv.cos_trials = options['cos_trials']
     gv.IF_SAVE = 1 
-    gv.cos_trials = 0 
-    gv.correct_trial = 0  
+    gv.correct_trial = 0   
     gv.pair_trials = 0 
     
     # bootstrap parameters 
     gv.n_boots = int(1e3) 
-    gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
-    gv.bootstrap_cos = 1 
+    gv.bootstrap_method = 'bayes' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
+    gv.bootstrap_cos = 1  
     gv.n_cos_boots = int(1e3) 
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
     # classification parameters 
-    gv.clf_name = options['clf_name']     
+    gv.clf_name = options['clf_name'] 
     gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
     gv.TIBSHIRANI_TRICK = 0 
         
     # preprocessing parameters 
-    gv.T_WINDOW = 0.5 
+    gv.T_WINDOW = 0.0 
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
+
+    gv.F0_THRESHOLD = options['F0_THRESHOLD']
+    gv.AVG_F0_TRIALS = 0 
     
     # only useful with dim red methods 
     gv.ED_MD_LD = 1 
     gv.DELAY_ONLY = 0 
     
-    gv.DECONVOLVE=1 
-    gv.DCV_THRESHOLD=.25 
+    gv.DECONVOLVE = 0 
+    gv.DCV_THRESHOLD = 0.5 
+    
     gv.DETREND = 0 # detrend the data 
     gv.Z_SCORE = 0 # z_score 
     gv.Z_SCORE_BL = 0 # z_score with BL mean and std 
@@ -398,11 +405,12 @@ def plot_loop_mice_sessions(**kwargs):
     # scaling before clf, when using pca use None 
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
-    # PCA parameters 
-    gv.explained_variance = .75 
+    # PCA parameters
+    gv.AVG_BEFORE_PCA = 1 
+    gv.explained_variance = .9 
     gv.n_components = 10 
-    gv.list_n_components = None 
-    gv.inflection = False  
+    gv.list_n_components = None  
+    gv.inflection = None  
     gv.minka_mle = False 
     gv.pca_model = None # PCA, sparsePCA, supervisedPCA or None 
     gv.sparse_alpha = 1 
@@ -415,7 +423,7 @@ def plot_loop_mice_sessions(**kwargs):
     
     if gv.pca_model is not None: 
         # gv.scaling = None # safety for dummies 
-        if gv.pca_model in 'supervisedPCA' : 
+        if 'supervisedPCA'==gv.pca_model: 
             my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance,
                                       cv=gv.spca_cv, max_threshold=gv.max_threshold, n_thresholds=gv.n_thresholds,
                                       verbose=True, n_jobs=gv.num_cores, scoring=gv.spca_scoring) 
@@ -434,12 +442,12 @@ def plot_loop_mice_sessions(**kwargs):
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in [gv.mice[1]] : 
+    for gv.mouse in gv.mice: 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 
         
-        for gv.session in gv.sessions: 
+        for gv.session in [gv.sessions[-1]]: 
             X_trials, y = fct.get_X_y_mouse_session() 
                 
             if gv.ED_MD_LD: 
@@ -447,9 +455,10 @@ def plot_loop_mice_sessions(**kwargs):
             if gv.DELAY_ONLY: 
                 X_trials = X_trials[...,gv.bins_delay] 
                 gv.bin_start = gv.bins_delay[0] 
-
-            X_trials = pp.avg_epochs(X_trials) 
-            # print('X_trials', X_trials.shape) 
+                
+            if gv.AVG_BEFORE_PCA: 
+                X_trials = pp.avg_epochs(X_trials) 
+                # print('X_trials', X_trials.shape)  
             
             if (gv.pca_model is not None) or (gv.pls_method is not None): 
                                     

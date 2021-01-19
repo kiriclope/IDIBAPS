@@ -11,11 +11,23 @@ def set_options(**kwargs):
     
     opts = dict() 
     opts['clf_name']='glmnet'
+    opts['F0_THRESHOLD']=None
+    opts['cos_trials']=0
+    opts['scores_trials']=0
+    opts['laser_on']=0
+    
     opts['C']=1e0 
     opts['Cs']=100 
     opts['penalty']='l1' 
-    opts['solver']='liblinear' 
+    opts['solver']='liblinear'
+    opts['criterion']='bic'
+    
+    # for glmnet only
+    opts['standardize']=False
     opts['l1_ratio']=None 
+    opts['lambda_path']= -np.sort(-np.logspace(-4, -2, opts['Cs'])) 
+    opts['cut_point']=1
+    
     opts['loss']='lsqr' 
     opts['shrinkage']='auto' 
     opts['n_splits']=3
@@ -35,7 +47,7 @@ def get_clf(**kwargs):
     globals().update(options) 
     
     if 'LogisticRegressionCV' in gv.clf_name:
-        gv.clf = LogisticRegressionCV(Cs=np.logspace(-4,4,C), solver=solver, penalty=penalty, l1_ratios=l1_ratio, 
+        gv.clf = LogisticRegressionCV(Cs=np.logspace(-4,4,Cs), solver=solver, penalty=penalty, l1_ratios=l1_ratio, 
                                       tol=tol, max_iter=int(max_iter), scoring=gv.scoring, 
                                       fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, 
                                       cv=n_splits, n_jobs=None) 
@@ -47,7 +59,7 @@ def get_clf(**kwargs):
                                     n_jobs=None) 
         
     elif 'LDA' in gv.clf_name: 
-        gv.clf = LinearDiscriminantAnalysis(tol=tol, solver='lsqr', shrinkage=shrinkage)
+        gv.clf = LinearDiscriminantAnalysis(tol=tol, solver='lsqr', shrinkage=shrinkage) 
         
     elif 'PLS' in gv.clf_name:
         gv.clf = PLSRegression(scale=False) 
@@ -64,16 +76,16 @@ def get_clf(**kwargs):
 
     elif 'glmnet_off_diag' in gv.clf_name: 
         gv.clf = LogitNetOffDiag(alpha=l1_ratio, n_lambda=Cs, min_lambda_ratio=1e-4,
-                                 lambda_path=None, standardize=False, fit_intercept=fit_intercept,
+                                 lambda_path=lambda_path, standardize=standardize, fit_intercept=fit_intercept,
                                  lower_limits=-np.inf, upper_limits=np.inf,
-                                 cut_point=1.0, n_splits=n_splits, scoring=gv.scoring, n_jobs=None, tol=1e-7,
+                                 cut_point=cut_point, n_splits=n_splits, scoring=gv.scoring, n_jobs=None, tol=1e-7,
                                  max_iter=100000, random_state=None, max_features=None, verbose=False)
         
     elif 'glmnet' in gv.clf_name: 
-        gv.clf = LogitNet(alpha=l1_ratio, n_lambda=Cs, min_lambda_ratio=1e-4,
-                          lambda_path=None, standardize=False, fit_intercept=fit_intercept,
-                          lower_limits=-np.inf, upper_limits=np.inf,
-                          cut_point=1.0, n_splits=n_splits, scoring=gv.scoring, n_jobs=None, tol=1e-7,
+        gv.clf = LogitNet(alpha=l1_ratio, n_lambda=Cs, min_lambda_ratio=1e-4, lambda_path=lambda_path,
+                          standardize=standardize, fit_intercept=fit_intercept,
+                          lower_limits=-np.inf, upper_limits=np.inf, cut_point=cut_point,
+                          n_splits=n_splits, scoring=gv.scoring, n_jobs=None, tol=1e-7,
                           max_iter=100000, random_state=None, max_features=None, verbose=False)
 
     elif 'logitnetCV' in gv.clf_name:
@@ -89,7 +101,11 @@ def get_clf(**kwargs):
 
     elif 'CCA' in gv.clf_name:
         gv.clf = CCA(n_components=20, scale=False, max_iter=500, tol=1e-06, copy=True) 
-    
+
+    elif 'lassolarsIC':
+        LassoLarsIC(criterion=criterion, fit_intercept=fit_intercept, verbose=False,
+                    normalize=standardize, precompute='auto', max_iter=500, eps=2.220446049250313e-16, copy_X=True, positive=False) 
+        
     clf = LassoCV(eps=0.001, n_alphas=100, alphas=None, fit_intercept=False, normalize=False, precompute='auto', max_iter=1000, tol=0.0001, copy_X=True, cv=10, verbose=False, n_jobs=None, positive=False, random_state=None, selection='random') 
     gv.lassoCV = Pipeline([('scaler', StandardScaler()), ('clf', clf)]) 
         

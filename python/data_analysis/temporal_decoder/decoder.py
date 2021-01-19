@@ -47,9 +47,10 @@ class cross_temp_decoder():
     def glmnet_cv_loop(self, X, y, t_train, t_test):
         X_t_train = X[:,:,t_train] 
         X_t_test = X[:,:,t_test] 
-        clf_copy = deepcopy(self.clf) 
         
+        clf_copy = deepcopy(self.clf)
         clf_copy.fit(X_t_train, X_t_test, y) 
+        
         return clf_copy.cv_mean_score_best_ 
     
     def cross_val_loop(self, X, y, t_train, t_test): 
@@ -70,20 +71,25 @@ class cross_temp_decoder():
             X_train, y_train = X_t_train[idx_train], y[idx_train] 
             X_test, y_test = X_t_test[idx_test], y[idx_test] 
             
-            if self.standardize:
+            if self.standardize: 
                 scaler =  StandardScaler().fit(X_train) 
                 X_train = scaler.transform(X_train) 
                 X_test = scaler.transform(X_test) 
             
-            clf_copy.fit(X_train, y_train) 
+            clf_copy.fit(X_train, y_train)
+            # y_hat = model.predict(X_train)
+            # resid = y_train - y_hat
+            # sse = sum(resid**2)
+            # AIC= 2*k - 2*ln(sse)
+            
             scores.append(clf_copy.score(X_test, y_test)) 
             
         return np.mean(scores) 
     
     def cross_temp_scores(self, X, y): 
         
-        if 'off_diag' in gv.clf_name : 
-            with pg.tqdm_joblib(pg.tqdm(desc="cross validation", total=int(X.shape[2]*X.shape[2]*self.n_iter))) as progress_bar: 
+        if 'off_diag' in gv.clf_name :            
+            with pg.tqdm_joblib(pg.tqdm(desc="glmnetCV", total=int(X.shape[2]*X.shape[2]*self.n_iter))) as progress_bar: 
                 scores = Parallel(n_jobs=self.n_jobs)(delayed(self.glmnet_cv_loop)(X, y, t_train, t_test) 
                                                       for t_train in range(X.shape[2]) 
                                                       for t_test in range(X.shape[2]) 

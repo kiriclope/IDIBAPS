@@ -32,6 +32,13 @@ def figDir():
                 
     if gv.trialsXepochs: 
         gv.figdir = gv.figdir + '/trialsXepochs' 
+
+    if gv.F0_THRESHOLD is not None: 
+        gv.figdir = gv.figdir + '/F0_thresh_%.2f' % gv.F0_THRESHOLD 
+        if gv.AVG_F0_TRIALS:
+            gv.figdir = gv.figdir + '_avg_trials'
+    else:
+        gv.figdir = gv.figdir + '/rawF' 
         
     if gv.EDvsLD : 
         gv.figdir = gv.figdir + '/EDvsLD'
@@ -64,11 +71,18 @@ def figDir():
         gv.figdir = gv.figdir + '/feature_selection'
 
     if gv.pca_model is not None:
-        gv.figdir = gv.figdir + '/dim_red/%s/%s ' % (gv.pca_model, gv.pca_method) 
         
-        if gv.pca_model in 'supervised': 
+            
+        gv.figdir = gv.figdir + '/dim_red/%s/%s' % (gv.pca_model, gv.pca_method)
+        
+        if gv.AVG_BEFORE_PCA: 
+            gv.figdir = gv.figdir + '/pca_averaged_epochs' 
+        else:
+            gv.figdir = gv.figdir + '/pca_all_bins_epochs' 
+        
+        if gv.pca_model=='supervised': 
             gv.figdir = gv.figdir + '/explained_variance_%.2f/threshold_%d_Cs_%d' % (gv.explained_variance, gv.max_threshold, gv.n_thresholds ) 
-        elif gv.pca_model in 'sparsePCA': 
+        elif gv.pca_model == 'sparsePCA': 
             gv.figdir = gv.figdir + '/explained_variance_%.2f/alpha_%d_ridge_alpha_%.2f' % (gv.explained_variance, gv.sparse_alpha, gv.ridge_alpha) 
         else: 
             if gv.inflection: 
@@ -77,7 +91,7 @@ def figDir():
                 gv.figdir = gv.figdir + '/minka_mle' 
             else:            
                 gv.figdir = gv.figdir + '/explained_variance_%.2f' % gv.explained_variance 
-
+        
         if gv.ED_MD_LD :
             gv.figdir = gv.figdir + '/ED_MD_LD' 
         if gv.DELAY_ONLY:
@@ -144,16 +158,16 @@ def add_orientation_legend(ax):
 def bar_trials_epochs(mean, lower=None, upper=None, var_name='cos_alp'):
     
     labels = np.arange(len(gv.epochs)-1) 
-    width=0.25
+    width=0.25 
 
-    figtitle = '%s_%s_bars_%s' % (gv.mouse, gv.session, var_name)
+    figtitle = '%s_%s_bars_%s' % (gv.mouse, gv.session, var_name) 
 
     ax = plt.figure(figtitle).add_subplot() 
     
     for n_trial, trial in enumerate(gv.trials): 
         values = mean[n_trial][1:]
         if lower is not None: 
-            error = np.array([ lower[n_trial][1:], upper[n_trial][1:] ] ) 
+            error = np.absolute(np.vstack([ lower[n_trial][1:], upper[n_trial][1:] ] )) 
             ax.bar(labels + n_trial*width, values , yerr=error,  color = gv.pal[n_trial], width = width) 
         else:
             ax.bar(labels + n_trial*width, values , color = gv.pal[n_trial], width = width)  
@@ -198,28 +212,33 @@ def open_dat(filename):
         print('opening', gv.filedir + '/' + filename + '.pkl' )
         return pickle.load(f) 
 
-def add_vlines(figname):
-    plt.figure(figname) 
-    plt.ahvline(y=gv.t_STIM[0]-2, c='k', ls='-') # sample onset
+def add_vlines():
+    plt.axvline(gv.t_STIM[0], c='k', ls='-') # sample onset
 
-    plt.ahvline(y=gv.t_ED[0]-2, c='k', ls='--') 
-    plt.ahvline(y=gv.t_ED[1]-2, c='k', ls='--') # DPA early delay
+    plt.axvline(gv.t_ED[0], c='r', ls='--') 
+    plt.axvline(gv.t_ED[1], c='r', ls='--') # DPA early delay
+
+    plt.axvline(gv.t_DIST[0], color='k', ls='-')
+    plt.axvline(gv.t_DIST[1], color='k', ls='-')
     
-    plt.ahvline(y=gv.t_MD[0]-2, c='r', ls='--') #DRT delay
-    plt.ahvline(y=gv.t_MD[1]-2, c='r', ls='--') 
+    plt.axvline(gv.t_MD[0], c='g', ls='--') #DRT delay
+    plt.axvline(gv.t_MD[1], c='g', ls='--') 
         
-    plt.ahvline(y=gv.t_LD[0]-2, c='k', ls='--')
-    plt.ahvline(y=gv.t_LD[1]-2, c='k', ls='--') # DPA late delay
+    plt.axvline(gv.t_LD[0], c='b', ls='--')
+    plt.axvline(gv.t_LD[1], c='b', ls='--') # DPA late delay
 
-def add_hlines(figname):
-    plt.figure(figname) 
-    plt.axvline(x=gv.t_STIM[0]-2, c='k', ls='-') # sample onset
-
-    plt.axvline(x=gv.t_ED[0]-2, c='k', ls='--') 
-    plt.axvline(x=gv.t_ED[1]-2, c='k', ls='--') # DPA early delay
+    plt.axvline(gv.t_test[0], color='k', ls='-')
+    plt.axvline(gv.t_test[1], color='k', ls='-')
     
-    plt.axvline(x=gv.t_MD[0]-2, c='r', ls='--') #DRT delay
-    plt.axvline(x=gv.t_MD[1]-2, c='r', ls='--') 
+    
+def add_hlines():
+    plt.axhline(gv.t_STIM[0], c='k', ls='-') # sample onset
+
+    plt.axhline(gv.t_ED[0], c='k', ls='--') 
+    plt.axhline(gv.t_ED[1], c='k', ls='--') # DPA early delay
+
+    plt.axhline(gv.t_MD[0], c='r', ls='--') #DRT delay
+    plt.axhline(gv.t_MD[1], c='r', ls='--') 
         
-    plt.axvline(x=gv.t_LD[0]-2, c='k', ls='--')
-    plt.axvline(x=gv.t_LD[1]-2, c='k', ls='--') # DPA late delay
+    plt.axhline(gv.t_LD[0], c='k', ls='--')
+    plt.axhline(gv.t_LD[1], c='k', ls='--') # DPA late delay 
