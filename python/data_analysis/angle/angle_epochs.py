@@ -369,7 +369,7 @@ def plot_loop_mice_sessions(**kwargs):
     
     # bootstrap parameters 
     gv.n_boots = int(1e3) 
-    gv.bootstrap_method = 'bayes' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
+    gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     gv.bootstrap_cos = 1  
     gv.n_cos_boots = int(1e3) 
     # gv.trials = ['ND_D1', 'ND_D2'] 
@@ -442,7 +442,7 @@ def plot_loop_mice_sessions(**kwargs):
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in gv.mice: 
+    for gv.mouse in [gv.mice[-2]]: 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 

@@ -51,14 +51,16 @@ def dFF0_remove_silent(X):
         F0 = np.mean(X[...,gv.bins_BL],axis=-1) 
         F0 = F0[..., np.newaxis]
 
-    if gv.F0_THRESHOLD is not None: 
+        # if gv.F0_THRESHOLD is not None: 
         # removing silent neurons 
         idx = np.argwhere(F0<=gv.F0_THRESHOLD) 
         F0 = np.delete(F0, idx, axis=1) 
         X = np.delete(X, idx, axis=1) 
-        
-    return (X-F0) / (F0 + gv.eps) 
-
+    if gv.DECONVOLVE:
+        return X 
+    else:
+        return (X-F0) / (F0 + gv.eps) 
+    
 def dFF0(X): 
     if not gv.AVG_F0_TRIALS: 
         F0 = np.mean(X[...,gv.bins_BL],axis=-1)        
@@ -304,10 +306,10 @@ def selectiveNeurons(X_S1, X_S2, Threshold=.01):
 
 def deconvolveFluo(X):
 
-    F0 = np.empty( (X.shape[0], X.shape[1]) ) 
-    F0[:] = np.mean( np.mean(X[...,gv.bins_BL],axis=-1), axis=0 ) 
-    # F0 = np.mean(X[...,gv.bins_BL],axis=-1) 
-    # F0 = np.percentile(X, 15, axis=-1)
+    # F0 = np.empty( (X.shape[0], X.shape[1]) ) 
+    # F0[:] = np.mean( np.mean(X[...,gv.bins_BL],axis=-1), axis=0 ) 
+    F0 = np.mean(X[...,gv.bins_BL],axis=-1) 
+    # F0 = np.percentile(X, 15, axis=-1) 
     
     # def F0_loop(X, n_trial, n_neuron, bins): 
     #     X_ij = X[n_trial, n_neuron]        
@@ -353,9 +355,17 @@ def deconvolveFluo(X):
         S_dcv[S_dcv<=threshold] = 0 
         S_dcv[S_dcv>threshold] = 1 
         S_dcv = uniform_filter1d( S_dcv, int(gv.frame_rate/4) ) 
-        return S_dcv * 1000 
+        return S_dcv * 1000
     
-    S_th = threshold_spikes(S_dcv, gv.DCV_THRESHOLD) 
+    S_th = threshold_spikes(S_dcv, gv.DCV_THRESHOLD)    
+    S_avg = np.mean(S_th[...,gv.bins_BL],axis=-1) 
+    S_avg = S_avg[..., np.newaxis]
+
+    # removing silent neurons 
+    idx = np.argwhere(S_avg<=.1) 
+    S_th = np.delete(S_th, idx, axis=1)
+    print(S_th.shape[1]) 
+    gv.n_neurons = S_th.shape[1] 
     
     if gv.Z_SCORE | gv.Z_SCORE_BL: 
         

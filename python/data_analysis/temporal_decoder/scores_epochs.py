@@ -116,7 +116,7 @@ def plot_loop_mice_sessions(**kwargs):
     # classification parameters 
     gv.clf_name = options['clf_name'] 
     n_splits = options['n_splits'] 
-    gv.scoring =  options['scoring'] # 'accuracy' 'roc_auc'
+    gv.scoring =  options['scoring'] # 'accuracy' 'roc_auc' 
     
     gv.fold_type = 'stratified' 
     gv.standardize = True # safety for dummies 
@@ -124,10 +124,10 @@ def plot_loop_mice_sessions(**kwargs):
     gv.TIBSHIRANI_TRICK = 0 
     
     # preprocessing parameters 
-    gv.T_WINDOW = 0.0  
+    gv.T_WINDOW = 0.5   
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
     
-    gv.F0_THRESHOLD = options['F0_THRESHOLD']
+    gv.F0_THRESHOLD = 0 # options['F0_THRESHOLD'] 
     gv.AVG_F0_TRIALS = 0  
     
     # only useful with dim red methods 
@@ -144,7 +144,7 @@ def plot_loop_mice_sessions(**kwargs):
     # feature selection 
     gv.FEATURE_SELECTION = 0 
     gv.LASSOCV = 0 
-        
+    
     # PCA parameters 
     gv.AVG_BEFORE_PCA = 1 
     gv.explained_variance = .9 
@@ -179,7 +179,7 @@ def plot_loop_mice_sessions(**kwargs):
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in gv.mice : 
+    for gv.mouse in [gv.mice[-2]] : 
         fct.get_sessions_mouse() 
         fct.get_stimuli_times() 
         fct.get_delays_times() 

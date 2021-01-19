@@ -290,6 +290,9 @@ def get_X_y_mouse_session(synthetic=False):
     if gv.F0_THRESHOLD is not None: 
         X = pp.dFF0_remove_silent(X) 
         gv.n_neurons = X.shape[1] 
+
+    if gv.DECONVOLVE:
+        X = pp.deconvolveFluo(X) 
         
     if gv.mouse in [gv.mice[0]]: 
         if 'ND_D1' in gv.trials: 
@@ -341,9 +344,9 @@ def get_X_y_mouse_session(synthetic=False):
             
         mins.append(min_S1_S2)
         
-        if gv.DECONVOLVE:
-            X_S1 = pp.deconvolveFluo(X_S1) 
-            X_S2 = pp.deconvolveFluo(X_S2) 
+        # if gv.DECONVOLVE:
+        #     X_S1 = pp.deconvolveFluo(X_S1) 
+        #     X_S2 = pp.deconvolveFluo(X_S2) 
             
         X_trials[n_trial, 0, 0:X_S1.shape[0], 0:X_S1.shape[1]] = X_S1 
         X_trials[n_trial, 1, 0:X_S2.shape[0], 0:X_S2.shape[1]] = X_S2 

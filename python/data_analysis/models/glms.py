@@ -25,7 +25,7 @@ def set_options(**kwargs):
     # for glmnet only
     opts['standardize']=False
     opts['l1_ratio']=None 
-    opts['lambda_path']= -np.sort(-np.logspace(-4, -2, opts['Cs'])) 
+    opts['lambda_path']= None # -np.sort(-np.logspace(-4, -2, opts['Cs'])) 
     opts['cut_point']=1
     
     opts['loss']='lsqr' 
@@ -105,6 +105,8 @@ def get_clf(**kwargs):
     elif 'lassolarsIC':
         LassoLarsIC(criterion=criterion, fit_intercept=fit_intercept, verbose=False,
                     normalize=standardize, precompute='auto', max_iter=500, eps=2.220446049250313e-16, copy_X=True, positive=False) 
+    elif 'sgd':
+        SGDClassifier(loss='log', penalty=penalty, alpha=0.0001, l1_ratio=l1_ratio, fit_intercept=False, max_iter=1000, tol=0.00001, shuffle=True, verbose=0, epsilon=0.1, n_jobs=None, random_state=None, learning_rate='optimal', eta0=0.0, power_t=0.5, early_stopping=False, validation_fraction=0.1, n_iter_no_change=5, class_weight=None, warm_start=False, average=False) 
         
     clf = LassoCV(eps=0.001, n_alphas=100, alphas=None, fit_intercept=False, normalize=False, precompute='auto', max_iter=1000, tol=0.0001, copy_X=True, cv=10, verbose=False, n_jobs=None, positive=False, random_state=None, selection='random') 
     gv.lassoCV = Pipeline([('scaler', StandardScaler()), ('clf', clf)]) 
