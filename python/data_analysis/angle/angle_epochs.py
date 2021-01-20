@@ -368,10 +368,10 @@ def plot_loop_mice_sessions(**kwargs):
     gv.pair_trials = 0 
     
     # bootstrap parameters 
-    gv.n_boots = int(1e3) 
+    gv.n_boots = int(1e3)
     gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
-    gv.bootstrap_cos = 1  
-    gv.n_cos_boots = int(1e3) 
+    gv.bootstrap_cos = 0 
+    gv.n_cos_boots = int(1e3)
     # gv.trials = ['ND_D1', 'ND_D2'] 
     
     # classification parameters 
