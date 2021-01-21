@@ -7,28 +7,62 @@ import data.constants as gv
 from glmnet import LogitNet, LogitNetOffDiag, LogitNetAlphaCV 
 from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical, CCA 
 
+def set_globals(**opts): 
+
+    gv.mouse = gv.mice[opts['i_mice']] 
+    gv.trial = gv.trials[opts['i_trial']] 
+    gv.day = gv.days[opts['i_day']] 
+    gv.epoch = gv.epochs[opts['i_epoch']] 
+
+    gv.DECONVOLVE= opts['DECONVOLVE']
+    gv.DCV_THRESHOLD = opts['DCV_THRESHOLD']
+
+    gv.F0_THRESHOLD = opts['F0_THRESHOLD']
+
+    gv.Z_SCORE = opts['Z_SCORE']
+    gv.Z_SCORE_BL = opts['Z_SCORE_BL']
+    
 def set_options(**kwargs): 
     
-    opts = dict() 
-    opts['clf_name']='glmnet'
-    opts['F0_THRESHOLD']=None
+    opts = dict()
+
+    opts['i_mice'] = 1
+    opts['i_day'] = -1
+    opts['i_trial'] = 0  
+    opts['i_epoch'] = 0 
+    
+    opts['clf_name']='lognet' 
+    opts['F0_THRESHOLD']=None 
     opts['cos_trials']=0
     opts['scores_trials']=0
     opts['laser_on']=0
-    
+
+    opts['n_iter']=100
     opts['C']=1e0 
     opts['Cs']=100 
     opts['penalty']='l1' 
     opts['solver']='liblinear'
     opts['criterion']='bic'
+
+    opts['DECONVOLVE']=0 
+    opts['DCV_THRESHOLD']=0.5 
+
+    opts['F0_THRESHOLD']=None
     
-    # for glmnet only
+    opts['Z_SCORE'] = 0 
+    opts['Z_SCORE_BL'] = 0
+
+    # for glmnet only 
+    opts['off_diag']=True 
     opts['standardize']=False
-    opts['l1_ratio']=None 
-    opts['lambda_path']= None # -np.sort(-np.logspace(-4, -2, opts['Cs'])) 
+    opts['lambda_path']= None # -np.sort(-np.linspace(-3, -1, opts['Cs'])) 
     opts['cut_point']=1
-    opts['n_alpha'] = 100 
+    
+    opts['alpha'] = None 
+    opts['n_alpha'] = 10 
+    opts['n_lambda'] = 100 
     opts['alpha_path']= None # -np.sort(-np.logspace(-4, -2, opts['Cs'])) 
+    opts['min_lambda_ratio'] = 1e-3
     
     opts['shuffle'] = True 
     
@@ -40,7 +74,7 @@ def set_options(**kwargs):
     opts['intercept_scaling']=1e2
     opts['scoring']='roc_auc'
     opts['tol']=1e-4
-    opts['max_iter']=1e5 
+    opts['max_iter']= int(1e3) 
     opts['bootstrap_method']='block'
     opts.update(kwargs)
     
@@ -79,34 +113,34 @@ def get_clf(**kwargs):
                            class_weight=None, verbose=0, random_state=None) 
 
     elif 'glmnet_off_diag' in gv.clf_name: 
-        gv.clf = LogitNetOffDiag(alpha=l1_ratio, n_lambda=Cs, min_lambda_ratio=1e-4,
+        gv.clf = LogitNetOffDiag(alpha=alpha, n_lambda=n_lambda, min_lambda_ratio=min_lambda_ratio,
                                  lambda_path=lambda_path, standardize=standardize, fit_intercept=fit_intercept,
                                  lower_limits=-np.inf, upper_limits=np.inf,
                                  cut_point=cut_point, n_splits=n_splits, scoring=gv.scoring, n_jobs=None, tol=1e-7,
                                  max_iter=100000, random_state=None, max_features=None, verbose=False)
         
     elif 'glmnetCV' in gv.clf_name: 
-        gv.clf = LogitNetAlphaCV(n_alpha=n_alpha, alpha_path=alpha_path, n_lambda=Cs, min_lambda_ratio=1e-4, lambda_path=lambda_path,
+        gv.clf = LogitNetAlphaCV(alpha=alpha, off_diag=off_diag,n_alpha=n_alpha, alpha_path=alpha_path,
+                                 n_lambda=n_lambda, min_lambda_ratio=min_lambda_ratio, lambda_path=lambda_path,
+                                 standardize=standardize, fit_intercept=fit_intercept,
+                                 lower_limits=-np.inf, upper_limits=np.inf, cut_point=cut_point,
+                                 n_splits=n_splits, scoring=gv.scoring, n_jobs=None, tol=tol,
+                                 max_iter=100000, random_state=None, max_features=None, verbose=False) 
+    
+    elif 'lognet' in gv.clf_name: 
+        gv.clf = LogitNet(alpha=alpha, n_lambda=n_lambda, min_lambda_ratio=min_lambda_ratio, lambda_path=lambda_path,
                           standardize=standardize, fit_intercept=fit_intercept,
                           lower_limits=-np.inf, upper_limits=np.inf, cut_point=cut_point,
-                          n_splits=n_splits, scoring=gv.scoring, n_jobs=None, tol=1e-7,
-                          max_iter=100000, random_state=None, max_features=None, verbose=False) 
-    
-    elif 'glmnet' in gv.clf_name: 
-        gv.clf = LogitNet(alpha=l1_ratio, n_lambda=Cs, min_lambda_ratio=1e-4, lambda_path=lambda_path,
-                          standardize=standardize, fit_intercept=fit_intercept,
-                          lower_limits=-np.inf, upper_limits=np.inf, cut_point=cut_point,
-                          n_splits=n_splits, scoring=gv.scoring, n_jobs=None, tol=1e-7,
-                          max_iter=100000, random_state=None, max_features=None, verbose=False)
-    
+                          n_splits=n_splits, scoring=gv.scoring, n_jobs=None, tol=tol,
+                          max_iter=max_iter, random_state=None, max_features=None, verbose=False)    
 
-    elif 'logitnetCV' in gv.clf_name:
-        gv.clf = logitnetCV(alpha=l1_ratio, nlambda=Cs, nfolds=n_splits, standardize=False, fit_intercept=fit_intercept, 
-                            scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores) 
+    # elif 'logitnetCV' in gv.clf_name:
+    #     gv.clf = logitnetCV(alpha=l1_ratio, nlambda=Cs, nfolds=n_splits, standardize=False, fit_intercept=fit_intercept, 
+    #                         scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores) 
 
-    elif 'logitnet' in gv.clf_name:
-        gv.clf = logitnet(alpha=l1_ratio, nlambda=Cs, standardize=False, fit_intercept=fit_intercept,
-                          scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores)        
+    # elif 'logitnet' in gv.clf_name:
+    #     gv.clf = logitnet(alpha=l1_ratio, nlambda=Cs, standardize=False, fit_intercept=fit_intercept,
+    #                       scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores)        
         
     elif 'pycasso' in gv.clf_name:
         gv.clf = pycasso.Solver(X,Y, lambdas=(100,0.05), family="binomial", penalty="l1")         

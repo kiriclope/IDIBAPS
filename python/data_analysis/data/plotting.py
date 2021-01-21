@@ -37,6 +37,8 @@ def figDir():
         gv.figdir = gv.figdir + '/F0_thresh_%.2f' % gv.F0_THRESHOLD 
         if gv.AVG_F0_TRIALS:
             gv.figdir = gv.figdir + '_avg_trials'
+    elif gv.DECONVOLVE:
+        gv.figdir = gv.figdir + '/deconvolve_th_%.2f' % gv.DCV_THRESHOLD
     else:
         gv.figdir = gv.figdir + '/rawF' 
         
@@ -48,8 +50,6 @@ def figDir():
     if gv.T_WINDOW!=0 :
         gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW
         
-    if gv.DECONVOLVE : 
-        gv.figdir = gv.figdir + '/deconvolve_th_%.2f' % gv.DCV_THRESHOLD 
         
     elif gv.DETREND :
         gv.figdir = gv.figdir + '/detrend'  

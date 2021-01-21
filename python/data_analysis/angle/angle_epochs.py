@@ -56,6 +56,7 @@ def bootstrap_coefs(X_trials, **kwargs):
     get_clf(**options) 
     
     boots_model = bootstrap(gv.clf, bootstrap_method=gv.bootstrap_method, n_boots=gv.n_boots, scaling=gv.scaling, n_jobs=gv.num_cores) 
+
     get_epochs()
     
     if not gv.AVG_BEFORE_PCA: 
@@ -368,7 +369,7 @@ def plot_loop_mice_sessions(**kwargs):
     gv.pair_trials = 0 
     
     # bootstrap parameters 
-    gv.n_boots = int(1e3)
+    gv.n_boots = int(1e3) 
     gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     gv.bootstrap_cos = 0 
     gv.n_cos_boots = int(1e3)
@@ -391,7 +392,7 @@ def plot_loop_mice_sessions(**kwargs):
     gv.DELAY_ONLY = 0 
     
     gv.DECONVOLVE = 0 
-    gv.DCV_THRESHOLD = 0.5 
+    gv.DCV_THRESHOLD = 0.5  
     
     gv.DETREND = 0 # detrend the data 
     gv.Z_SCORE = 0 # z_score 
@@ -409,8 +410,8 @@ def plot_loop_mice_sessions(**kwargs):
     gv.AVG_BEFORE_PCA = 1 
     gv.explained_variance = .9 
     gv.n_components = 10 
-    gv.list_n_components = None  
-    gv.inflection = None  
+    gv.list_n_components = None 
+    gv.inflection = None 
     gv.minka_mle = False 
     gv.pca_model = None # PCA, sparsePCA, supervisedPCA or None 
     gv.sparse_alpha = 1 

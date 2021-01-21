@@ -10,18 +10,19 @@ def synthetic_data(prop_ortho):
     X, y = data.get_fluo_data() 
     print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
     
-    data.get_delays_times() 
-    data.get_bins()
+    # data.get_delays_times() 
+    # data.get_bins()
     
-    if gv.mouse in [gv.mice[0]]: 
-        gv.n_trials = 40 
-    else: 
-        gv.n_trials = 32 
+    # if gv.mouse in [gv.mice[0]]: 
+    #     gv.n_trials = 40 
+    # else: 
+    #     gv.n_trials = 32 
     
     n_ortho = int(prop_ortho * gv.n_neurons) 
     print('synthetic_data:', 'n_ortho', n_ortho) 
     
-    X = np.empty( ( len(gv.trials), 2, int(gv.n_trials/2), len(gv.bins), gv.n_neurons) ) 
+    X = np.empty( ( len(gv.trials), 2, int(gv.n_trials/2), len(gv.bins), gv.n_neurons) )
+    print('X_syn', X.shape)
     for i, gv.trial in enumerate(gv.trials): 
         X_S1 = np.empty((int(gv.n_trials/2), len(gv.bins), gv.n_neurons)) 
         X_S2 = np.empty((int(gv.n_trials/2), len(gv.bins), gv.n_neurons)) 

@@ -7,6 +7,12 @@ from . import progressbar as pg
 from joblib import Parallel, delayed
 from meegkit.detrend import detrend
 
+def get_n_trials():
+    if gv.mouse in [gv.mice[0]]: 
+        gv.n_trials = 40 
+    else: 
+        gv.n_trials = 32 
+
 def get_delays_times():
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
         gv.t_ED = [3, 4.5] 
@@ -36,8 +42,11 @@ def get_sessions_mouse():
         gv.sessions = list( map( str, np.arange(20200521, 20200527) ) )
     elif gv.mouse=='JawsM15' :
         gv.sessions = list( map( str, np.arange(20200605, 20200610) ) )
-
+        
+    gv.session=gv.sessions[gv.day-1]
+    
 def get_fluo_data():
+    get_sessions_mouse() 
 
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
         data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat')
@@ -64,11 +73,18 @@ def get_fluo_data():
     gv.duration = X_data.shape[2]/gv.frame_rate 
     gv.time = np.linspace(0,gv.duration,X_data.shape[2]);  
     gv.bins = np.arange(0,len(gv.time)) 
-    gv.n_neurons = X_data.shape[1] 
-    gv.trial_size = X_data.shape[2] 
+    gv.n_neurons = X_data.shape[1]    
+    gv.trial_size = X_data.shape[2]
+    
+    get_stimuli_times() 
+    get_delays_times() 
+    get_n_trials() 
+    get_bins()
+    
+    print('mouse', gv.mouse, 'day', gv.day, '( session', gv.session,')', 'all data: X', X_data.shape,'y', y_labels.shape) 
     
     return X_data, y_labels
-
+    
 def which_trials(y_labels):
     y_trials = []
 
@@ -146,6 +162,32 @@ def get_S1_S2_trials(X_data, y_labels):
     
     return X_S1, X_S2 
 
+def get_X_S1_S2(X_data, y_labels):
+
+    X_S1_S2 = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) )
+
+    _trial = gv.trial
+    for i_trial, gv.trial in enumerate(gv.trials):
+    
+        trial = gv.trial
+        gv.trial = trial + "_S1" 
+        y_S1 = which_trials(y_labels) 
+    
+        gv.trial = trial + "_S2" 
+        y_S2 = which_trials(y_labels) 
+    
+        gv.trial = trial 
+        X_S1 = X_data[y_S1] 
+        X_S2 = X_data[y_S2] 
+    
+        X_S1_S2[i_trial, 0] = X_S1 
+        X_S1_S2[i_trial, 1] = X_S2 
+
+    print('X_S1', X_S1.shape, 'X_S2', X_S2.shape, 'X_S1_S2', X_S1_S2.shape)
+    gv.trial = _trial
+    
+    return X_S1_S2
+
 def get_trial_types(X_S1_trials): 
     gv.n_trials = 2*X_S1_trials.shape[0] 
     gv.trial_type = ['ND'] * gv.n_trials + ['D1'] * gv.n_trials + ['D2'] * gv.n_trials 
@@ -197,7 +239,7 @@ def get_bins():
     # gv.bins_STIM_ED_MD_LD =  np.hstack( (gv.bins_STIM, gv.bins_ED, gv.bins_MD, gv.bins_LD) ) 
     # gv.t__STIM_ED_MD_LD = gv.time[gv.bins_STIM_ED_MD_LD] 
     
-    gv.bins_ED_MD_LD = np.hstack( (gv.bins_ED, gv.bins_MD, gv.bins_LD) ) 
+    gv.bins_ED_MD_LD = np.hstack( (gv.bins_ED, gv.bins_MD, gv.bins_LD) )
     gv.t_ED_MD_LD = gv.time[gv.bins_ED_MD_LD] 
     gv.bins_epochs = np.array( [gv.bins_ED, gv.bins_MD, gv.bins_LD] ) 
     
@@ -283,15 +325,13 @@ def get_X_y_mouse_session(synthetic=False):
 
     X, y = get_fluo_data() 
     print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y.shape) 
-    get_delays_times() 
-    get_bins() # .9 or 1 
     
     # compute DF over F0 
     if gv.F0_THRESHOLD is not None: 
         X = pp.dFF0_remove_silent(X) 
         gv.n_neurons = X.shape[1] 
 
-    if gv.DECONVOLVE:
+    if gv.DECONVOLVE: 
         X = pp.deconvolveFluo(X) 
         
     if gv.mouse in [gv.mice[0]]: 
@@ -302,7 +342,7 @@ def get_X_y_mouse_session(synthetic=False):
     else: 
         if 'ND_D1' in gv.trials: 
             gv.n_trials = 32*2 
-        else:        
+        else: 
             gv.n_trials = 32 
             
     X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) ) 
@@ -316,7 +356,7 @@ def get_X_y_mouse_session(synthetic=False):
             X_S1, X_S2 = get_S1_S2_trials(X, y)
 
         get_trial_types(X_S1) 
-
+        
         if not gv.DECONVOLVE:
             # compute DF over F0 
             # X_S1 = pp.dFF0(X_S1) 
@@ -336,11 +376,11 @@ def get_X_y_mouse_session(synthetic=False):
                     X_S1[trial] = pp.z_score(X_S1[trial]) 
                     X_S2[trial] = pp.z_score(X_S2[trial]) 
 
-        if X_S1.shape[1]!=X_trials.shape[3] or X_S2.shape[1]!=X_trials.shape[3]: 
-            print('X_trials', X_trials.shape[3], 'X_S1', X_S1.shape[1], 'X_S2', X_S2.shape[1]) 
-            min_S1_S2 = np.amin([X_S1.shape[1], X_S2.shape[1]]) 
+        if X_S1.shape[0]!=X_trials.shape[3] or X_S2.shape[0]!=X_trials.shape[2]: 
+            print('X_trials', X_trials.shape[2], 'X_S1', X_S1.shape[0], 'X_S2', X_S2.shape[0]) 
+            min_S1_S2 = np.amin([X_S1.shape[0], X_S2.shape[0]]) 
         else: 
-            min_S1_S2 = X_trials.shape[3]
+            min_S1_S2 = X_trials.shape[2] 
             
         mins.append(min_S1_S2)
         
@@ -361,3 +401,4 @@ def get_X_y_mouse_session(synthetic=False):
     print('X_trials', X_trials.shape, 'y', y.shape) 
     
     return X_trials, y 
+

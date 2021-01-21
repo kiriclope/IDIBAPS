@@ -104,7 +104,7 @@ def plot_loop_mice_sessions(**kwargs):
     gv.laser_on = options['laser_on'] 
     gv.my_decoder = 1 
     gv.scores_trials = options['scores_trials']
-    gv.n_iter = 100 
+    gv.n_iter = options['n_iter']
     
     gv.shuffle= True 
     gv.random_state= None   
@@ -124,18 +124,18 @@ def plot_loop_mice_sessions(**kwargs):
     gv.TIBSHIRANI_TRICK = 0 
     
     # preprocessing parameters 
-    gv.T_WINDOW = 0.5   
+    gv.T_WINDOW = 0.0    
     gv.EDvsLD = 1 # average over epochs ED, MD and LD 
     
-    gv.F0_THRESHOLD = 0 # options['F0_THRESHOLD'] 
+    gv.F0_THRESHOLD = options['F0_THRESHOLD'] 
     gv.AVG_F0_TRIALS = 0  
     
     # only useful with dim red methods 
     gv.ED_MD_LD = 1 
     gv.DELAY_ONLY = 0 
     
-    gv.DECONVOLVE = 0 
-    gv.DCV_THRESHOLD = 0.0 
+    gv.DECONVOLVE = options['DECONVOLVE']
+    gv.DCV_THRESHOLD = options['DCV_THRESHOLD'] 
     
     gv.SAVGOL = 0 # sav_gol filter 
     gv.Z_SCORE = 0 # z_score with BL mean and std 
@@ -178,17 +178,15 @@ def plot_loop_mice_sessions(**kwargs):
         gv.pca_method = None  # safety for dummies 
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
-        
-    for gv.mouse in [gv.mice[-2]] : 
-        fct.get_sessions_mouse() 
-        fct.get_stimuli_times() 
-        fct.get_delays_times() 
-        
-        for gv.session in [gv.sessions[-1]] : 
+    
+    for gv.mouse in [gv.mice[-2]] :
+        for gv.day in [gv.days[-1]] : 
             if gv.SYNTHETIC: 
                 X_trials, y = syn.synthetic_data(0.5) 
             else: 
-                X_trials, y = fct.get_X_y_mouse_session() 
+                X_all, y_all = fct.get_fluo_data()
+                X_all = pp.preprocess_X(X_all) 
+                X_trials = fct.get_X_S1_S2(X_all, y_all) 
                 
             if gv.ED_MD_LD: 
                 X_trials = X_trials[...,gv.bins_ED_MD_LD] 
@@ -206,7 +204,7 @@ def plot_loop_mice_sessions(**kwargs):
                 print(gv.list_n_components)
             elif gv.pls_method is not None: 
                 X_trials = my_pls.trial_hybrid(X_trials, y) 
-                    
+            
             print('decoder:', gv.my_decoder, 'clf:', gv.clf_name, 
                   ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', n_splits:', n_splits, 
                   ', pca_method:', gv.pca_method, ', pls_method:', gv.pls_method,

@@ -54,11 +54,9 @@ def dFF0_remove_silent(X):
         # if gv.F0_THRESHOLD is not None: 
         # removing silent neurons 
         idx = np.argwhere(F0<=gv.F0_THRESHOLD) 
-        F0 = np.delete(F0, idx, axis=1) 
-        X = np.delete(X, idx, axis=1) 
-    if gv.DECONVOLVE:
-        return X 
-    else:
+        F0 = np.delete(F0, idx, axis=-2) 
+        X = np.delete(X, idx, axis=-2)
+        
         return (X-F0) / (F0 + gv.eps) 
     
 def dFF0(X): 
@@ -246,13 +244,13 @@ def avg_epochs(X, y=None, threshold=.1):
         X_MD = np.hstack(X[...,gv.bins_MD[:]-gv.bin_start]).T 
         X_LD = np.hstack(X[...,gv.bins_LD[:]-gv.bin_start]).T 
     else: 
-        print(gv.trial,'avg over epochs')
+        print('average time bins over epochs:', gv.epochs)
         if not gv.EDvsLD:
             X_STIM = np.mean(X[...,gv.bins_STIM[:]-gv.bin_start],axis=2)
             
-        X_ED = np.mean(X[...,gv.bins_ED[:]-gv.bin_start],axis=2) 
-        X_MD = np.mean(X[...,gv.bins_MD[:]-gv.bin_start],axis=2) 
-        X_LD = np.mean(X[...,gv.bins_LD[:]-gv.bin_start],axis=2) 
+        X_ED = np.mean(X[...,gv.bins_ED[:]-gv.bin_start],axis=-1) 
+        X_MD = np.mean(X[...,gv.bins_MD[:]-gv.bin_start],axis=-1) 
+        X_LD = np.mean(X[...,gv.bins_LD[:]-gv.bin_start],axis=-1) 
         
     if gv.FEATURE_SELECTION: 
         # idx = fs.featSel.var_fit_transform(X_ED, threshold) 
@@ -266,7 +264,7 @@ def avg_epochs(X, y=None, threshold=.1):
     
     if len(gv.epochs)==3: 
         X_epochs = np.empty( tuple([3])+ X.shape[:-1] )
-        print(X_epochs.shape, X_ED.shape)
+        # print('X', X_epochs.shape, 'X_ED', X_ED.shape)
         X_epochs[0] = X_ED 
         X_epochs[1] = X_MD 
         X_epochs[2] = X_LD 
@@ -334,7 +332,7 @@ def deconvolveFluo(X):
         X_ij = X[n_trial, n_neuron]
         F0_ij = F0[n_trial, n_neuron]
         c, s, b, g, lam = deconvolve(X_ij, penalty=1, b=F0_ij)
-        return s
+        return s 
     
     # # loop over trials and neurons 
     # with pg.tqdm_joblib(pg.tqdm(desc='denoise', total=X.shape[0]*X.shape[1])) as progress_bar: 
@@ -355,17 +353,19 @@ def deconvolveFluo(X):
         S_dcv[S_dcv<=threshold] = 0 
         S_dcv[S_dcv>threshold] = 1 
         S_dcv = uniform_filter1d( S_dcv, int(gv.frame_rate/4) ) 
-        return S_dcv * 1000
+        return S_dcv 
     
     S_th = threshold_spikes(S_dcv, gv.DCV_THRESHOLD)    
     S_avg = np.mean(S_th[...,gv.bins_BL],axis=-1) 
     S_avg = S_avg[..., np.newaxis]
 
+    print('X_avg', np.mean(S_avg))
     # removing silent neurons 
-    idx = np.argwhere(S_avg<=.1) 
-    S_th = np.delete(S_th, idx, axis=1)
-    print(S_th.shape[1]) 
-    gv.n_neurons = S_th.shape[1] 
+    # idx = np.argwhere(S_avg<=.001) 
+    # S_th = np.delete(S_th, idx, axis=1)
+    
+    # print('X_dcv', S_th.shape[1]) 
+    # gv.n_neurons = S_th.shape[1] 
     
     if gv.Z_SCORE | gv.Z_SCORE_BL: 
         
@@ -385,7 +385,26 @@ def deconvolveFluo(X):
                                                      for n_trial in range(X.shape[0]) ) 
             
         S_scaled = np.array(S_scaled) 
-            
+        
         return S_scaled 
         
     return S_th 
+
+def preprocess_X(X):
+    
+    if gv.F0_THRESHOLD is not None: 
+        X = dFF0_remove_silent(X) 
+        gv.n_neurons = X.shape[1]
+        
+    if gv.DECONVOLVE:
+        X = deconvolveFluo(X) 
+        
+    else: 
+
+        if gv.SAVGOL: 
+            X = savgol_filter(X, int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0, axis=-1) 
+                                
+        if gv.Z_SCORE : 
+            X = z_score(X) 
+
+    return X 

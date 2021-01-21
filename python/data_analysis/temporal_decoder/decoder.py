@@ -48,10 +48,20 @@ class cross_temp_decoder():
         X_t_train = X[:,:,t_train] 
         X_t_test = X[:,:,t_test] 
         
-        clf_copy = deepcopy(self.clf)
-        clf_copy.fit(X_t_train, X_t_test, y) 
+        model = deepcopy(self.clf)
+        model.fit(X_t_train, y, X_t_test)
         
-        return clf_copy.cv_mean_score_best_ 
+        cv_mean_score = model.best_estimator_.cv_mean_test_score_         
+        # cv_standard_error = model.best_estimator_.cv_standard_error_
+        
+        # lambda_path = model.best_estimator_.lambda_path_ 
+        lambda_best = model.best_estimator_.lambda_best_
+        lambda_max = model.best_estimator_.lambda_max_
+    
+        print('lambda_max',  lambda_max, 'score', cv_mean_score[model.best_estimator_.lambda_max_inx_] ,
+              'lambda_best', lambda_best, 'score', cv_mean_score[model.best_estimator_.lambda_best_inx_]) 
+
+        return model.best_score_ 
     
     def cross_val_loop(self, X, y, t_train, t_test): 
         
@@ -88,7 +98,7 @@ class cross_temp_decoder():
     
     def cross_temp_scores(self, X, y): 
         
-        if 'off_diag' in gv.clf_name :            
+        if 'glmnetCV' in gv.clf_name :
             with pg.tqdm_joblib(pg.tqdm(desc="glmnetCV", total=int(X.shape[2]*X.shape[2]*self.n_iter))) as progress_bar: 
                 scores = Parallel(n_jobs=self.n_jobs)(delayed(self.glmnet_cv_loop)(X, y, t_train, t_test) 
                                                       for t_train in range(X.shape[2]) 
@@ -102,7 +112,9 @@ class cross_temp_decoder():
                                                       for _ in range(self.n_iter) ) 
                 
         self.scores = np.asarray(scores).reshape(X.shape[2], X.shape[2], self.n_iter) 
-        print('scores', self.scores.shape, 'diagonal', np.diag(np.mean(self.scores, axis=-1)) ) 
+        print('scores', self.scores.shape) 
+        # print('scores', self.scores.shape, 'diagonal', np.diag(np.mean(self.scores, axis=-1)) )
+        print(np.mean(self.scores, axis=-1))
         
         # self.scores = np.empty((self.n_iter, X.shape[2], X.shape[2])) 
         # for iter in range(self.n_iter) : 
