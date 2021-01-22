@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore")
 
 import models.glms 
 reload(models.glms) 
-from models.glms import set_options, get_clf 
+from models.glms import * 
 
 import dim_red.pca.pca_decomposition 
 reload(dim_red.pca.pca_decomposition) 
@@ -359,50 +359,9 @@ def plot_cos_epochs(X_trials, **kwargs):
     
 def plot_loop_mice_sessions(**kwargs): 
 
-    options = set_options(**kwargs)
-    
-    gv.num_cores =  int(0.9*multiprocessing.cpu_count())
-    gv.laser_on = options['laser_on']
-    gv.cos_trials = options['cos_trials']
-    gv.IF_SAVE = 1 
-    gv.correct_trial = 0   
-    gv.pair_trials = 0 
-    
-    # bootstrap parameters 
-    gv.n_boots = int(1e3) 
-    gv.bootstrap_method = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
-    gv.bootstrap_cos = 0 
-    gv.n_cos_boots = int(1e3)
-    # gv.trials = ['ND_D1', 'ND_D2'] 
-    
-    # classification parameters 
-    gv.clf_name = options['clf_name'] 
-    gv.scoring = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
-    gv.TIBSHIRANI_TRICK = 0 
-        
-    # preprocessing parameters 
-    gv.T_WINDOW = 0.0 
-    gv.EDvsLD = 1 # average over epochs ED, MD and LD 
-
-    gv.F0_THRESHOLD = options['F0_THRESHOLD']
-    gv.AVG_F0_TRIALS = 0 
-    
-    # only useful with dim red methods 
-    gv.ED_MD_LD = 1 
-    gv.DELAY_ONLY = 0 
-    
-    gv.DECONVOLVE = 0 
-    gv.DCV_THRESHOLD = 0.5  
-    
-    gv.DETREND = 0 # detrend the data 
-    gv.Z_SCORE = 0 # z_score 
-    gv.Z_SCORE_BL = 0 # z_score with BL mean and std 
-    gv.SAVGOL = 0 # sav_gol filter 
-    
-    # feature selection 
-    gv.FEATURE_SELECTION = 0 
-    gv.LASSOCV = 0 
-    
+    options = set_options(**kwargs) 
+    set_globals(**options) 
+                                    
     # scaling before clf, when using pca use None 
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     
@@ -443,13 +402,15 @@ def plot_loop_mice_sessions(**kwargs):
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in [gv.mice[-2]]: 
-        fct.get_sessions_mouse() 
-        fct.get_stimuli_times() 
-        fct.get_delays_times() 
-        
-        for gv.session in [gv.sessions[-1]]: 
-            X_trials, y = fct.get_X_y_mouse_session() 
+    for gv.mouse in gv.mice: 
+        for gv.day in [gv.days[-2]]: 
+            print(gv.day)
+            if gv.SYNTHETIC: 
+                X_trials, y = syn.synthetic_data(0.5) 
+            else: 
+                X_all, y_all = fct.get_fluo_data()
+                X_all = pp.preprocess_X(X_all) 
+                X_trials = fct.get_X_S1_S2(X_all, y_all) 
                 
             if gv.ED_MD_LD: 
                 X_trials = X_trials[...,gv.bins_ED_MD_LD] 

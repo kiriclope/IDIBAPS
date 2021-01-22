@@ -1,5 +1,7 @@
+import os 
 from copy import deepcopy
 import numpy as np
+import matplotlib.pyplot as plt
 
 from sklearn.metrics import hamming_loss, make_scorer, roc_auc_score
 from sklearn.preprocessing import StandardScaler
@@ -7,31 +9,37 @@ from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.pipeline import make_pipeline
 from mne.decoding import GeneralizingEstimator, cross_val_multiscore
 
+from glmnet_python import cvglmnetPlot
+
 from joblib import Parallel, delayed
 
 import data.constants as gv
 import data.progressbar as pg 
+import data.plotting as pl 
+import data.fct_facilities as fac 
+fac.SetPlotParams() 
 
 class cross_temp_decoder():
 
-    def __init__(self, clf, scoring='accuracy', cv=10, shuffle=True, random_state=None, mne_decoder=False, fold_type='stratified', n_iter=1, standardize=True, n_jobs=1): 
+    def __init__(self, clf, scoring='accuracy', cv=10, shuffle=True, random_state=None, my_decoder=False, fold_type='stratified', n_iter=1, standardize=True, n_jobs=1, figdir=None): 
 
-        self.clf = clf
+        self.clf = clf 
         
-        self.scoring = scoring        
-        if self.scoring in 'hamming':
+        self.scoring = scoring 
+        if self.scoring in 'hamming': 
             self.scoring = make_scorer(hamming_loss, greater_is_better=False, needs_proba=True, needs_threshold=False) 
             
-        self.n_jobs = n_jobs
-        self.shuffle = shuffle
+        self.n_jobs = n_jobs 
+        self.shuffle = shuffle 
         self.random_state = random_state 
-        self.mne_decoder = mne_decoder 
-        self.cv = cv
-        self.fold_type = fold_type
-        self.n_iter = n_iter
-        self.standardize = standardize
+        self.my_decoder = my_decoder 
+        self.cv = cv 
+        self.fold_type = fold_type 
+        self.n_iter = n_iter 
+        self.standardize = standardize 
+        self.figdir=figdir
         
-        self.scores = None
+        self.scores = None 
         
     def mne_cross_temp_scores(self, X, y):
         if self.standardize:
@@ -51,19 +59,16 @@ class cross_temp_decoder():
         model = deepcopy(self.clf)
         model.fit(X_t_train, y, X_t_test)
         
-        cv_mean_score = model.best_estimator_.cv_mean_test_score_         
-        # cv_standard_error = model.best_estimator_.cv_standard_error_
-        
-        # lambda_path = model.best_estimator_.lambda_path_ 
-        lambda_best = model.best_estimator_.lambda_best_
-        lambda_max = model.best_estimator_.lambda_max_
+        cv_mean_score = model.cv_mean_score_         
+        # lambda_best = model.best_estimator_.lambda_best_ 
+        # lambda_max = model.best_estimator_.lambda_max_ 
     
-        print('lambda_max',  lambda_max, 'score', cv_mean_score[model.best_estimator_.lambda_max_inx_] ,
-              'lambda_best', lambda_best, 'score', cv_mean_score[model.best_estimator_.lambda_best_inx_]) 
+        # print('lambda_max',  lambda_max, 'score', cv_mean_score[model.best_estimator_.lambda_max_inx_] , 
+        #       'lambda_best', lambda_best, 'score', cv_mean_score[model.best_estimator_.lambda_best_inx_]) 
 
         return model.best_score_ 
     
-    def cross_val_loop(self, X, y, t_train, t_test): 
+    def cross_val_loop(self, X, y, t_train, t_test, i_iter): 
         
         if 'stratified' in self.fold_type: 
             folds = StratifiedKFold(n_splits=self.cv, shuffle=self.shuffle, random_state=self.random_state) 
@@ -74,25 +79,40 @@ class cross_temp_decoder():
             
         X_t_train = X[:,:,t_train] 
         X_t_test = X[:,:,t_test] 
-        clf_copy = deepcopy(self.clf) 
+        model = deepcopy(self.clf) 
         
         scores = [] 
-        for idx_train, idx_test in folds.split(X_t_train, y): 
+        foldid=0 
+        epochs=['ED','MD','LD'] 
+        
+        for idx_train, idx_test in folds.split(X_t_train, y):
+            foldid = foldid + 1
+            
             X_train, y_train = X_t_train[idx_train], y[idx_train] 
             X_test, y_test = X_t_test[idx_test], y[idx_test] 
             
-            if self.standardize: 
-                scaler =  StandardScaler().fit(X_train) 
-                X_train = scaler.transform(X_train) 
-                X_test = scaler.transform(X_test) 
+            # if self.standardize: 
+            scaler =  StandardScaler().fit(X_train) 
+            X_train = scaler.transform(X_train) 
+            X_test = scaler.transform(X_test) 
             
-            clf_copy.fit(X_train, y_train)
-            # y_hat = model.predict(X_train)
-            # resid = y_train - y_hat
-            # sse = sum(resid**2)
-            # AIC= 2*k - 2*ln(sse)
+            model.fit(X_train, y_train) 
             
-            scores.append(clf_copy.score(X_test, y_test)) 
+            figtitle = '%s_%s_fold_%d'% (epochs[t_train], epochs[t_test], foldid) 
+            plt.figure(figtitle, figsize=[2.1, 1.85*1.25]) 
+            cvglmnetPlot(model.model_) 
+            plt.title(figtitle)
+            
+            figpath = self.figdir + '/lasso_path/n_iter_%d' % i_iter 
+            try:
+                if not os.path.isdir(figpath): 
+                    os.makedirs(figpath)
+            except:
+                pass
+            
+            plt.savefig(figpath + '/' + figtitle +'.svg',format='svg') 
+            
+            scores.append(model.score(X_test, y_test)) 
             
         return np.mean(scores) 
     
@@ -106,11 +126,11 @@ class cross_temp_decoder():
                                                       for _ in range(self.n_iter) )
         else:
             with pg.tqdm_joblib(pg.tqdm(desc="cross validation", total=int(X.shape[2]*X.shape[2]*self.n_iter))) as progress_bar: 
-                scores = Parallel(n_jobs=self.n_jobs)(delayed(self.cross_val_loop)(X, y, t_train, t_test) 
+                scores = Parallel(n_jobs=self.n_jobs)(delayed(self.cross_val_loop)(X, y, t_train, t_test, i_iter) 
                                                       for t_train in range(X.shape[2]) 
                                                       for t_test in range(X.shape[2]) 
-                                                      for _ in range(self.n_iter) ) 
-                
+                                                      for i_iter in range(self.n_iter) ) 
+        plt.close('all')                
         self.scores = np.asarray(scores).reshape(X.shape[2], X.shape[2], self.n_iter) 
         print('scores', self.scores.shape) 
         # print('scores', self.scores.shape, 'diagonal', np.diag(np.mean(self.scores, axis=-1)) )
@@ -128,7 +148,7 @@ class cross_temp_decoder():
     
     def fit(self, X, y): 
         
-        if self.mne_decoder:
+        if not self.my_decoder:
             self.scores = self.mne_cross_temp_scores(X, y) 
         else: 
             self.scores = self.cross_temp_scores(X, y) 

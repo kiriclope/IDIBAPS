@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 
 import models.glms 
 reload(models.glms) 
-from models.glms import set_options, get_clf 
+from models.glms import *
 
 import dim_red.pca.pca_decomposition 
 reload(dim_red.pca.pca_decomposition) 
@@ -44,12 +44,13 @@ from .utils import *
 def get_scores(X_trials, **kwargs): 
     
     options = set_options(**kwargs) 
-    get_clf(**kwargs) 
+    get_clf(**options) 
     
-    decoder = cross_temp_decoder(gv.clf, scoring=gv.scoring, cv=kwargs['n_splits'],
-                                 shuffle=gv.shuffle, random_state=gv.random_state,
-                                 mne_decoder=not(gv.my_decoder),
-                                 fold_type=gv.fold_type, standardize=gv.standardize, n_jobs=gv.num_cores, n_iter=gv.n_iter) 
+    decoder = cross_temp_decoder(gv.clf, scoring=options['scoring'], cv=options['n_splits'],
+                                 shuffle=options['shuffle'], random_state=options['random_state'],
+                                 my_decoder=options['my_decoder'], fold_type=options['fold_type'],
+                                 standardize=options['standardize'], n_jobs=options['num_cores'],
+                                 n_iter=options['n_iter'], figdir=options['figdir']) 
     
     get_epochs() 
     
@@ -83,7 +84,6 @@ def get_scores(X_trials, **kwargs):
 def plot_scores_epochs(X_trials, **kwargs):
     
     options = set_options(**kwargs) 
-    create_fig_dir(**options) 
     
     scores = get_scores(X_trials, **options) 
     
@@ -99,51 +99,7 @@ def plot_scores_epochs(X_trials, **kwargs):
 def plot_loop_mice_sessions(**kwargs):
 
     options = set_options(**kwargs) 
-
-    gv.num_cores =  int(0.9*multiprocessing.cpu_count())
-    gv.laser_on = options['laser_on'] 
-    gv.my_decoder = 1 
-    gv.scores_trials = options['scores_trials']
-    gv.n_iter = options['n_iter']
-    
-    gv.shuffle= True 
-    gv.random_state= None   
-    
-    gv.IF_SAVE = 1 
-    gv.SYNTHETIC = 0 
-    gv.correct_trial = 0 
-    
-    # classification parameters 
-    gv.clf_name = options['clf_name'] 
-    n_splits = options['n_splits'] 
-    gv.scoring =  options['scoring'] # 'accuracy' 'roc_auc' 
-    
-    gv.fold_type = 'stratified' 
-    gv.standardize = True # safety for dummies 
-    
-    gv.TIBSHIRANI_TRICK = 0 
-    
-    # preprocessing parameters 
-    gv.T_WINDOW = 0.0    
-    gv.EDvsLD = 1 # average over epochs ED, MD and LD 
-    
-    gv.F0_THRESHOLD = options['F0_THRESHOLD'] 
-    gv.AVG_F0_TRIALS = 0  
-    
-    # only useful with dim red methods 
-    gv.ED_MD_LD = 1 
-    gv.DELAY_ONLY = 0 
-    
-    gv.DECONVOLVE = options['DECONVOLVE']
-    gv.DCV_THRESHOLD = options['DCV_THRESHOLD'] 
-    
-    gv.SAVGOL = 0 # sav_gol filter 
-    gv.Z_SCORE = 0 # z_score with BL mean and std 
-    gv.Z_SCORE_BL = 0 # z_score with BL mean and std 
-    
-    # feature selection 
-    gv.FEATURE_SELECTION = 0 
-    gv.LASSOCV = 0 
+    set_globals(**options) 
     
     # PCA parameters 
     gv.AVG_BEFORE_PCA = 1 
@@ -186,8 +142,11 @@ def plot_loop_mice_sessions(**kwargs):
             else: 
                 X_all, y_all = fct.get_fluo_data()
                 X_all = pp.preprocess_X(X_all) 
-                X_trials = fct.get_X_S1_S2(X_all, y_all) 
+                X_trials = fct.get_X_S1_S2(X_all, y_all)
                 
+            options['figdir'] = create_fig_dir(**options) 
+            print(options['figdir']) 
+            
             if gv.ED_MD_LD: 
                 X_trials = X_trials[...,gv.bins_ED_MD_LD] 
             if gv.DELAY_ONLY: 
@@ -206,9 +165,8 @@ def plot_loop_mice_sessions(**kwargs):
                 X_trials = my_pls.trial_hybrid(X_trials, y) 
             
             print('decoder:', gv.my_decoder, 'clf:', gv.clf_name, 
-                  ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', n_splits:', n_splits, 
-                  ', pca_method:', gv.pca_method, ', pls_method:', gv.pls_method,
-                  ', n_components', X_trials.shape[3]) 
+                  ', standardize:', options['standardize'], ', scoring:', options['scoring'], ', n_splits:', options['n_splits'] ) 
+                  # print('pca_method:', gv.pca_method, ', pls_method:', gv.pls_method, ', n_components', X_trials.shape[3]) 
             
             matplotlib.use('Agg') # so that fig saves when in the in the background 
             # matplotlib.use('GTK3cairo') 

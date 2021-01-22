@@ -2,12 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 
-def SetPlotParams():
+def SetPlotParams(x=2.1,y=1.85):
 
     plt.style.use('ggplot')
 
-    fig_width = 2.1 # width in inches
-    fig_height = 1.85  # height in inches
+    fig_width = x # width in inches 
+    fig_height = y  # height in inches
     fig_size =  [fig_width,fig_height]
     plt.rcParams['figure.figsize'] = fig_size
     plt.rcParams['figure.autolayout'] = True
