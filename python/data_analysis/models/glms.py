@@ -20,6 +20,9 @@ def set_globals(**opts):
     gv.day = gv.days[opts['i_day']] 
     gv.epoch = gv.epochs[opts['i_epoch']] 
 
+    gv.cos_trials = opts['cos_trials']
+    gv.scores_trials = opts['scores_trials']
+    
     # preprocessing
     gv.DECONVOLVE= opts['DECONVOLVE']
     gv.DCV_THRESHOLD = opts['DCV_THRESHOLD']
@@ -40,7 +43,7 @@ def set_globals(**opts):
     # feature selection 
     gv.FEATURE_SELECTION = 0 
     gv.LASSOCV = 0 
-    
+        
     # bootstrap 
     gv.n_boots = opts['n_boots'] 
     gv.bootstrap_method = opts['bootstrap_method'] 
@@ -53,6 +56,7 @@ def set_globals(**opts):
     # temporal decoder
     gv.my_decoder = opts['my_decoder']
     gv.fold_type = opts['fold_type']
+    gv.n_iter = opts['n_iter']
     
     # classification parameters 
     gv.clf_name = opts['clf_name']    
@@ -89,7 +93,7 @@ def set_options(**kwargs):
     opts['scores_trials']=0
     opts['n_iter']=100
     opts['my_decoder'] = 0 
-    opts['fold_type'] = 'stratified'
+    opts['fold_type'] = 'stratified' 
 
     # preprocessing parameters 
     opts['T_WINDOW'] = 0 
