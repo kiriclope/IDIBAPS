@@ -402,9 +402,8 @@ def plot_loop_mice_sessions(**kwargs):
         # gv.scaling = None # safety for dummies 
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
         
-    for gv.mouse in gv.mice: 
-        for gv.day in [gv.days[-2]]: 
-            print(gv.day)
+    for gv.mouse in [gv.mice[1]]: 
+        for gv.day in [gv.days[-1]]: 
             if gv.SYNTHETIC: 
                 X_trials, y = syn.synthetic_data(0.5) 
             else: 
@@ -433,8 +432,9 @@ def plot_loop_mice_sessions(**kwargs):
                     X_trials = my_pls.trial_hybrid(X_trials, y) 
                     
             print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name, 
-                  ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', n_splits:', options['n_splits'], 
-                  ', pca_method:', gv.pca_method, ', pls_method:', gv.pls_method, ', n_components', X_trials.shape[3]) 
+                  ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', n_splits:', options['n_splits'])
+            
+            # print('pca_method:', gv.pca_method, ', pls_method:', gv.pls_method, ', n_components', X_trials.shape[3]) 
             
             matplotlib.use('Agg') # so that fig saves when in the in the background 
             # matplotlib.use('GTK3cairo') 

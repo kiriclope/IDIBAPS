@@ -200,14 +200,16 @@ def get_clf(**kwargs):
                           max_iter=max_iter, random_state=None, max_features=None, verbose=False)    
 
     elif 'logitnetCV' in gv.clf_name:
-        gv.clf = logitnetCV(alpha=alpha, n_lambda=n_lambda, n_splits=n_splits, standardize=standardize, fit_intercept=fit_intercept, 
+        gv.clf = logitnetCV(alpha=alpha, n_lambda=n_lambda, n_splits=n_splits,
+                            standardize=standardize, fit_intercept=fit_intercept, 
+                            fold_type=fold_type, shuffle=shuffle, random_state=random_state,
                             scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores)
         
     elif 'logitnetStratCV' in gv.clf_name:
         gv.clf = logitnetStratCV(alpha=alpha, n_lambda=n_lambda, n_splits=n_splits,
                                  standardize=standardize, fit_intercept=fit_intercept, 
                                  scoring=gv.scoring, shuffle=shuffle, random_state=random_state,
-                                 thresh=tol , maxit=max_iter, n_jobs=gv.num_cores) 
+                                 thresh=tol , maxit=max_iter, n_jobs=None) 
 
     elif 'logitnet' in gv.clf_name:
         gv.clf = logitnet(alpha=l1_ratio, nlambda=Cs, standardize=False, fit_intercept=fit_intercept,
