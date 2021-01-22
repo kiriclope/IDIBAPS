@@ -2,7 +2,7 @@ from .libs import *
 
 import data.constants as gv 
 
-from .glmnet_wrapper import logitnet, logitnetCV, logitnetStratCV
+from .glmnet_wrapper import logitnet, logitnetCV, logitnetStratCV, logitnetAlphaCV
 
 from python_glmnet import LogitNet, LogitNetOffDiag, LogitNetAlphaCV 
 from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical, CCA 
@@ -208,6 +208,12 @@ def get_clf(**kwargs):
                             standardize=standardize, fit_intercept=fit_intercept, 
                             fold_type=fold_type, shuffle=shuffle, random_state=random_state,
                             scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores)
+        
+    elif 'logitnetAlphaCV' in gv.clf_name:
+        gv.clf = logitnetAlphaCV(n_alpha=n_alpha, n_lambda=n_lambda, n_splits=n_splits,
+                                 standardize=standardize, fit_intercept=fit_intercept, 
+                                 fold_type=fold_type, shuffle=shuffle, random_state=random_state,
+                                 scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores)
         
     elif 'logitnetStratCV' in gv.clf_name:
         gv.clf = logitnetStratCV(alpha=alpha, n_lambda=n_lambda, n_splits=n_splits,
