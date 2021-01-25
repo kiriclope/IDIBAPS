@@ -175,15 +175,21 @@ def bar_trials_epochs(mean, lower=None, upper=None, var_name='cos_alp'):
     day = 'day %d' % (list(gv.sessions).index(gv.session) + 1 ) 
     ax.set_title(day)
 
+    epochs = ['Early', 'Middle', 'Late'] 
+    tasks = ['DPA', 'Dual Go', 'Dual NoGo'] 
+    
     if gv.cos_trials:
-        plt.xticks([i + width for i in range(len(gv.trials)-1)], gv.trials[1:]) 
-        plt.xlabel('Trials')
+        plt.xticks([i + width for i in range(len(gv.trials)-1)], tasks[1:]) 
+        plt.xlabel('Task')
     else:
-        plt.xticks([i + width for i in range(len(gv.epochs)-1)], gv.epochs[1:]) 
-        plt.xlabel('Epochs')
+        plt.xticks([i + width for i in range(len(gv.epochs)-1)], epochs[1:]) 
+        plt.xlabel('Delay')
         
     if 'cos_alp' in var_name:
-        plt.ylabel('Cos($\\alpha$)') 
+        if gv.cos_trials:
+            plt.ylabel('cos($\\beta_{DPA}$,$\\beta_{task}$)') 
+        else: 
+            plt.ylabel('cos($\\beta_{early}$,$\\beta_{delay}$)') 
     else:
         plt.ylabel('Corr')
 

@@ -1,4 +1,4 @@
-from .libs import *
+from .libs import * 
 
 import data.constants as gv 
 
@@ -28,7 +28,7 @@ def set_globals(**opts):
     gv.DCV_THRESHOLD = opts['DCV_THRESHOLD']
     
     gv.F0_THRESHOLD = opts['F0_THRESHOLD']
-    gv.AVG_F0_TRIALS = 0 
+    gv.AVG_F0_TRIALS = opts['F0_AVG_TRIALS']
 
     gv.Z_SCORE = opts['Z_SCORE']
     gv.Z_SCORE_BL = opts['Z_SCORE_BL']
@@ -37,7 +37,8 @@ def set_globals(**opts):
     gv.SAVGOL = 0 # sav_gol filter 
 
     gv.T_WINDOW = opts['T_WINDOW'] 
-    gv.EDvsLD = opts['EDvsLD'] 
+    gv.EDvsLD = opts['EDvsLD']
+    gv.ED_MD_LD = opts['ED_MD_LD'] 
     gv.DELAY_ONLY = 0 
 
     # feature selection 
@@ -66,6 +67,7 @@ def set_globals(**opts):
 def set_options(**kwargs): 
     
     opts = dict()
+    opts['verbose'] = 0 
 
     opts['num_cores'] = int(0.9*multiprocessing.cpu_count()) 
     opts['IF_SAVE'] = 1 
@@ -94,28 +96,31 @@ def set_options(**kwargs):
     opts['n_iter']=100
     opts['my_decoder'] = 0 
     opts['fold_type'] = 'stratified' 
-
+    
     # preprocessing parameters 
     opts['T_WINDOW'] = 0 
     opts['EDvsLD'] = 1 # average over epochs ED, MD and LD 
-
+    opts['ED_MD_LD'] = 0 
+    
     opts['DECONVOLVE']=0 
     opts['DCV_THRESHOLD']=0.5 
-
+    
     opts['F0_THRESHOLD']=None 
-
+    opts['F0_AVG_TRIALS'] = 1
+    
     opts['Z_SCORE'] = 0 
     opts['Z_SCORE_BL'] = 0 
-
+    
     # classification parameters 
     opts['clf_name']='logitnetCV' 
-    opts['scoring'] = 'accuracy' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
-
+    opts['scoring'] = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
+    opts['inner_scoring'] = 'accuracy' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
+    
     # sklearn LogisticRegression, LogisticRegressionCV
     opts['C']=1e0 
     opts['Cs']=100 
-    opts['penalty']='l1' 
-    opts['solver']='liblinear'
+    opts['penalty']='elasticnet' 
+    opts['solver']='saga'
 
     # LDA
     opts['loss']='lsqr' 
@@ -134,11 +139,12 @@ def set_options(**kwargs):
     opts['n_lambda'] = 100 
     opts['alpha_path']= None # -np.sort(-np.logspace(-4, -2, opts['Cs'])) 
     opts['min_lambda_ratio'] = 1e-3
-
+    opts['prescreen'] = False
+    
     opts['off_diag']=True 
-    opts['standardize']=False
+    opts['standardize']=False 
     opts['lambda_path']= None # -np.sort(-np.linspace(-3, -1, opts['Cs'])) 
-    opts['cut_point']=1
+    opts['cut_point']=1 
     
     opts['shuffle'] = True     
     opts['random_state'] = None 
@@ -154,7 +160,7 @@ def get_clf(**kwargs):
     globals().update(options) 
     
     if 'LogisticRegressionCV' in gv.clf_name:
-        gv.clf = LogisticRegressionCV(Cs=np.logspace(-4,4,Cs), solver=solver, penalty=penalty, l1_ratios=l1_ratio, 
+        gv.clf = LogisticRegressionCV(Cs=np.logspace(0,4,Cs), solver=solver, penalty=penalty, l1_ratios=np.linspace(0,1,10), 
                                       tol=tol, max_iter=int(max_iter), scoring=gv.scoring, 
                                       fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, 
                                       cv=n_splits, n_jobs=None) 
@@ -205,15 +211,15 @@ def get_clf(**kwargs):
 
     elif 'logitnetCV' in gv.clf_name:
         gv.clf = logitnetCV(alpha=alpha, n_lambda=n_lambda, n_splits=n_splits,
-                            standardize=standardize, fit_intercept=fit_intercept, 
+                            standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen,
                             fold_type=fold_type, shuffle=shuffle, random_state=random_state,
-                            scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores)
+                            scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=None)
         
     elif 'logitnetAlphaCV' in gv.clf_name:
         gv.clf = logitnetAlphaCV(n_alpha=n_alpha, n_lambda=n_lambda, n_splits=n_splits,
-                                 standardize=standardize, fit_intercept=fit_intercept, 
+                                 standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen,
                                  fold_type=fold_type, shuffle=shuffle, random_state=random_state,
-                                 scoring=gv.scoring, thresh=1e-4 , maxit=1e5, n_jobs=gv.num_cores)
+                                 scoring=inner_scoring, thresh=1e-4 , maxit=1e5, n_jobs=None, verbose=verbose)
         
     elif 'logitnetStratCV' in gv.clf_name:
         gv.clf = logitnetStratCV(alpha=alpha, n_lambda=n_lambda, n_splits=n_splits,

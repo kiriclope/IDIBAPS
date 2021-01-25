@@ -89,6 +89,7 @@ class bootstrap():
                 boots_coefs = Parallel(n_jobs=self.n_jobs)(delayed(self.my_bootstrap_loop)(X, y) for _ in range(self.n_boots) ) 
             self._coefs = np.array(boots_coefs)
         else:
+            # for _ in range(self.n_boots):
             boots_coefs = self.my_bootstrap_loop(X, y) 
             self._coefs = np.array(boots_coefs) 
             self._coefs = self._coefs[np.newaxis] 

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 
-def SetPlotParams(x=2.1,y=1.85):
+def SetPlotParams(x=2.1*1.25,y=1.85*1.25):
 
     plt.style.use('ggplot')
 

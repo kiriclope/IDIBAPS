@@ -1,17 +1,17 @@
 from .libs import * 
 
-import data.constants as gv
-reload(gv)
+import data.constants as gv 
+reload(gv) 
 import data.utils as fct 
-reload(fct)
+reload(fct) 
 import data.preprocessing as pp 
-reload(pp)
+reload(pp) 
 import data.angle as agl 
-reload(agl)
-import data.synthetic as syn
-reload(agl)
+reload(agl) 
+import data.synthetic as syn 
+reload(agl) 
 import data.fct_facilities as fac 
-reload(fac)
+reload(fac) 
 fac.SetPlotParams() 
 
 import warnings 
@@ -45,7 +45,7 @@ def get_scores(X_trials, **kwargs):
     
     options = set_options(**kwargs) 
     get_clf(**options) 
-    
+    print(gv.clf)
     decoder = cross_temp_decoder(gv.clf, scoring=options['scoring'], cv=options['n_splits'],
                                  shuffle=options['shuffle'], random_state=options['random_state'],
                                  my_decoder=options['my_decoder'], fold_type=options['fold_type'],
@@ -89,8 +89,8 @@ def plot_scores_epochs(X_trials, **kwargs):
     
     for n_cond in range(X_trials.shape[0]):
 
-        if gv.scores_trials:
-            gv.epoch = gv.epochs[n_cond] 
+        if gv.scores_trials: 
+            gv.epoch = gv.epochs[n_cond]
         else:
             gv.trial = gv.trials[n_cond]
             
@@ -119,10 +119,11 @@ def plot_loop_mice_sessions(**kwargs):
     
     if gv.pca_model is not None: 
         if 'supervisedPCA'==gv.pca_model: 
-            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds, verbose=True, n_jobs=gv.num_cores) 
+            my_pca = supervisedPCA_CV(explained_variance=gv.explained_variance, cv=5, max_threshold=gv.max_threshold, Cs=gv.n_thresholds,
+                                      verbose=options['verbose'], n_jobs=gv.num_cores) 
         else: 
-            my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method, n_components= gv.n_components,
-                                 total_explained_variance=gv.explained_variance, inflection=gv.inflection,
+            my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method, n_components= gv.n_components, 
+                                 total_explained_variance=gv.explained_variance, inflection=gv.inflection, 
                                  minka_mle=gv.minka_mle, verbose=True, ridge_alpha=gv.ridge_alpha, alpha=gv.sparse_alpha) 
             
     # PLS parameters 
@@ -133,16 +134,17 @@ def plot_loop_mice_sessions(**kwargs):
     if gv.pls_method is not None: 
         gv.pca_method = None  # safety for dummies 
         # gv.scaling = None # safety for dummies 
-        my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
+        my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=options['verbose']) 
     
-    for gv.mouse in [gv.mice[-2]] :
+    for gv.mouse in [gv.mice[-2]] : 
         for gv.day in [gv.days[-1]] : 
             if gv.SYNTHETIC: 
                 X_trials, y = syn.synthetic_data(0.5) 
             else: 
-                X_all, y_all = fct.get_fluo_data()
+                X_all, y_all = fct.get_fluo_data() 
                 X_all = pp.preprocess_X(X_all) 
-                X_trials = fct.get_X_S1_S2(X_all, y_all)
+                X_trials = fct.get_X_S1_S2(X_all, y_all) 
+                y = np.array([np.zeros(X_trials.shape[2]), np.ones(X_trials.shape[2])]).flatten() 
                 
             options['figdir'] = create_fig_dir(**options) 
             print(options['figdir']) 
@@ -153,14 +155,15 @@ def plot_loop_mice_sessions(**kwargs):
                 X_trials = X_trials[...,gv.bins_delay] 
                 gv.bin_start = gv.bins_delay[0] 
 
-            if gv.AVG_BEFORE_PCA:
+            if gv.AVG_BEFORE_PCA: 
                 X_trials = pp.avg_epochs(X_trials) 
+                
             print('X_trials', X_trials.shape) 
             
             if gv.pca_model is not None: 
                 X_trials = my_pca.fit_transform(X_trials, y) 
-                gv.list_n_components = my_pca.list_n_components
-                print(gv.list_n_components)
+                gv.list_n_components = my_pca.list_n_components 
+                print(gv.list_n_components) 
             elif gv.pls_method is not None: 
                 X_trials = my_pls.trial_hybrid(X_trials, y) 
             

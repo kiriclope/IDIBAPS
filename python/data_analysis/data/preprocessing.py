@@ -3,6 +3,8 @@ from sklearn.preprocessing import PolynomialFeatures
 from scipy.signal import savgol_filter
 from scipy.ndimage import uniform_filter1d
 
+from sklearn.feature_selection import SelectKBest, chi2, VarianceThreshold, f_regression, mutual_info_classif, f_classif
+
 from joblib import Parallel, delayed, parallel_backend
 from meegkit.detrend import detrend
 from oasis.functions import deconvolve
@@ -51,13 +53,13 @@ def dFF0_remove_silent(X):
         F0 = np.mean(X[...,gv.bins_BL],axis=-1) 
         F0 = F0[..., np.newaxis]
 
-        # if gv.F0_THRESHOLD is not None: 
+    if gv.F0_THRESHOLD is not None: 
         # removing silent neurons 
         idx = np.argwhere(F0<=gv.F0_THRESHOLD) 
         F0 = np.delete(F0, idx, axis=-2) 
         X = np.delete(X, idx, axis=-2)
         
-        return (X-F0) / (F0 + gv.eps) 
+    return (X-F0) / (F0 + gv.eps) 
     
 def dFF0(X): 
     if not gv.AVG_F0_TRIALS: 
@@ -389,6 +391,46 @@ def deconvolveFluo(X):
         return S_scaled 
         
     return S_th 
+
+def soft_thresholding():    
+    ''' see Diagnosis of multiple cancer types by shrunken centroids of gene expression, Tibshirani et al. , 2002, PNAS
+
+    Xij, i features, j samples 
+
+    Xik = sum_j_Ck Xij/nk, sum on j in class Ck
+
+    Xi = sum_i Xij /n, sum on the n samples , mean over samples 
+
+    dik = Xik - Xi / mk (si +s0) where si^2= 1/(n-K) sum_k sum_j_Ck (Xij -Xik)^2 pooled within class standard deviation 
+                                       s0 = median(si), guard against the possibility of large dik  
+                                       mk = sqrt(1/nk + 1/n), so that mk*si is the std of the numerator in dik
+    We rewrite as
+
+    Xik = Xi + mk (si+s0) dik 
+
+    and shrink the dik with soft thresholding defined as: 
+    d'ik = sign(dik) TL(|dik|-D) where TL is t->t if t>0 (strictly), else t->0 
+
+    This method has the desirable property that many of the features are eliminated from the class prediction as 
+    the shrinkage parameter, D,  is increased.
+
+    
+    '''
+    
+    return 0 
+
+def prescreening(X, y, alpha=0.05, scoring=f_classif): 
+    ''' X is trials x neurons 
+    alpha is the level of significance 
+    scoring is the statistics, use f_classif or mutual_info_classif 
+    '''
+    
+    model = SelectKBest(score_func=scoring, k=X.shape[1])    
+    model.fit(X,y) 
+    pval = model.pvalues_.flatten() 
+    non_sel = np.argwhere(pval>alpha) 
+    X_sel = np.delete(X, non_selected, axis=1) 
+    return X_sel 
 
 def preprocess_X(X):
     

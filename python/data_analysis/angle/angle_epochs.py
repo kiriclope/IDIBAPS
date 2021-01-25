@@ -1,5 +1,6 @@
 from .libs import * 
 from joblib import Parallel, delayed
+from sklearn.feature_selection import VarianceThreshold 
 
 import data.constants as gv 
 reload(gv) 
@@ -87,7 +88,13 @@ def bootstrap_coefs(X_trials, **kwargs):
                 # same seed for each epoch but different for each trial 
                 np.random.seed(seed) 
                 
-            X = X_S1_S2[:,:,n_epochs] 
+            X = X_S1_S2[:,:,n_epochs]
+            # if n_epochs == 0:
+            # thresh_filter = VarianceThreshold(0.001) 
+            # thresh_filter.fit(X)                
+            # X = thresh_filter.transform(X)
+            # print(X.shape)
+            
             Vh = None 
             
             # if gv.pls_method is not None: 
@@ -119,7 +126,10 @@ def boot_cos(x,y):
     return agl.cos_between(x_sample, y_sample) 
 
 def get_cos_epochs(coefs, bootstrap=0, n_boots=int(1e3)): 
-    ''' coefs: N_trials, N_epochs, N_boots, N_neurons'''
+    ''' Input: coefs: N_trials x N_epochs x N_boots x N_neurons
+        Output: mean_cos, lower_cos and upper_cos: N_trials x N_epochs 
+                cos_sample: N_trials x N_epochs x N_boots 
+    '''
     
     if bootstrap:
         coefs = np.mean(coefs, axis=2) # average over boots 
@@ -386,11 +396,11 @@ def plot_loop_mice_sessions(**kwargs):
         if 'supervisedPCA'==gv.pca_model: 
             my_pca = supervisedPCA_CV(n_components=gv.n_components, explained_variance=gv.explained_variance,
                                       cv=gv.spca_cv, max_threshold=gv.max_threshold, n_thresholds=gv.n_thresholds,
-                                      verbose=True, n_jobs=gv.num_cores, scoring=gv.spca_scoring) 
+                                      verbose=options['verbose'], n_jobs=gv.num_cores, scoring=gv.spca_scoring) 
         else: 
             my_pca = pca_methods(pca_model=gv.pca_model, pca_method=gv.pca_method, n_components= gv.n_components,
                                  total_explained_variance=gv.explained_variance, inflection=gv.inflection,
-                                 minka_mle=gv.minka_mle, verbose=True, ridge_alpha=gv.ridge_alpha, alpha=gv.sparse_alpha) 
+                                 minka_mle=gv.minka_mle, verbose=options['verbose'], ridge_alpha=gv.ridge_alpha, alpha=gv.sparse_alpha) 
     # PLS parameters 
     # gv.pls_n_comp = None 
     gv.pls_max_comp = 30 # 'full', int or None 
@@ -400,7 +410,7 @@ def plot_loop_mice_sessions(**kwargs):
     if gv.pls_method is not None: 
         gv.pca_method = None  # safety for dummies 
         # gv.scaling = None # safety for dummies 
-        my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=True) 
+        my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=options['verbose']) 
         
     for gv.mouse in [gv.mice[1]]: 
         for gv.day in [gv.days[-1]]: 
@@ -440,3 +450,52 @@ def plot_loop_mice_sessions(**kwargs):
             # matplotlib.use('GTK3cairo') 
             plot_cos_epochs(X_trials, **options) 
             plt.close('all') 
+
+def plot_epochs_cos_days(**kwargs): 
+    matplotlib.use('Agg') # so that fig saves when in the in the background 
+
+    # scaling before clf 
+    gv.AVG_BEFORE_PCA = 1 
+    gv.pca_model = None # PCA, sparsePCA, supervisedPCA or None 
+    gv.pls_method = None # 'PLSRegression', 'PLSCanonical', 'PLSSVD', CCA or None 
+    gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
+    epoch_str = ['Middle delay', 'Late delay'] 
+
+    options = set_options(**kwargs) 
+    set_globals(**options) 
+    create_fig_dir(**options) 
+    
+    for gv.mouse in [gv.mice[1]]: 
+
+        mean_cos = np.empty( ( len(gv.days), len(gv.trials), len(gv.epochs) ) ) 
+        lower_cos = np.empty( ( len(gv.days), len(gv.trials), len(gv.epochs) ) ) 
+        upper_cos = np.empty( ( len(gv.days), len(gv.trials), len(gv.epochs) ) ) 
+        
+        for i_day, gv.day in enumerate(gv.days): 
+            X_all, y_all = fct.get_fluo_data()
+            X_all = pp.preprocess_X(X_all) 
+            X_trials = fct.get_X_S1_S2(X_all, y_all) 
+                
+            X_trials = pp.avg_epochs(X_trials) 
+            
+            print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name, 
+                  ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', n_splits:', options['n_splits'])
+
+            coefs = bootstrap_coefs(X_trials, **options) 
+            mean_cos[gv.day], lower_cos[gv.day], upper_cos[gv.day], _ = get_cos_epochs(coefs, gv.bootstrap_cos, n_boots=gv.n_cos_boots) 
+
+        for i_epoch, gv.epoch in enumerate(1,gv.epochs): # epochs MD and LD 
+
+            figtitle = '%s_cosVsdays_%s' % (gv.mouse, gv.epoch) 
+            plt.figure(figtitle)
+            
+            for i_trial, gv.trial in enumerate(gv.trials): # all trials, ND, D1 and D2 
+
+                mean = mean_cos[:, i_trial, i_epoch] # all days              
+                error = np.absolute(np.vstack([ lower_cos[:, i_trial, i_epoch], upper_cos[:, i_trial, i_epoch] ] )) # all days 
+                
+                plt.errorbar(gv.days, mean, yerr=error, color=pal[i_trial] )
+                plt.title(epoch_str[i_epoch]) 
+                
+            plt.close('all') 
+            

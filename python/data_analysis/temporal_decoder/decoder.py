@@ -7,6 +7,8 @@ from sklearn.metrics import hamming_loss, make_scorer, roc_auc_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold, StratifiedKFold 
 from sklearn.pipeline import make_pipeline
+from sklearn.feature_selection import VarianceThreshold 
+
 from mne.decoding import GeneralizingEstimator, cross_val_multiscore
 
 from glmnet_python import cvglmnetPlot
@@ -81,6 +83,10 @@ class cross_temp_decoder():
         X_t_test = X[:,:,t_test] 
         model = deepcopy(self.clf) 
         
+        # thresh_filter = VarianceThreshold(0.05) 
+        # X_t_train = thresh_filter.fit_transform(X_t_train) 
+        # X_t_test = thresh_filter.transform(X_t_test)
+        
         scores = [] 
         foldid=0 
         epochs=['ED','MD','LD'] 
@@ -98,21 +104,21 @@ class cross_temp_decoder():
             
             model.fit(X_train, y_train) 
             
-            figtitle = '%s_%s_fold_%d'% (epochs[t_train], epochs[t_test], foldid) 
-            plt.figure(figtitle, figsize=[2.1, 1.85*1.25]) 
-            cvglmnetPlot(model.model_) 
-            plt.title(figtitle)
+            # figtitle = '%s_%s_fold_%d'% (epochs[t_train], epochs[t_test], foldid) 
+            # plt.figure(figtitle, figsize=[2.1, 1.85*1.25]) 
+            # cvglmnetPlot(model.model_) 
+            # plt.title(figtitle)
             
-            figpath = self.figdir + '/lasso_path/n_iter_%d' % i_iter 
-            try:
-                if not os.path.isdir(figpath): 
-                    os.makedirs(figpath)
-            except:
-                pass
+            # figpath = self.figdir + '/lasso_path/n_iter_%d' % i_iter 
+            # try:
+            #     if not os.path.isdir(figpath): 
+            #         os.makedirs(figpath)
+            # except:
+            #     pass
             
-            plt.savefig(figpath + '/' + figtitle +'.svg',format='svg') 
+            # plt.savefig(figpath + '/' + figtitle +'.svg',format='svg') 
             
-            scores.append(model.score(X_test, y_test)) 
+            scores.append(model.score(X_test, y_test, 'lambda_1se')) 
             
         return np.mean(scores) 
     
@@ -133,7 +139,6 @@ class cross_temp_decoder():
         plt.close('all')                
         self.scores = np.asarray(scores).reshape(X.shape[2], X.shape[2], self.n_iter) 
         print('scores', self.scores.shape) 
-        # print('scores', self.scores.shape, 'diagonal', np.diag(np.mean(self.scores, axis=-1)) )
         print(np.mean(self.scores, axis=-1))
         
         # self.scores = np.empty((self.n_iter, X.shape[2], X.shape[2])) 
