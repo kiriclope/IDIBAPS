@@ -127,3 +127,16 @@ class bootstrap():
             self.my_bootstrap(X, y)
             
         return self._coefs 
+
+    def get_model(self, X, y, Vh): 
+        self.Vh = Vh
+        
+        if self.bootstrap_method in 'bagging':
+            self.bagging_bootstrap(X, y) 
+        elif self.bootstrap_method in 'bayesian': 
+            self.bayesian_bootstrap(X, y)
+        else:
+            self.my_bootstrap(X, y)
+            
+        return self 
+    

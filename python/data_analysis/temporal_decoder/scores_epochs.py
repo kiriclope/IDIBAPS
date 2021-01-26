@@ -44,8 +44,8 @@ from .utils import *
 def get_scores(X_trials, **kwargs): 
     
     options = set_options(**kwargs) 
-    get_clf(**options) 
-    print(gv.clf)
+    get_clf(**options)
+    
     decoder = cross_temp_decoder(gv.clf, scoring=options['scoring'], cv=options['n_splits'],
                                  shuffle=options['shuffle'], random_state=options['random_state'],
                                  my_decoder=options['my_decoder'], fold_type=options['fold_type'],
@@ -99,7 +99,7 @@ def plot_scores_epochs(X_trials, **kwargs):
 def plot_loop_mice_sessions(**kwargs):
 
     options = set_options(**kwargs) 
-    set_globals(**options) 
+    set_globals(**options)     
     
     # PCA parameters 
     gv.AVG_BEFORE_PCA = 1 
@@ -137,6 +137,7 @@ def plot_loop_mice_sessions(**kwargs):
         my_pls = plsCV(cv=gv.pls_cv, pls_method=gv.pls_method, max_comp=gv.pls_max_comp, n_jobs=gv.num_cores, verbose=options['verbose']) 
     
     for gv.mouse in [gv.mice[-2]] : 
+        fct.get_days() 
         for gv.day in [gv.days[-1]] : 
             if gv.SYNTHETIC: 
                 X_trials, y = syn.synthetic_data(0.5) 

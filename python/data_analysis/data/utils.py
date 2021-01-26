@@ -7,12 +7,26 @@ from . import progressbar as pg
 from joblib import Parallel, delayed
 from meegkit.detrend import detrend
 
+def get_epochs():
+    if gv.EDvsLD: 
+        gv.epochs = ['ED', 'MD', 'LD'] 
+        print('angle btw ED and other epochs') 
+    else: 
+        gv.epochs = ['Stim', 'ED', 'MD', 'LD'] 
+        print('angle btw STIM and other epochs') 
+
 def get_n_trials():
     if gv.mouse in [gv.mice[0]]: 
         gv.n_trials = 40 
     else: 
         gv.n_trials = 32 
 
+def get_days():
+    if((gv.mouse=='ChRM04')): 
+        gv.days = [1,2,3,4,5,6]
+    else:
+        gv.days = [1,2,3,4,5]
+        
 def get_delays_times():
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
         gv.t_ED = [3, 4.5] 

@@ -58,10 +58,10 @@ class cross_temp_decoder():
         X_t_train = X[:,:,t_train] 
         X_t_test = X[:,:,t_test] 
         
-        model = deepcopy(self.clf)
-        model.fit(X_t_train, y, X_t_test)
+        model = deepcopy(self.clf) 
+        model.fit(X_t_train, y, X_t_test) 
         
-        cv_mean_score = model.cv_mean_score_         
+        cv_mean_score = model.cv_mean_score_ 
         # lambda_best = model.best_estimator_.lambda_best_ 
         # lambda_max = model.best_estimator_.lambda_max_ 
     
@@ -85,14 +85,14 @@ class cross_temp_decoder():
         
         # thresh_filter = VarianceThreshold(0.05) 
         # X_t_train = thresh_filter.fit_transform(X_t_train) 
-        # X_t_test = thresh_filter.transform(X_t_test)
+        # X_t_test = thresh_filter.transform(X_t_test) 
         
         scores = [] 
         foldid=0 
         epochs=['ED','MD','LD'] 
         
-        for idx_train, idx_test in folds.split(X_t_train, y):
-            foldid = foldid + 1
+        for idx_train, idx_test in folds.split(X_t_train, y): 
+            foldid = foldid + 1 
             
             X_train, y_train = X_t_train[idx_train], y[idx_train] 
             X_test, y_test = X_t_test[idx_test], y[idx_test] 
@@ -118,7 +118,7 @@ class cross_temp_decoder():
             
             # plt.savefig(figpath + '/' + figtitle +'.svg',format='svg') 
             
-            scores.append(model.score(X_test, y_test, 'lambda_1se')) 
+            scores.append(model.score(X_test, y_test, 'lambda_min')) 
             
         return np.mean(scores) 
     

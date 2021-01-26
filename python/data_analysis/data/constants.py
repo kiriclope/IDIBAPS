@@ -9,7 +9,7 @@ filedir = path + '/data'
 global mouse, mice, session, sessions, days, trial, trials 
 mouse = []
 mice = ['C57_2_DualTask','ChRM04','JawsM15'] 
-days = [1,2,3,4,5,6] 
+days = [1,2,3,4,5] 
 day=-1 
 tasks = ['DPA', 'dual GO', 'dual No-GO']
 session =-1
@@ -123,7 +123,7 @@ explained_variance = 0.1
 
 global clf_name
 clf_name = 'LogisticRegressionCV' 
-clf = None
+clf = None 
 
 global trialsXepochs
 trialsXepochs=0
