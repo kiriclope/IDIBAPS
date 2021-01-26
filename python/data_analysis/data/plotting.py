@@ -8,6 +8,7 @@ lines_alpha = 0.8
 def figDir():
 
     gv.figdir = gv.path + '/figs' 
+    gv.filedir = gv.path + '/data' 
     
     today = date.today() 
     today = today.strftime("/%d-%m-%y") 
@@ -200,7 +201,7 @@ def save_fig(figname):
     
     if gv.IF_SAVE:
         plt.savefig(gv.figdir + '/' + figname +'.svg',format='svg')
-        print('saved to', gv.figdir + '/' + figname + '.svg')
+        print('save fig to', gv.figdir)
 
 def save_dat(array, filename):
     if not os.path.isdir(gv.filedir):
