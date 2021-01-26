@@ -10,7 +10,7 @@ import data.constants as gv
 
 def set_globals(**opts):
     
-    gv.num_cores = opts['num_cores']
+    gv.num_cores = opts['n_jobs']
     gv.IF_SAVE = opts['IF_SAVE']
     gv.SYNTHETIC = opts['SYNTHETIC'] 
     
@@ -74,7 +74,7 @@ def set_options(**kwargs):
     opts = dict()
     opts['verbose'] = 0 
 
-    opts['num_cores'] = int(0.9*multiprocessing.cpu_count()) 
+    opts['n_jobs'] = int(0.9*multiprocessing.cpu_count()) 
     opts['IF_SAVE'] = 1 
     opts['SYNTHETIC'] = 0
     
@@ -86,7 +86,8 @@ def set_options(**kwargs):
 
     opts['laser_on']=0
 
-    # bootstrap 
+    # bootstrap
+    opts['bootstrap'] = False 
     opts['n_boots'] = int(1e3) 
     opts['bootstrap_method'] = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     opts['boot_cos'] = 0
@@ -153,10 +154,10 @@ def set_options(**kwargs):
     
     opts['shuffle'] = True     
     opts['random_state'] = None 
-    opts['tol']=1e-7
+    opts['tol']=1e-7 
     opts['max_iter']= int(1e5) 
 
-    opts.update(kwargs)
+    opts.update(kwargs) 
     
     return opts 
 
