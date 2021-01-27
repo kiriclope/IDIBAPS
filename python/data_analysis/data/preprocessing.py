@@ -72,6 +72,17 @@ def dFF0(X):
         
     return (X-F0) / (F0 + gv.eps) 
 
+def dF(X): 
+    if not gv.AVG_F0_TRIALS: 
+        F0 = np.mean(X[...,gv.bins_BL],axis=-1)        
+        # F0 = np.percentile(X, 15, axis=-1) 
+        F0 = F0[..., np.newaxis] 
+    else: 
+        F0 = np.mean( np.mean(X[...,gv.bins_BL],axis=-1), axis=0) 
+        F0 = F0[np.newaxis,:, np.newaxis]
+        
+    return (X-F0)
+
 def findBaselineF0(rawF, fs, axis=0, keepdims=False): 
     """Find the baseline for a fluorescence imaging trace line.
     

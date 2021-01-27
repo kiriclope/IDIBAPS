@@ -87,7 +87,7 @@ def set_options(**kwargs):
     opts['laser_on']=0
 
     # bootstrap
-    opts['bootstrap'] = False 
+    opts['boots'] = False 
     opts['n_boots'] = int(1e3) 
     opts['bootstrap_method'] = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     opts['boot_cos'] = 0
@@ -121,13 +121,14 @@ def set_options(**kwargs):
     opts['clf_name']='logitnetCV' 
     opts['scoring'] = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
     opts['inner_scoring'] = 'accuracy' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
+    opts['inner_splits'] = 10 # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
     
     # sklearn LogisticRegression, LogisticRegressionCV
     opts['C']=1e0 
     opts['Cs']=100 
     opts['penalty']='elasticnet' 
     opts['solver']='saga'
-
+    
     # LDA
     opts['loss']='lsqr' 
     opts['shrinkage']='auto'
@@ -146,6 +147,8 @@ def set_options(**kwargs):
     opts['alpha_path']= None # -np.sort(-np.logspace(-4, -2, opts['Cs'])) 
     opts['min_lambda_ratio'] = 1e-4 
     opts['prescreen'] = False 
+
+    opts['lbd'] = 'lambda_1se'
     
     opts['off_diag']=True 
     opts['standardize']=True 
@@ -200,25 +203,25 @@ def get_clf(**kwargs):
                                  n_lambda=n_lambda, min_lambda_ratio=min_lambda_ratio, lambda_path=lambda_path,
                                  standardize=standardize, fit_intercept=fit_intercept,
                                  lower_limits=-np.inf, upper_limits=np.inf, cut_point=cut_point,
-                                 n_splits=n_splits, scoring=inner_scoring, n_jobs=None, tol=tol,
+                                 n_splits=inner_splits, scoring=inner_scoring, n_jobs=None, tol=tol,
                                  max_iter=100000, shuffle=shuffle, random_state=None, max_features=None, verbose=False) 
         
     elif 'lognetCV' in gv.clf_name: 
         gv.clf = LogitNet(alpha=alpha, n_lambda=n_lambda, min_lambda_ratio=min_lambda_ratio, lambda_path=lambda_path,
                           standardize=standardize, fit_intercept=fit_intercept,
                           lower_limits=-np.inf, upper_limits=np.inf, cut_point=cut_point,
-                          n_splits=n_splits, scoring=inner_scoring, n_jobs=None, tol=tol,
+                          n_splits=inner_splits, scoring=inner_scoring, n_jobs=None, tol=tol,
                           max_iter=max_iter, shuffle=shuffle, random_state=None, max_features=None, verbose=False)    
 
     # glmnet_python
     if 'logitnetAlphaCV' in gv.clf_name:
-        gv.clf = logitnetAlphaCV(n_iter=n_iter, n_alpha=n_alpha, n_lambda=n_lambda, n_splits=n_splits,
+        gv.clf = logitnetAlphaCV(lbd=lbd, n_iter=n_iter, n_alpha=n_alpha, n_lambda=n_lambda, n_splits=inner_splits,
                                  standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen,
                                  fold_type=fold_type, shuffle=shuffle, random_state=random_state,
                                  scoring=inner_scoring, thresh=tol , maxit=max_iter, n_jobs=None, verbose=verbose)
         
     elif 'logitnetCV' in gv.clf_name:
-        gv.clf = logitnetCV(alpha=alpha, n_lambda=n_lambda, n_splits=n_splits,
+        gv.clf = logitnetCV(lbd=lbd, alpha=alpha, n_lambda=n_lambda, n_splits=inner_splits,
                             standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen,
                             fold_type=fold_type, shuffle=shuffle, random_state=random_state,
                             scoring=inner_scoring, thresh=tol , maxit=max_iter, n_jobs=None) 
