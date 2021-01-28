@@ -9,7 +9,7 @@ filedir = path + '/data'
 global mouse, mice, session, sessions, days, trial, trials 
 mouse = []
 mice = ['C57_2_DualTask','ChRM04','JawsM15'] 
-days = [1,2,3,4,5] 
+days = [1,2,3,4,5,6] 
 day=-1 
 tasks = ['DPA', 'dual GO', 'dual No-GO']
 session =-1
@@ -216,3 +216,6 @@ AVG_BEFORE_PCA=0
 
 global fix_alpha_lbd
 fix_alpha_lbd = 0
+
+global inter_trials
+inter_trials=1

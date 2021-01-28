@@ -503,7 +503,7 @@ def cosDaysTasks(**kwargs):
     matplotlib.use('Agg') # so that fig saves when in the in the background 
     options = set_options(**kwargs) 
     set_globals(**options) 
-
+    
     # scaling before clf
     gv.cos_trials = 1
     gv.AVG_BEFORE_PCA = 1 
@@ -511,12 +511,12 @@ def cosDaysTasks(**kwargs):
     gv.pls_method = None # 'PLSRegression', 'PLSCanonical', 'PLSSVD', CCA or None 
     gv.scaling = 'standardize_sample' # 'standardize_sample' # 'standardize', 'normalize', 'standardize_sample', 'normalize_sample' or None 
     trial_str = ['dual Go', 'dual NoGo']     
-
+    
     create_fig_dir(**options) 
     
     print('bootstrap samples:', gv.n_boots, ', clf:', gv.clf_name, 
           ', scaling:', gv.scaling, ', scoring:', gv.scoring, ', n_splits:', options['n_splits'])
-
+    
     for gv.mouse in [gv.mice[1]]: 
         fct.get_days() 
         mean_cos = np.empty( ( len(gv.days), len(gv.trials), len(gv.epochs) ) ) 
@@ -532,14 +532,14 @@ def cosDaysTasks(**kwargs):
             
             coefs = bootstrap_coefs(X_trials, **options) 
             mean_cos[i_day], lower_cos[i_day], upper_cos[i_day], _ = get_cos_trials(coefs) 
-
+            
         for i_trial, gv.trial in enumerate(gv.trials[1:]): # all trials, ND, D1 and D2 
-
+            
             figtitle = '%s_cosDays_%s' % (gv.mouse, gv.trial) 
             plt.figure(figtitle) 
             
             for i_epoch, gv.epoch in enumerate(gv.epochs): # epochs in ED, MD and LD 
-
+                
                 mean = mean_cos[:, i_epoch, i_trial+1] # all days 
                 print(gv.trial, mean) 
                 error = np.absolute(np.vstack([ lower_cos[:, i_epoch, i_trial+1], upper_cos[:, i_epoch, i_trial+1] ] )) # all days 

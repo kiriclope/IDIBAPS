@@ -1,6 +1,6 @@
 from .libs import * 
 
-from .glmnet_wrapper import logitnet, logitnetCV, logitnetAlphaCV, iterAlphaCV 
+from .glmnet_wrapper import logitnet, logitnetCV, logitnetAlphaCV, logitnetAlphaIterCV
 from python_glmnet import LogitNet, LogitNetAlphaCV
 
 from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical, CCA 
