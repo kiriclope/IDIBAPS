@@ -213,3 +213,6 @@ AVG_F0_TRIALS=0
 
 global AVG_BEFORE_PCA
 AVG_BEFORE_PCA=0
+
+global fix_alpha_lbd
+fix_alpha_lbd = 0

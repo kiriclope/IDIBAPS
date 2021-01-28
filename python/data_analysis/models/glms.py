@@ -1,6 +1,6 @@
 from .libs import * 
 
-from .glmnet_wrapper import logitnet, logitnetCV, logitnetAlphaCV
+from .glmnet_wrapper import logitnet, logitnetCV, logitnetAlphaCV, iterAlphaCV 
 from python_glmnet import LogitNet, LogitNetAlphaCV
 
 from sklearn.cross_decomposition import PLSRegression, PLSSVD, PLSCanonical, CCA 
@@ -68,6 +68,8 @@ def set_globals(**opts):
     gv.AVG_BEFORE_PCA = 1 
     gv.pca_model = None # PCA, sparsePCA, supervisedPCA or None 
     gv.pls_method = None # 'PLSRegression', 'PLSCanonical', 'PLSSVD', CCA or None 
+
+    gv.fix_alpha_lbd = opts['fix_alpha_lbd']
     
 def set_options(**kwargs): 
     
@@ -77,6 +79,8 @@ def set_options(**kwargs):
     opts['n_jobs'] = int(0.9*multiprocessing.cpu_count()) 
     opts['IF_SAVE'] = 1 
     opts['SYNTHETIC'] = 0
+
+    opts['fix_alpha_lbd'] = 0
     
     # globals 
     opts['i_mice'] = 1
@@ -141,7 +145,7 @@ def set_options(**kwargs):
 
     # for glmnet only 
     opts['n_splits']=3 
-    opts['alpha'] = None 
+    opts['alpha'] = 1 
     opts['n_alpha'] = 10 
     opts['n_lambda'] = 100 
     opts['alpha_path']= None # -np.sort(-np.logspace(-4, -2, opts['Cs'])) 
@@ -165,11 +169,12 @@ def set_options(**kwargs):
     return opts 
 
 def get_clf(**kwargs):
+    
     options = set_options(**kwargs)
     globals().update(options) 
-
+    
     # sklearn
-
+    
     if 'LDA' in gv.clf_name: 
         gv.clf = LinearDiscriminantAnalysis(tol=tol, solver='lsqr', shrinkage=shrinkage) 
         
@@ -215,10 +220,10 @@ def get_clf(**kwargs):
 
     # glmnet_python
     if 'logitnetAlphaCV' in gv.clf_name:
-        gv.clf = logitnetAlphaCV(lbd=lbd, n_iter=n_iter, n_alpha=n_alpha, n_lambda=n_lambda, n_splits=inner_splits,
-                                 standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen,
-                                 fold_type=fold_type, shuffle=shuffle, random_state=random_state,
-                                 scoring=inner_scoring, thresh=tol , maxit=max_iter, n_jobs=None, verbose=verbose)
+        gv.clf = logitnetAlphaCV(lbd=lbd, n_alpha=n_alpha, n_lambda=n_lambda, 
+                                 n_splits=inner_splits, fold_type=fold_type, scoring=inner_scoring,
+                                 standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen, 
+                                 thresh=tol, maxit=max_iter, n_jobs=None, verbose=verbose)
         
     elif 'logitnetCV' in gv.clf_name:
         gv.clf = logitnetCV(lbd=lbd, alpha=alpha, n_lambda=n_lambda, n_splits=inner_splits,
@@ -226,8 +231,14 @@ def get_clf(**kwargs):
                             fold_type=fold_type, shuffle=shuffle, random_state=random_state,
                             scoring=inner_scoring, thresh=tol , maxit=max_iter, n_jobs=None) 
                 
-    elif 'logitnet' in gv.clf_name:
-        gv.clf = logitnet(alpha=l1_ratio, nlambda=Cs, standardize=False, fit_intercept=fit_intercept,
+    elif 'logitnet' in gv.clf_name: 
+        gv.clf = logitnet(lbd=lbd, alpha=alpha, n_lambda=n_lambda, prescreen=prescreen, 
+                          standardize=standardize, fit_intercept=fit_intercept, 
                           scoring=gv.scoring, thresh=tol , maxit=max_iter) 
         
+    if 'iterAlphaCV' in gv.clf_name:
+        gv.clf = iterAlphaCV(n_iter=n_iter, lbd=lbd, n_alpha=n_alpha, n_lambda=n_lambda, 
+                                 n_splits=inner_splits, fold_type=fold_type, scoring=inner_scoring,
+                                 standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen, 
+                                 thresh=tol, maxit=max_iter, n_jobs=None, verbose=verbose)
         
