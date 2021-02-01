@@ -22,6 +22,7 @@ def set_globals(**opts):
 
     gv.cos_trials = opts['cos_trials']
     gv.scores_trials = opts['scores_trials']
+    gv.inter_trials = opts['inter_trials']
     
     # preprocessing
     gv.DECONVOLVE= opts['DECONVOLVE']
@@ -37,7 +38,8 @@ def set_globals(**opts):
     gv.SAVGOL = 0 # sav_gol filter 
 
     gv.T_WINDOW = opts['T_WINDOW'] 
-    gv.EDvsLD = opts['EDvsLD']
+    gv.EDvsLD = opts['EDvsLD'] 
+    gv.CONCAT_BINS = opts['concatBins']
     gv.ED_MD_LD = opts['ED_MD_LD'] 
     gv.DELAY_ONLY = 0 
 
@@ -102,6 +104,7 @@ def set_options(**kwargs):
     opts['pair_trials']=0
 
     # temporal decoder 
+    opts['inter_trials']=1
     opts['scores_trials']=0
     opts['n_iter']=100
     opts['my_decoder'] = 0 
@@ -109,7 +112,9 @@ def set_options(**kwargs):
     
     # preprocessing parameters 
     opts['T_WINDOW'] = 0 
-    opts['EDvsLD'] = 1 # average over epochs ED, MD and LD 
+    opts['EDvsLD'] = 1 # average over epochs ED, MD and LD
+    opts['concatBins'] = 0
+    
     opts['ED_MD_LD'] = 0 
     
     opts['DECONVOLVE']=0 
@@ -165,6 +170,8 @@ def set_options(**kwargs):
     opts['max_iter']= int(1e5) 
 
     opts.update(kwargs) 
+    # if opts['concatBins']==1:
+    #     opts['EDvsLD']=0
     
     return opts 
 

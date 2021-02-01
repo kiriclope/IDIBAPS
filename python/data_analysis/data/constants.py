@@ -128,6 +128,9 @@ clf = None
 global trialsXepochs
 trialsXepochs=0
 
+global CONCAT_BINS
+CONCAT_BINS=0
+
 global EDvsLD
 EDvsLD=0
 

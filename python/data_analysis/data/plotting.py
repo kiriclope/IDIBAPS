@@ -11,7 +11,7 @@ def figDir():
     gv.filedir = gv.path + '/data' 
     
     today = date.today() 
-    today = today.strftime("/%d-%m-%y") 
+    today = today.strftime("/%y-%m-%d") 
     gv.figdir = gv.figdir + today 
         
     if gv.laser_on: 
@@ -32,8 +32,11 @@ def figDir():
         gv.figdir = gv.figdir + '/synthetic' 
                 
     if gv.trialsXepochs: 
-        gv.figdir = gv.figdir + '/trialsXepochs' 
-
+        gv.figdir = gv.figdir + '/trialsXepochs'
+        
+    if gv.CONCAT_BINS: 
+        gv.figdir = gv.figdir + '/concat_bins' 
+        
     if gv.F0_THRESHOLD is not None: 
         gv.figdir = gv.figdir + '/F0_thresh_%.2f' % gv.F0_THRESHOLD 
         if gv.AVG_F0_TRIALS:
