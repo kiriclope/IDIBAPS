@@ -48,33 +48,33 @@ def get_stimuli_times():
         gv.t_cue = [8, 8.5] 
         gv.t_DRT_reward = [8.5, 9] 
         gv.t_test = [12, 13] 
-
-def get_sessions_mouse():
-    if gv.mouse=='C57_2_DualTask' :
-        gv.sessions = list( map( str, np.arange(20200116, 20200121) ) )
-    elif gv.mouse=='ChRM04' :
-        gv.sessions = list( map( str, np.arange(20200521, 20200527) ) )
-    elif gv.mouse=='JawsM15' :
-        gv.sessions = list( map( str, np.arange(20200605, 20200610) ) )
         
-    gv.session=gv.sessions[gv.day-1]
+def get_sessions_mouse(): 
+    if gv.mouse=='C57_2_DualTask' : 
+        gv.sessions = list( map( str, np.arange(20200116, 20200121) ) ) 
+    elif gv.mouse=='ChRM04' : 
+        gv.sessions = list( map( str, np.arange(20200521, 20200527) ) ) 
+    elif gv.mouse=='JawsM15' : 
+        gv.sessions = list( map( str, np.arange(20200605, 20200610) ) ) 
+        
+    gv.session=gv.sessions[gv.day-1] 
     
-def get_fluo_data():
+def get_fluo_data(): 
     get_sessions_mouse() 
-
-    if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
-        data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat')
-
-        if 'rates' in gv.data_type:
-            X_data = np.rollaxis(data['S_dec'],1,0)
-        else:
-            X_data = np.rollaxis(data['C_df'], 1,0) 
-            # X_data = np.rollaxis(data['dFF0'],1,0)
-
-        y_labels = data['Events'].transpose()
-        gv.frame_rate = 6
     
-    else:
+    if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
+        data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat') 
+        
+        if 'rates' in gv.data_type: 
+            X_data = np.rollaxis(data['S_dec'],1,0) 
+        else: 
+            X_data = np.rollaxis(data['C_df'], 1,0) 
+            # X_data = np.rollaxis(data['dFF0'],1,0) 
+            
+        y_labels = data['Events'].transpose() 
+        gv.frame_rate = 6 
+        
+    else: 
         data = loadmat(gv.path +  '/data/' + gv.mouse +  '/' + gv.session + '-C57-2-DualTaskAcrossDaySameROITrace' + '.mat') 
         data_labels = loadmat(gv.path +  '/data/' + gv.mouse + '/' + gv.session + '-C57-2-DualTask-SumFluoTraceFile' + '.mat') 
         
@@ -83,25 +83,25 @@ def get_fluo_data():
         
         y_labels= data_labels['AllFileEvents'+gv.session][0][0][0].transpose() 
         gv.frame_rate = 7.5 
-
+        
     gv.duration = X_data.shape[2]/gv.frame_rate 
-    gv.time = np.linspace(0,gv.duration,X_data.shape[2]);  
+    gv.time = np.linspace(0,gv.duration,X_data.shape[2]); 
     gv.bins = np.arange(0,len(gv.time)) 
-    gv.n_neurons = X_data.shape[1]    
-    gv.trial_size = X_data.shape[2]
+    gv.n_neurons = X_data.shape[1] 
+    gv.trial_size = X_data.shape[2] 
     
     get_stimuli_times() 
     get_delays_times() 
     get_n_trials() 
-    get_bins()
+    get_bins() 
     
     print('mouse', gv.mouse, 'day', gv.day, '( session', gv.session,')', 'all data: X', X_data.shape,'y', y_labels.shape) 
     
-    return X_data, y_labels
+    return X_data, y_labels 
     
 def which_trials(y_labels):
     y_trials = []
-
+    
     if gv.laser_on:
         bool_ND = (y_labels[4]==0) & (y_labels[8]!=0) 
         bool_D1 = (y_labels[4]==13) & (y_labels[8]!=0)  

@@ -34,9 +34,6 @@ def figDir():
     if gv.trialsXepochs: 
         gv.figdir = gv.figdir + '/trialsXepochs'
         
-    if gv.CONCAT_BINS: 
-        gv.figdir = gv.figdir + '/concat_bins' 
-        
     if gv.F0_THRESHOLD is not None: 
         gv.figdir = gv.figdir + '/F0_thresh_%.2f' % gv.F0_THRESHOLD 
         if gv.AVG_F0_TRIALS:
@@ -51,6 +48,9 @@ def figDir():
     else : 
         gv.figdir = gv.figdir + '/stimVsDelay' 
         
+    if gv.CONCAT_BINS: 
+        gv.figdir = gv.figdir + '/concat_bins' 
+                
     if gv.T_WINDOW!=0 :
         gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW
         

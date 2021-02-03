@@ -14,25 +14,21 @@ fac.SetPlotParams()
 pal = ['r','b','y'] 
 gv.data_type = 'fluo' 
 
-for gv.mouse in gv.mice : 
+figtitle = 'performance' 
+fig = plt.figure(figtitle, figsize=(2.1*1.25*3, 1.85*1.25)) 
 
-    data.get_sessions_mouse() 
-    data.get_stimuli_times() 
-    data.get_delays_times()
-
-    perf = np.empty( ( len(gv.trials), len(gv.sessions) ) ) 
+for i_mouse, gv.mouse in enumerate(gv.mice) :
     
-    for n_session, gv.session in enumerate([gv.sessions[4]]) : 
+    data.get_days()
+    perf = np.empty( ( len(gv.trials), len(gv.days) ) ) 
+    
+    for i_day, gv.day in enumerate(gv.days): 
         X, y_labels = data.get_fluo_data() 
-        print('mouse', gv.mouse, 'session', gv.session, 'data X', X.shape,'y', y_labels.shape) 
         
-        data.get_delays_times() 
-        data.get_bins() 
-
         bool_ND = (y_labels[4]==0) & (y_labels[8]==0)
         bool_D1 = (y_labels[4]==13) & (y_labels[8]==0)
         bool_D2 = (y_labels[4]==14) & (y_labels[8]==0)
-
+        
         # print(bool_ND) 
         # print(bool_D1) 
         # print(bool_D2) 
@@ -42,7 +38,7 @@ for gv.mouse in gv.mice :
         ND_trials = len( np.argwhere( bool_ND ).flatten() )
         D1_trials = len( np.argwhere( bool_D1 ).flatten() )
         D2_trials = len( np.argwhere( bool_D2 ).flatten() )
-
+        
         # print(ND_trials) 
         # print(D1_trials) 
         # print(D2_trials) 
@@ -50,27 +46,28 @@ for gv.mouse in gv.mice :
         ND_correct = len( np.argwhere( bool_ND & bool_correct ).flatten() )
         D1_correct = len( np.argwhere( bool_D1 & bool_correct ).flatten() )
         D2_correct = len( np.argwhere( bool_D2 & bool_correct ).flatten() )
-
+        
         print('correct trials', ND_correct, D1_correct, D2_correct) 
         print('error trials', ND_trials-ND_correct, D1_trials-D1_correct, D2_trials-D2_correct) 
-
-        perf[0, n_session] = ND_correct/ND_trials*100 
-        perf[1, n_session] = D1_correct/D1_trials*100 
-        perf[2, n_session] = D2_correct/D2_trials*100 
-
-    figtitle = '%s_performance' % (gv.mouse)
-    ax = plt.figure(figtitle).add_subplot() 
+        
+        perf[0, i_day] = ND_correct/ND_trials*100 
+        perf[1, i_day] = D1_correct/D1_trials*100 
+        perf[2, i_day] = D2_correct/D2_trials*100 
+    
+    ax = fig.add_subplot('13'+str(i_mouse+1)) 
     
     days = np.arange(1, len(gv.sessions)+1 ) 
-    plt.plot(days, perf[0], color=pal[0]) 
-    plt.plot(days, perf[1], color=pal[1]) 
-    plt.plot(days, perf[2], color=pal[2])
-    ax.set_title(gv.mouse)
-    plt.xlabel('days')
-    plt.ylabel('performance')
-    plt.ylim([30,100])
-    plt.xlim([1,6])
-    plt.xticks(days)
+    plt.plot(gv.days, perf[0], color=pal[0]) 
+    plt.plot(gv.days, perf[1], color=pal[1]) 
+    plt.plot(gv.days, perf[2], color=pal[2])
+    ax.set_title(gv.mouse) 
+    plt.xlabel('Day') 
+    plt.ylabel('Performance') 
+    plt.ylim([40,100]) 
+    plt.xlim([gv.days[0], gv.days[-1]]) 
+    plt.xticks(gv.days) 
     
-    pl.figDir() 
-    pl.save_fig(figtitle) 
+pl.figDir()
+gv.IF_SAVE=1
+pl.save_fig(figtitle) 
+    

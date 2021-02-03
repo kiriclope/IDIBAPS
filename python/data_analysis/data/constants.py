@@ -59,7 +59,7 @@ global dum
 dum = -1
 
 global IF_SAVE
-IF_SAVE=0
+IF_SAVE = 1 
 
 global laser_on
 laser_on = 0
@@ -132,7 +132,7 @@ global CONCAT_BINS
 CONCAT_BINS=0
 
 global EDvsLD
-EDvsLD=0
+EDvsLD=1
 
 global my_decoder
 my_decoder=0
@@ -163,7 +163,7 @@ DECONVOLVE=0
 DCV_THRESHOLD=.1
 
 global pls_method, pls_max_comp, pls_cv
-pls_method = 'PLSRegression'
+pls_method = None
 pls_max_comp = 100
 pls_cv = 5
 
@@ -203,7 +203,7 @@ global list_n_components
 list_n_components = None
 
 global pca_model, sparse_alpha, ridge_alpha
-pca_model = 'PCA'
+pca_model = None
 sparse_alpha=1
 ridge_alpha=.01 
 
@@ -211,7 +211,7 @@ global scores_trials
 scores_trials=0
 
 global F0_THRESHOLD, AVG_F0_TRIALS
-F0_THRESHOLD=0 
+F0_THRESHOLD=None
 AVG_F0_TRIALS=0
 
 global AVG_BEFORE_PCA
