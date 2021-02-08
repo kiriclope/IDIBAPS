@@ -18,9 +18,11 @@ def get_epochs():
 def get_n_trials():
     if gv.mouse in [gv.mice[0]]: 
         gv.n_trials = 40 
-    else: 
+    elif gv.mouse in [gv.mice[3]] or gv.mouse in [gv.mice[4]]: 
         gv.n_trials = 64
-
+    else:
+        gv.n_trials = 32
+        
 def get_days():
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
         gv.days = [1,2,3,4,5,6]
@@ -187,7 +189,7 @@ def get_S1_S2_trials(X_data, y_labels):
     X_S1 = X_data[y_S1] 
     X_S2 = X_data[y_S2] 
     
-    print('X_S1', X_S1.shape, 'X_S2', X_S2.shape)
+    # print('X_S1', X_S1.shape, 'X_S2', X_S2.shape)
     
     return X_S1, X_S2 
 
@@ -202,11 +204,9 @@ def get_X_S1_S2(X_data, y_labels):
         gv.trial = trial + "_S1" 
         y_S1 = which_trials(y_labels) 
 
-        print(y_S1.shape)
         gv.trial = trial + "_S2" 
         y_S2 = which_trials(y_labels) 
 
-        print(y_S1.shape, y_S2.shape)
         
         gv.trial = trial 
         X_S1 = X_data[y_S1] 
@@ -215,7 +215,7 @@ def get_X_S1_S2(X_data, y_labels):
         X_S1_S2[i_trial, 0] = X_S1 
         X_S1_S2[i_trial, 1] = X_S2 
 
-    print('X_S1', X_S1.shape, 'X_S2', X_S2.shape, 'X_S1_S2', X_S1_S2.shape)
+    # print('X_S1', X_S1.shape, 'X_S2', X_S2.shape, 'X_S1_S2', X_S1_S2.shape)
     gv.trial = _trial
     
     return X_S1_S2
