@@ -20,6 +20,7 @@ def set_globals(**opts):
     gv.day = gv.days[opts['i_day']] 
     gv.epoch = gv.epochs[opts['i_epoch']] 
 
+    gv.SAME_DAYS = opts['same_days']
     gv.cos_trials = opts['cos_trials']
     gv.scores_trials = opts['scores_trials']
     gv.inter_trials = opts['inter_trials']
@@ -88,8 +89,9 @@ def set_options(**kwargs):
     opts['i_mice'] = 1
     opts['i_day'] = -1
     opts['i_trial'] = 0  
-    opts['i_epoch'] = 0 
-
+    opts['i_epoch'] = 0
+    
+    opts['same_days'] = 1 
     opts['laser_on']=0
 
     # bootstrap

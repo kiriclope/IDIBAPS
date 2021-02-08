@@ -8,7 +8,7 @@ filedir = path + '/data'
 
 global mouse, mice, session, sessions, days, trial, trials 
 mouse = []
-mice = ['C57_2_DualTask','ChRM04','JawsM15'] 
+mice = ['C57_2_DualTask','ChRM04','JawsM15','ACCM03','ACCM04'] 
 days = [1,2,3,4,5,6] 
 day=-1 
 tasks = ['DPA', 'dual GO', 'dual No-GO']
@@ -16,6 +16,9 @@ session =-1
 sessions = [] 
 trial = 'ND' 
 trials = ['ND', 'D1', 'D2']
+
+global SAME_DAYS
+SAME_DAYS = 1
 
 global t_ED, t_MD, t_LD
 t_ED = []

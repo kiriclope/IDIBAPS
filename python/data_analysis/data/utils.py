@@ -19,10 +19,10 @@ def get_n_trials():
     if gv.mouse in [gv.mice[0]]: 
         gv.n_trials = 40 
     else: 
-        gv.n_trials = 32 
+        gv.n_trials = 64
 
 def get_days():
-    if((gv.mouse=='ChRM04')): 
+    if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
         gv.days = [1,2,3,4,5,6]
     else:
         gv.days = [1,2,3,4,5]
@@ -38,31 +38,29 @@ def get_delays_times():
         gv.t_LD = [9, 12]
 
 def get_stimuli_times():
-    if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')):
-        gv.t_DIST = [4.5, 5.5] 
-        gv.t_cue = [6.5, 7] 
-        gv.t_DRT_reward = [7, 7.5] 
-        gv.t_test = [9, 10] 
-    else:
+    if gv.mouse=='C57_2_DualTask' : 
         gv.t_DIST = [6, 7] 
         gv.t_cue = [8, 8.5] 
         gv.t_DRT_reward = [8.5, 9] 
         gv.t_test = [12, 13] 
-        
+    else:
+        gv.t_DIST = [4.5, 5.5] 
+        gv.t_cue = [6.5, 7] 
+        gv.t_DRT_reward = [7, 7.5] 
+        gv.t_test = [9, 10] 
+    
 def get_sessions_mouse(): 
     if gv.mouse=='C57_2_DualTask' : 
         gv.sessions = list( map( str, np.arange(20200116, 20200121) ) ) 
-    elif gv.mouse=='ChRM04' : 
+    else : 
         gv.sessions = list( map( str, np.arange(20200521, 20200527) ) ) 
-    elif gv.mouse=='JawsM15' : 
-        gv.sessions = list( map( str, np.arange(20200605, 20200610) ) ) 
         
     gv.session=gv.sessions[gv.day-1] 
     
 def get_fluo_data(): 
     get_sessions_mouse() 
     
-    if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
+    if gv.mouse=='ChRM04': 
         data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat') 
         
         if 'rates' in gv.data_type: 
@@ -72,17 +70,34 @@ def get_fluo_data():
             # X_data = np.rollaxis(data['dFF0'],1,0) 
             
         y_labels = data['Events'].transpose() 
-        gv.frame_rate = 6 
-        
-    else: 
+        gv.frame_rate = 6
+                
+    elif gv.mouse=='C57_2_DualTask' : 
         data = loadmat(gv.path +  '/data/' + gv.mouse +  '/' + gv.session + '-C57-2-DualTaskAcrossDaySameROITrace' + '.mat') 
         data_labels = loadmat(gv.path +  '/data/' + gv.mouse + '/' + gv.session + '-C57-2-DualTask-SumFluoTraceFile' + '.mat') 
         
-        X_data = np.rollaxis(data['SameAllCdf'],2,0) 
+        print('same neurons across days') 
+        X_data = np.rollaxis(data['SameAllCdf'],2,0)
+        # print('same neurons accross days')
         # X_data = np.rollaxis(data['SamedFF0'],2,0) 
         
         y_labels= data_labels['AllFileEvents'+gv.session][0][0][0].transpose() 
-        gv.frame_rate = 7.5 
+        gv.frame_rate = 7.5
+        
+    else :
+        if gv.SAME_DAYS:
+            print('same neurons accross days')
+            data = loadmat(gv.path + '/data/' + gv.mouse + '/SamedROI/' + gv.mouse + '_day_' + str(gv.day) + '.mat')
+        else:
+            data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.mouse +'_day_' + str(gv.day) + '.mat') 
+            
+        if 'rates' in gv.data_type: 
+            X_data = np.rollaxis(data['C_df'],1,0) 
+        else: 
+            X_data = np.rollaxis(data['dff_Mice'],1,0) 
+            
+        y_labels = data['Events'].transpose() 
+        gv.frame_rate = 6 
         
     gv.duration = X_data.shape[2]/gv.frame_rate 
     gv.time = np.linspace(0,gv.duration,X_data.shape[2]); 
@@ -111,7 +126,7 @@ def which_trials(y_labels):
         bool_D1 = (y_labels[4]==13) & (y_labels[8]==0)  
         bool_D2 = (y_labels[4]==14) & (y_labels[8]==0) 
         
-    bool_S1 = (y_labels[0]==17) 
+    bool_S1 = (y_labels[0]==17)
     bool_S2 = (y_labels[0]==18) 
     
     bool_pair = ( (y_labels[0]==17) & (y_labels[1]==11) ) | ( (y_labels[0]==18) & (y_labels[1]==12) ) 
@@ -172,28 +187,31 @@ def get_S1_S2_trials(X_data, y_labels):
     X_S1 = X_data[y_S1] 
     X_S2 = X_data[y_S2] 
     
-    # print('X_S1', X_S1.shape, 'X_S2', X_S2.shape)
+    print('X_S1', X_S1.shape, 'X_S2', X_S2.shape)
     
     return X_S1, X_S2 
 
 def get_X_S1_S2(X_data, y_labels):
 
     X_S1_S2 = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) )
-
+    
     _trial = gv.trial
     for i_trial, gv.trial in enumerate(gv.trials):
-    
+        
         trial = gv.trial
         gv.trial = trial + "_S1" 
         y_S1 = which_trials(y_labels) 
-    
+
+        print(y_S1.shape)
         gv.trial = trial + "_S2" 
         y_S2 = which_trials(y_labels) 
-    
+
+        print(y_S1.shape, y_S2.shape)
+        
         gv.trial = trial 
         X_S1 = X_data[y_S1] 
         X_S2 = X_data[y_S2] 
-    
+        
         X_S1_S2[i_trial, 0] = X_S1 
         X_S1_S2[i_trial, 1] = X_S2 
 
@@ -357,7 +375,7 @@ def get_X_y_mouse_session(synthetic=False):
         if 'ND_D1' in gv.trials: 
             gv.n_trials = 32*2 
         else: 
-            gv.n_trials = 32 
+            gv.n_trials = 32
             
     X_trials = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), gv.n_neurons, gv.trial_size) ) 
         
