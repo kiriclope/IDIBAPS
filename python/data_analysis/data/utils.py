@@ -18,19 +18,21 @@ def get_epochs():
 def get_n_trials():
     if gv.mouse in [gv.mice[0]]: 
         gv.n_trials = 40 
-    elif gv.mouse in [gv.mice[3]] or gv.mouse in [gv.mice[4]]: 
-        gv.n_trials = 64
+    elif gv.mouse in [gv.mice[4]] or gv.mouse in [gv.mice[5]]: 
+        gv.n_trials = 64 
     else:
         gv.n_trials = 32
         
 def get_days():
     if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
         gv.days = [1,2,3,4,5,6]
+    elif gv.mouse=='JawsM18':
+        gv.days = [1,2,3,4]
     else:
         gv.days = [1,2,3,4,5]
         
 def get_delays_times():
-    if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
+    if((gv.mouse=='ChRM04') | ('Jaws' in gv.mouse) | ('ACC' in gv.mouse) ): 
         gv.t_ED = [3, 4.5] 
         gv.t_MD = [5.5, 6.5] 
         gv.t_LD = [7.5, 9] 
@@ -71,7 +73,7 @@ def get_fluo_data():
             X_data = np.rollaxis(data['C_df'], 1,0) 
             # X_data = np.rollaxis(data['dFF0'],1,0) 
             
-        y_labels = data['Events'].transpose() 
+        y_labels = data['Events'].transpose()
         gv.frame_rate = 6
                 
     elif gv.mouse=='C57_2_DualTask' : 
@@ -86,11 +88,11 @@ def get_fluo_data():
         y_labels= data_labels['AllFileEvents'+gv.session][0][0][0].transpose() 
         gv.frame_rate = 7.5
         
-    else :
-        if gv.SAME_DAYS:
-            print('same neurons accross days')
-            data = loadmat(gv.path + '/data/' + gv.mouse + '/SamedROI/' + gv.mouse + '_day_' + str(gv.day) + '.mat')
-        else:
+    else: 
+        if gv.SAME_DAYS: 
+            print('same neurons accross days') 
+            data = loadmat(gv.path + '/data/' + gv.mouse + '/SamedROI/' + gv.mouse + '_day_' + str(gv.day) + '.mat') 
+        else: 
             data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.mouse +'_day_' + str(gv.day) + '.mat') 
             
         if 'rates' in gv.data_type: 
@@ -101,6 +103,10 @@ def get_fluo_data():
         y_labels = data['Events'].transpose() 
         gv.frame_rate = 6 
         
+    print(data.keys())
+    
+    # print(y_labels[4])
+    
     gv.duration = X_data.shape[2]/gv.frame_rate 
     gv.time = np.linspace(0,gv.duration,X_data.shape[2]); 
     gv.bins = np.arange(0,len(gv.time)) 
@@ -128,7 +134,7 @@ def which_trials(y_labels):
         bool_D1 = (y_labels[4]==13) & (y_labels[8]==0)  
         bool_D2 = (y_labels[4]==14) & (y_labels[8]==0) 
         
-    bool_S1 = (y_labels[0]==17)
+    bool_S1 = (y_labels[0]==17) 
     bool_S2 = (y_labels[0]==18) 
     
     bool_pair = ( (y_labels[0]==17) & (y_labels[1]==11) ) | ( (y_labels[0]==18) & (y_labels[1]==12) ) 
@@ -203,10 +209,10 @@ def get_X_S1_S2(X_data, y_labels):
         trial = gv.trial
         gv.trial = trial + "_S1" 
         y_S1 = which_trials(y_labels) 
-
+        
         gv.trial = trial + "_S2" 
         y_S2 = which_trials(y_labels) 
-
+        
         
         gv.trial = trial 
         X_S1 = X_data[y_S1] 
@@ -214,7 +220,7 @@ def get_X_S1_S2(X_data, y_labels):
         
         X_S1_S2[i_trial, 0] = X_S1 
         X_S1_S2[i_trial, 1] = X_S2 
-
+        
     # print('X_S1', X_S1.shape, 'X_S2', X_S2.shape, 'X_S1_S2', X_S1_S2.shape)
     gv.trial = _trial
     
