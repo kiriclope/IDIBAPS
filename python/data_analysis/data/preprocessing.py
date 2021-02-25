@@ -21,10 +21,25 @@ def center(X):
 
 def z_score(X): 
     scaler = StandardScaler()
-    if gv.Z_SCORE:
-        Xz = scaler.fit_transform(X.T).T
-    elif gv.Z_SCORE_BL :
-        Xz = scaler.transform(X.T).T 
+    
+    if X.ndim>2:
+        Xz = X
+        for i in range(X.shape[0]):
+            Xt = X[i]
+            if gv.Z_SCORE:
+                Xz[i] = scaler.fit_transform(Xt.T).T
+            elif gv.Z_SCORE_BL : 
+                scaler.fit(Xt[...,gv.bins_BL].T) 
+                Xz[i] = scaler.transform(Xt.T).T 
+            
+    else:
+            
+        if gv.Z_SCORE:
+            Xz = scaler.fit_transform(X.T).T
+        elif gv.Z_SCORE_BL : 
+            scaler.fit(X[...,gv.bins_BL].T) 
+            Xz = scaler.transform(X.T).T
+            
     return Xz 
 
 def normalize(X):
@@ -258,14 +273,14 @@ def avg_epochs(X, y=None, threshold=.1):
         X_ED = np.mean(X[...,gv.bins_ED[:]-gv.bin_start],axis=-1) 
         X_MD = np.mean(X[...,gv.bins_MD[:]-gv.bin_start],axis=-1) 
         X_LD = np.mean(X[...,gv.bins_LD[:]-gv.bin_start],axis=-1) 
-
+        
         if gv.trialsXepochs or gv.CONCAT_BINS: 
             print(gv.trial,'concatenate bins and average') 
             # X_STIM = np.hstack(X[...,gv.bins_STIM[:]-gv.bin_start]).T
                 
-            X_ED = np.hstack(X[...,gv.bins_ED[:]-gv.bin_start].T).T
+            X_ED = np.hstack(X[...,gv.bins_ED[:]-gv.bin_start].T).T 
             X_MD = np.hstack(X[...,gv.bins_MD[:]-gv.bin_start].T).T 
-            X_LD = np.hstack(X[...,gv.bins_LD[:]-gv.bin_start].T).T
+            X_LD = np.hstack(X[...,gv.bins_LD[:]-gv.bin_start].T).T 
             print(X_ED.shape, X_MD.shape) 
             
     if gv.FEATURE_SELECTION: 
@@ -456,11 +471,12 @@ def preprocess_X(X):
         X = deconvolveFluo(X) 
         
     else: 
-
+        
         if gv.SAVGOL: 
             X = savgol_filter(X, int(np.ceil(gv.frame_rate / 2.) * 2 + 1), polyorder = 5, deriv=0, axis=-1) 
-                                
-        if gv.Z_SCORE : 
+            
+        if gv.Z_SCORE | gv.Z_SCORE_BL :
+            print('z_score')
             X = z_score(X) 
-
+            
     return X 

@@ -24,10 +24,8 @@ def get_n_trials():
         gv.n_trials = 32
         
 def get_days():
-    if((gv.mouse=='ChRM04') | (gv.mouse=='JawsM15')): 
+    if (gv.mouse=='JawsM15') | (gv.mouse=='ChRM04') | (gv.mouse=='JawsM18'): 
         gv.days = [1,2,3,4,5,6]
-    elif gv.mouse=='JawsM18':
-        gv.days = [1,2,3,4]
     else:
         gv.days = [1,2,3,4,5]
         
@@ -63,20 +61,20 @@ def get_sessions_mouse():
     
 def get_fluo_data(): 
     get_sessions_mouse() 
-    
-    if gv.mouse=='ChRM04': 
-        data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat') 
+    get_days()
+    # if gv.mouse=='ChRM04': 
+    #     data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat') 
         
-        if 'rates' in gv.data_type: 
-            X_data = np.rollaxis(data['S_dec'],1,0) 
-        else: 
-            X_data = np.rollaxis(data['C_df'], 1,0) 
-            # X_data = np.rollaxis(data['dFF0'],1,0) 
+    #     if 'rates' in gv.data_type: 
+    #         X_data = np.rollaxis(data['S_dec'],1,0) 
+    #     else: 
+    #         X_data = np.rollaxis(data['C_df'], 1,0) 
+    #         # X_data = np.rollaxis(data['dFF0'],1,0) 
             
-        y_labels = data['Events'].transpose()
-        gv.frame_rate = 6
+    #     y_labels = data['Events'].transpose()
+    #     gv.frame_rate = 6
                 
-    elif gv.mouse=='C57_2_DualTask' : 
+    if gv.mouse=='C57_2_DualTask' : 
         data = loadmat(gv.path +  '/data/' + gv.mouse +  '/' + gv.session + '-C57-2-DualTaskAcrossDaySameROITrace' + '.mat') 
         data_labels = loadmat(gv.path +  '/data/' + gv.mouse + '/' + gv.session + '-C57-2-DualTask-SumFluoTraceFile' + '.mat') 
         
@@ -91,12 +89,12 @@ def get_fluo_data():
     else: 
         if gv.SAME_DAYS: 
             print('same neurons accross days') 
-            data = loadmat(gv.path + '/data/' + gv.mouse + '/SamedROI/' + gv.mouse + '_day_' + str(gv.day) + '.mat') 
+            data = loadmat(gv.path + '/data/' + gv.mouse + '/SamedROI_0%dDays/' % len(gv.days) + gv.mouse + '_day_' + str(gv.day) + '.mat' ) 
         else: 
             data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.mouse +'_day_' + str(gv.day) + '.mat') 
             
-        if 'rates' in gv.data_type: 
-            X_data = np.rollaxis(data['C_df'],1,0) 
+        if 'raw' in gv.data_type: 
+            X_data = np.rollaxis(data['Cdf_Mice'],1,0) 
         else: 
             X_data = np.rollaxis(data['dff_Mice'],1,0) 
             

@@ -78,7 +78,7 @@ global samples
 samples=['S1', 'S2']
 
 global data_type
-data_type = 'fluo' # 'rates'
+data_type = 'raw' # 'rates'
 
 global n_boots, bootstrap_method 
 n_boots = 10

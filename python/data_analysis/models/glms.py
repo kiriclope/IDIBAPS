@@ -123,7 +123,7 @@ def set_options(**kwargs):
     opts['DCV_THRESHOLD']=0.5 
     
     opts['F0_THRESHOLD']=None 
-    opts['F0_AVG_TRIALS'] = 1
+    opts['F0_AVG_TRIALS'] = 1 
     
     opts['Z_SCORE'] = 0 
     opts['Z_SCORE_BL'] = 0 
@@ -228,7 +228,13 @@ def get_clf(**kwargs):
                           max_iter=max_iter, shuffle=shuffle, random_state=None, max_features=None, verbose=False)    
 
     # glmnet_python
-    if 'logitnetAlphaCV' in gv.clf_name:
+    if 'logitnetAlphaIterCV' in gv.clf_name:
+        gv.clf = logitnetAlphaCV(lbd=lbd, n_alpha=n_alpha, n_lambda=n_lambda, 
+                                 n_splits=inner_splits, fold_type=fold_type, scoring=inner_scoring,
+                                 standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen, 
+                                 thresh=tol, maxit=max_iter, n_jobs=None, verbose=False) 
+    
+    elif 'logitnetAlphaCV' in gv.clf_name:
         gv.clf = logitnetAlphaCV(lbd=lbd, n_alpha=n_alpha, n_lambda=n_lambda, 
                                  n_splits=inner_splits, fold_type=fold_type, scoring=inner_scoring,
                                  standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen, 
@@ -244,10 +250,3 @@ def get_clf(**kwargs):
         gv.clf = logitnet(lbd=lbd, alpha=alpha, n_lambda=n_lambda, prescreen=prescreen, 
                           standardize=standardize, fit_intercept=fit_intercept, 
                           scoring=gv.scoring, thresh=tol , maxit=max_iter) 
-        
-    if 'iterAlphaCV' in gv.clf_name:
-        gv.clf = iterAlphaCV(n_iter=n_iter, lbd=lbd, n_alpha=n_alpha, n_lambda=n_lambda, 
-                                 n_splits=inner_splits, fold_type=fold_type, scoring=inner_scoring,
-                                 standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen, 
-                                 thresh=tol, maxit=max_iter, n_jobs=None, verbose=verbose)
-        
