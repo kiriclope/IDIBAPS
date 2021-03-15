@@ -13,6 +13,12 @@ def set_globals(**opts):
     gv.num_cores = opts['n_jobs']
     gv.IF_SAVE = opts['IF_SAVE']
     gv.SYNTHETIC = opts['SYNTHETIC'] 
+    gv.data_type = opts['type']
+
+    gv.first_days = opts['firstDays']
+    gv.last_days = opts['lastDays']
+    
+    gv.inner_scoring = opts['inner_scoring']
     
     # parameters 
     gv.mouse = gv.mice[opts['i_mice']] 
@@ -25,16 +31,20 @@ def set_globals(**opts):
     gv.scores_trials = opts['scores_trials']
     gv.inter_trials = opts['inter_trials']
     
+    if not gv.inter_trials : 
+        gv.pal = ['#ff00ff','#ffff00','#00ffff'] 
+    
     # preprocessing
     gv.DECONVOLVE= opts['DECONVOLVE']
     gv.DCV_THRESHOLD = opts['DCV_THRESHOLD']
     
     gv.F0_THRESHOLD = opts['F0_THRESHOLD']
     gv.AVG_F0_TRIALS = opts['F0_AVG_TRIALS']
-
+    
     gv.Z_SCORE = opts['Z_SCORE']
     gv.Z_SCORE_BL = opts['Z_SCORE_BL']
-
+    gv.NORMALIZE = opts['NORM'] 
+    
     gv.DETREND = 0 # detrend the data 
     gv.SAVGOL = 0 # sav_gol filter 
 
@@ -78,12 +88,15 @@ def set_options(**kwargs):
     
     opts = dict()
     opts['verbose'] = 0 
-
+    opts['type'] = 'raw' 
     opts['n_jobs'] = int(0.9*multiprocessing.cpu_count()) 
     opts['IF_SAVE'] = 1 
     opts['SYNTHETIC'] = 0
 
     opts['fix_alpha_lbd'] = 0
+
+    opts['firstDays'] = 0 
+    opts['lastDays'] = 0 
     
     # globals 
     opts['i_mice'] = 1
@@ -100,7 +113,7 @@ def set_options(**kwargs):
     opts['bootstrap_method'] = 'block' # 'bayes', 'bagging', 'standard', 'block' or 'hierarchical' 
     opts['boot_cos'] = 0
     opts['n_cos_boots'] = int(1e3)
-
+    
     opts['cos_trials']=0
     opts['correct_trials']=0
     opts['pair_trials']=0
@@ -115,7 +128,7 @@ def set_options(**kwargs):
     # preprocessing parameters 
     opts['T_WINDOW'] = 0 
     opts['EDvsLD'] = 1 # average over epochs ED, MD and LD
-    opts['concatBins'] = 0
+    opts['concatBins'] = ''
     
     opts['ED_MD_LD'] = 0 
     
@@ -127,6 +140,7 @@ def set_options(**kwargs):
     
     opts['Z_SCORE'] = 0 
     opts['Z_SCORE_BL'] = 0 
+    opts['NORM'] = 0 
     
     # classification parameters 
     opts['clf_name']='logitnetCV' 
@@ -137,8 +151,8 @@ def set_options(**kwargs):
     # sklearn LogisticRegression, LogisticRegressionCV
     opts['C']=1e0 
     opts['Cs']=100 
-    opts['penalty']='elasticnet' 
-    opts['solver']='saga'
+    opts['penalty']='l1' 
+    opts['solver']='liblinear'
     
     # LDA
     opts['loss']='lsqr' 
@@ -147,7 +161,7 @@ def set_options(**kwargs):
     # LassoLarsIC
     opts['criterion']='bic'
 
-    opts['fit_intercept'] = True 
+    opts['fit_intercept'] = False
     opts['intercept_scaling']=1e2
 
     # for glmnet only 
@@ -168,8 +182,8 @@ def set_options(**kwargs):
     
     opts['shuffle'] = True     
     opts['random_state'] = None 
-    opts['tol']=1e-7 
-    opts['max_iter']= int(1e5) 
+    opts['tol']=1e-4 
+    opts['max_iter']= int(1e6) 
 
     opts.update(kwargs) 
     # if opts['concatBins']==1:
@@ -197,7 +211,7 @@ def get_clf(**kwargs):
                            class_weight=None, verbose=0, random_state=None) 
 
     if 'LogisticRegressionCV' in gv.clf_name:
-        gv.clf = LogisticRegressionCV(Cs=np.logspace(0,4,Cs), solver=solver, penalty=penalty, l1_ratios=np.linspace(0,1,10), 
+        gv.clf = LogisticRegressionCV(solver=solver, penalty=penalty, l1_ratios=None, 
                                       tol=tol, max_iter=int(max_iter), scoring=gv.scoring, 
                                       fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, 
                                       cv=n_splits, n_jobs=None) 
@@ -229,7 +243,7 @@ def get_clf(**kwargs):
 
     # glmnet_python
     if 'logitnetAlphaIterCV' in gv.clf_name:
-        gv.clf = logitnetAlphaCV(lbd=lbd, n_alpha=n_alpha, n_lambda=n_lambda, 
+        gv.clf = logitnetAlphaIterCV(lbd=lbd, n_alpha=n_alpha, n_lambda=n_lambda, 
                                  n_splits=inner_splits, fold_type=fold_type, scoring=inner_scoring,
                                  standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen, 
                                  thresh=tol, maxit=max_iter, n_jobs=None, verbose=False) 
@@ -237,16 +251,16 @@ def get_clf(**kwargs):
     elif 'logitnetAlphaCV' in gv.clf_name:
         gv.clf = logitnetAlphaCV(lbd=lbd, n_alpha=n_alpha, n_lambda=n_lambda, 
                                  n_splits=inner_splits, fold_type=fold_type, scoring=inner_scoring,
-                                 standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen, 
+                                 standardize=False, fit_intercept=fit_intercept, prescreen=prescreen, 
                                  thresh=tol, maxit=max_iter, n_jobs=None, verbose=verbose)
         
     elif 'logitnetCV' in gv.clf_name:
         gv.clf = logitnetCV(lbd=lbd, alpha=alpha, n_lambda=n_lambda, n_splits=inner_splits,
-                            standardize=standardize, fit_intercept=fit_intercept, prescreen=prescreen,
+                            standardize=False, fit_intercept=fit_intercept, prescreen=prescreen,
                             fold_type=fold_type, shuffle=shuffle, random_state=random_state,
                             scoring=inner_scoring, thresh=tol , maxit=max_iter, n_jobs=None) 
                 
     elif 'logitnet' in gv.clf_name: 
         gv.clf = logitnet(lbd=lbd, alpha=alpha, n_lambda=n_lambda, prescreen=prescreen, 
-                          standardize=standardize, fit_intercept=fit_intercept, 
+                          standardize=False, fit_intercept=fit_intercept, 
                           scoring=gv.scoring, thresh=tol , maxit=max_iter) 

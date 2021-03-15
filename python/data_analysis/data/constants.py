@@ -6,10 +6,11 @@ path = '/homecentral/alexandre.mahrach/IDIBAPS/python/data_analysis'
 figdir = path + '/figs' 
 filedir = path + '/data' 
 
-global mouse, mice, session, sessions, days, trial, trials 
+global mouse, mice, session, sessions, days, trial, trials, n_days
 mouse = []
 mice = ['C57_2_DualTask','ChRM04','JawsM15','JawsM18','ACCM03','ACCM04'] 
-days = [1,2,3,4,5,6] 
+n_days = 6
+days = np.arange(1, n_days+1) 
 day=-1 
 tasks = ['DPA', 'dual GO', 'dual No-GO']
 session =-1
@@ -133,7 +134,7 @@ global trialsXepochs
 trialsXepochs=0
 
 global CONCAT_BINS
-CONCAT_BINS=0
+CONCAT_BINS=''
 
 global EDvsLD
 EDvsLD=1
@@ -159,12 +160,13 @@ FEATURE_SELECTION=0
 global TIBSHIRANI_TRICK
 TIBSHIRANI_TRICK=0
 
-global Z_SCORE, Z_SCORE_BL, DECONVOLVE, DCV_THRESHOLD, bins_z_score 
+global Z_SCORE, Z_SCORE_BL, DECONVOLVE, DCV_THRESHOLD, bins_z_score, NORMALIZE 
 Z_SCORE_BL = 0
 Z_SCORE=0
 bins_z_score = 0
 DECONVOLVE=0
 DCV_THRESHOLD=.1
+NORMALIZE=0
 
 global pls_method, pls_max_comp, pls_cv
 pls_method = None
@@ -181,10 +183,11 @@ global LASSOCV, lassoCV
 LASSOCV = False 
 lassoCV = None 
 
-global scoring, fold_type, n_iter
+global scoring, fold_type, n_iter, inner_scoring
 scoring='accuracy'
 fold_type='stratified'
 n_iter = 1
+inner_scoring='accuracy'
 
 global SYNTHETIC
 SYNTHETIC=0
@@ -226,3 +229,9 @@ fix_alpha_lbd = 0
 
 global inter_trials
 inter_trials=1
+
+global first_days, last_days, all_days
+first_days=0
+last_days=0 
+all_days=0
+

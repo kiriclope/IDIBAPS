@@ -40,6 +40,8 @@ def figDir():
             gv.figdir = gv.figdir + '_avg_trials'
     elif gv.DECONVOLVE:
         gv.figdir = gv.figdir + '/deconvolve_th_%.2f' % gv.DCV_THRESHOLD
+    elif gv.data_type=='dF':
+        gv.figdir = gv.figdir + '/dF' 
     else:
         gv.figdir = gv.figdir + '/rawF' 
         
@@ -62,11 +64,12 @@ def figDir():
         gv.figdir = gv.figdir + '/savgol' 
         
     if gv.Z_SCORE : 
-        gv.figdir = gv.figdir + '/z_score'
-        
+        gv.figdir = gv.figdir + '/z_score'        
     elif gv.Z_SCORE_BL : 
         gv.figdir = gv.figdir + '/z_score_bl'
         
+    if gv.NORMALIZE : 
+        gv.figdir = gv.figdir + '/norm'        
                 
     if gv.TIBSHIRANI_TRICK:
         gv.figdir = gv.figdir + '/tibshirani_trick'

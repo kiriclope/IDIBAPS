@@ -43,11 +43,11 @@ def z_score(X):
     return Xz 
 
 def normalize(X):
-    Xmin = np.amin(X[:, gv.bins_ED], axis=1) 
-    Xmax = np.amax(X[:, gv.bins_ED], axis=1) 
+    Xmin = np.amin(X[..., gv.bins_ED], axis=-1) 
+    Xmax = np.amax(X[..., gv.bins_ED], axis=-1) 
     
-    Xmin = Xmin[:,np.newaxis] 
-    Xmax = Xmax[:,np.newaxis]
+    Xmin = Xmin[..., np.newaxis] 
+    Xmax = Xmax[..., np.newaxis]
     
     return (X-Xmin)/(Xmax-Xmin+gv.eps) 
 
@@ -274,13 +274,20 @@ def avg_epochs(X, y=None, threshold=.1):
         X_MD = np.mean(X[...,gv.bins_MD[:]-gv.bin_start],axis=-1) 
         X_LD = np.mean(X[...,gv.bins_LD[:]-gv.bin_start],axis=-1) 
         
-        if gv.trialsXepochs or gv.CONCAT_BINS: 
+        if gv.trialsXepochs or 'Y' in gv.CONCAT_BINS: 
             print(gv.trial,'concatenate bins and average') 
             # X_STIM = np.hstack(X[...,gv.bins_STIM[:]-gv.bin_start]).T
                 
             X_ED = np.hstack(X[...,gv.bins_ED[:]-gv.bin_start].T).T 
             X_MD = np.hstack(X[...,gv.bins_MD[:]-gv.bin_start].T).T 
-            X_LD = np.hstack(X[...,gv.bins_LD[:]-gv.bin_start].T).T 
+            X_LD = np.hstack(X[...,gv.bins_LD[:]-gv.bin_start].T).T
+            
+        if 'X' in gv.CONCAT_BINS:
+            
+            X_ED = np.vstack(X[...,gv.bins_ED[:]-gv.bin_start].T).T 
+            X_MD = np.vstack(X[...,gv.bins_MD[:]-gv.bin_start].T).T 
+            X_LD = np.vstack(X[...,gv.bins_LD[:]-gv.bin_start].T).T 
+            
             print(X_ED.shape, X_MD.shape) 
             
     if gv.FEATURE_SELECTION: 
@@ -295,7 +302,7 @@ def avg_epochs(X, y=None, threshold=.1):
     
     if len(gv.epochs)==3: 
         X_epochs = np.empty( tuple([3])+ X_ED.shape ) 
-        # print('X', X_epochs.shape, 'X_ED', X_ED.shape)
+        print('X', X_epochs.shape, 'X_ED', X_ED.shape)
         X_epochs[0] = X_ED 
         X_epochs[1] = X_MD 
         X_epochs[2] = X_LD 
@@ -477,6 +484,10 @@ def preprocess_X(X):
             
         if gv.Z_SCORE | gv.Z_SCORE_BL :
             print('z_score')
-            X = z_score(X) 
+            X = z_score(X)
+            
+        if gv.NORMALIZE:
+            print('normalize') 
+            X = normalize(X) 
             
     return X 

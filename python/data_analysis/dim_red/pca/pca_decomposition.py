@@ -66,10 +66,12 @@ class pca_methods():
             
         return np.maximum(R.shape[0], 1) 
     
-    def trial_hybrid(self, X_trials):
+    def trial_hybrid(self, X_trials, FIT=1):
 
-        # concatenate average over trials 
-        X_avg = np.empty( (len(gv.trials), gv.n_neurons, len(gv.samples) * X_trials.shape[-1] ) ) 
+        # concatenate average over trials
+        print(X_trials.shape) 
+        print(len(gv.trials), X_trials.shape[-2], len(gv.samples) * X_trials.shape[-1] )        
+        X_avg = np.empty( (len(gv.trials), X_trials.shape[-2], len(gv.samples) * X_trials.shape[-1] ) ) 
             
         for n_trial in range(len(gv.trials)): 
             X_S1 = X_trials[n_trial,0] 
@@ -83,43 +85,46 @@ class pca_methods():
         X_proj = np.empty( (len(gv.trials), len(gv.samples), int(gv.n_trials/len(gv.samples)), X_trials.shape[-2], X_trials.shape[-1]) )
             
         for n_trial in range(X_trials.shape[0]): 
-            # standardize neurons/features across trials/samples 
-            self.scaler.fit(X_avg[n_trial].T) 
+            # standardize neurons/features across trials/samples
+            if FIT==1:
+                self.scaler.fit(X_avg[n_trial].T) 
             X_avg[n_trial] = self.scaler.transform(X_avg[n_trial].T).T 
         
             # PCA the trial averaged data
-            if self.minka_mle:
-                n_components = 'mle'
-                pca = self.pca_model(n_components=n_components) 
-            else:
-                if self.pca_model==PCA :
-                    self.n_components = self.get_optimal_number_of_components(X_avg[n_trial].T)
-                    pca = self.pca_model(n_components=self.n_components) 
+            if FIT==1:
+            
+                if self.minka_mle:
+                    n_components = 'mle'
+                    self.pca = self.pca_model(n_components=n_components) 
                 else:
-                    self.n_components = None
-                    pca = self.pca_model(n_components=self.n_components, ridge_alpha=self.ridge_alpha, alpha=self.alpha) 
+                    if self.pca_model==PCA :
+                        self.n_components = self.get_optimal_number_of_components(X_avg[n_trial].T)
+                        self.pca = self.pca_model(n_components=self.n_components) 
+                    else:
+                        self.n_components = None
+                        self.pca = self.pca_model(n_components=self.n_components, ridge_alpha=self.ridge_alpha, alpha=self.alpha) 
                     
-            pca.fit(X_avg[n_trial].T)             
-            self.n_components = pca.n_components_
+                self.pca.fit(X_avg[n_trial].T) 
+                self.n_components = self.pca.n_components_
             
-            if self.pca_model==PCA :
-                self.explained_variance = pca.explained_variance_ratio_                 
+                if self.pca_model==PCA :
+                    self.explained_variance = self.pca.explained_variance_ratio_                 
             
-            if self.inflection:
-                self.n_components = self.get_inflection_point(self.explained_variance) 
-                pca = self.pca_model(n_components=self.n_components) 
-                pca.fit(X_avg[n_trial].T) 
-                self.n_components = pca.n_components_
-                self.explained_variance = pca.explained_variance_ratio_                 
-            else:
+                if self.inflection:
+                    self.n_components = self.get_inflection_point(self.explained_variance) 
+                    self.pca = self.pca_model(n_components=self.n_components) 
+                    self.pca.fit(X_avg[n_trial].T) 
+                    self.n_components = self.pca.n_components_
+                    self.explained_variance = self.pca.explained_variance_ratio_                 
+                else:
                 
-                if self.pca_model==PCA:
-                    self.explained_variance = pca.explained_variance_ratio_ 
+                    if self.pca_model==PCA:
+                        self.explained_variance = self.pca.explained_variance_ratio_ 
                 
-                if self.pca_model==SparsePCA:
-                    self.n_components, self.explained_variance = self.sparse_get_optimal_n_components(X_avg.T) 
+                    if self.pca_model==SparsePCA:
+                        self.n_components, self.explained_variance = self.sparse_get_optimal_n_components(X_avg.T) 
                 
-            self.list_n_components[n_trial] = self.n_components
+                    self.list_n_components[n_trial] = self.n_components
             
             if self.verbose : 
                 print('trial', gv.trials[n_trial], 'n_pc', self.n_components,
@@ -129,15 +134,15 @@ class pca_methods():
             for j in range(X_trials.shape[1]): # sample 
                 for k in range(X_trials.shape[2]): # trial 
                     trial = self.scaler.transform(X_trials[n_trial,j,k,:,:].T).T # neurons x time = features x samples 
-                    X_proj[n_trial,j,k,0:self.n_components] = pca.transform(trial.T).T 
+                    X_proj[n_trial,j,k,0:self.n_components] = self.pca.transform(trial.T).T 
                 
-        if self.verbose :
+        if self.verbose: 
             print('X_proj', X_proj.shape)
             
         return X_proj 
     
-    def trial_concatenated(self, X_trials):
-
+    def trial_concatenated(self, X_trials, FIT=1):
+        
         X_proj = np.empty( ( len(gv.trials), len(gv.samples), int( gv.n_trials/len(gv.samples) ), X_trials.shape[-2] , X_trials.shape[-1]) ) 
         # trials = []
         # For each condition (ND, D1, D2), concatenate individual trials for each sample 
@@ -149,43 +154,49 @@ class pca_methods():
             X_concat = X_S1_S2 # N_neurons x (N_trials * N_times) 
             
             # center neurons/features across trials/samples 
-            self.scaler.fit(X_concat.T) 
+            if FIT==1:
+                self.scaler.fit(X_concat.T) 
             X_concat = self.scaler.transform(X_concat.T).T 
          
-            if self.minka_mle: 
-                n_components = 'mle' 
-                pca = self.pca_model(n_components=n_components) 
-            else: 
-                if self.pca_model==PCA :
-                    self.n_components = self.get_optimal_number_of_components(X_concat.T) 
-                    pca = self.pca_model(n_components=self.n_components) 
-                else:
-                    self.n_components = None
-                    pca = self.pca_model(n_components=self.n_components, ridge_alpha=self.ridge_alpha, alpha=self.alpha) 
+            if FIT==1:
+                if self.minka_mle: 
+                    n_components = 'mle' 
+                    self.pca = self.pca_model(n_components=n_components) 
+                else: 
+                    if self.pca_model==PCA :
+                        self.n_components = self.get_optimal_number_of_components(X_concat.T) 
+                        self.pca = self.pca_model(n_components=self.n_components) 
+                    else:
+                        self.n_components = None
+                        self.pca = self.pca_model(n_components=self.n_components, ridge_alpha=self.ridge_alpha, alpha=self.alpha) 
                     
-            # pca on (N_samples x N_features), ie X is N_trials x N_neurons 
-            pca.fit(X_concat.T) 
-            self.n_components = pca.n_components_ 
-            if self.pca_model==PCA :
-                self.explained_variance = pca.explained_variance_ratio_                 
+                # pca on (N_samples x N_features), ie X is N_trials x N_neurons 
+                self.pca = self.pca.fit(X_concat.T) 
+                self.n_components = self.pca.n_components_
+                
+                if self.pca_model==PCA :
+                    self.explained_variance = self.pca.explained_variance_ratio_ 
             
-            if self.inflection:
-                self.n_components = self.get_inflection_point(self.explained_variance) 
-                pca = self.pca_model(n_components=self.n_components) 
-                X_concat = pca.fit_transform(X_concat.T).T                 
-                self.n_components = pca.n_components_ 
-                self.explained_variance = pca.explained_variance_ratio_
-            else:
-                X_concat = pca.transform(X_concat.T).T
+                if self.inflection:
+                    self.n_components = self.get_inflection_point(self.explained_variance) 
+                    self.pca = self.pca_model(n_components=self.n_components) 
+                    X_concat = self.pca.fit_transform(X_concat.T).T                 
+                    self.n_components = self.pca.n_components_ 
+                    self.explained_variance = self.pca.explained_variance_ratio_
+                else:
+                    X_concat = self.pca.transform(X_concat.T).T 
                 
                 if self.pca_model==PCA:
-                    self.explained_variance = pca.explained_variance_ratio_
+                    self.explained_variance = self.pca.explained_variance_ratio_
                     
                 if self.pca_model==SparsePCA:
                     self.n_components, self.explained_variance = self.sparse_get_optimal_n_components(X_concat.T)
                     
-            self.list_n_components[n_trial] = self.n_components 
-                    
+                self.list_n_components[n_trial] = self.n_components 
+
+            else:
+                X_concat = self.pca.transform(X_concat.T).T
+                
             if self.verbose :
                 print('n_pc', self.n_components,'explained_variance', self.explained_variance[0:3],
                       'total' , np.cumsum(self.explained_variance)[-1]*100, 'X_concat', X_concat.shape) 
@@ -272,4 +283,12 @@ class pca_methods():
             X_proj = self.trial_concatenated(X_trials) 
         if self.pca_method in 'averaged': 
             X_proj = self.trial_averaged(X_trials) 
-        return X_proj 
+        return X_proj
+    
+    def transform(self, X_trials, y=None): 
+        X_proj = [] 
+        if self.pca_method in 'hybrid': 
+            X_proj = self.trial_hybrid(X_trials, FIT=0) 
+        if self.pca_method in 'concatenated': 
+            X_proj = self.trial_concatenated(X_trials, FIT=0) 
+        return X_proj

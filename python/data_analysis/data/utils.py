@@ -25,7 +25,7 @@ def get_n_trials():
         
 def get_days():
     if (gv.mouse=='JawsM15') | (gv.mouse=='ChRM04') | (gv.mouse=='JawsM18'): 
-        gv.days = [1,2,3,4,5,6]
+        gv.days = np.arange(1, gv.n_days+1) 
     else:
         gv.days = [1,2,3,4,5]
         
@@ -60,8 +60,8 @@ def get_sessions_mouse():
     gv.session=gv.sessions[gv.day-1] 
     
 def get_fluo_data(): 
-    get_sessions_mouse() 
-    get_days()
+    # get_sessions_mouse() 
+    # get_days()
     # if gv.mouse=='ChRM04': 
     #     data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.session + 'SumFluoTraceFile' + '.mat') 
         
@@ -78,7 +78,7 @@ def get_fluo_data():
         data = loadmat(gv.path +  '/data/' + gv.mouse +  '/' + gv.session + '-C57-2-DualTaskAcrossDaySameROITrace' + '.mat') 
         data_labels = loadmat(gv.path +  '/data/' + gv.mouse + '/' + gv.session + '-C57-2-DualTask-SumFluoTraceFile' + '.mat') 
         
-        print('same neurons across days') 
+        # print('same neurons across days') 
         X_data = np.rollaxis(data['SameAllCdf'],2,0)
         # print('same neurons accross days')
         # X_data = np.rollaxis(data['SamedFF0'],2,0) 
@@ -88,8 +88,11 @@ def get_fluo_data():
         
     else: 
         if gv.SAME_DAYS: 
-            print('same neurons accross days') 
-            data = loadmat(gv.path + '/data/' + gv.mouse + '/SamedROI_0%dDays/' % len(gv.days) + gv.mouse + '_day_' + str(gv.day) + '.mat' ) 
+            # print('same neurons accross days')
+            if 'ACC' in gv.mouse:
+                data = loadmat(gv.path + '/data/' + gv.mouse + '/SamedROI/' + gv.mouse + '_day_' + str(gv.day) + '.mat' )
+            else:
+                data = loadmat(gv.path + '/data/' + gv.mouse + '/SamedROI_0%dDays/' % len(gv.days) + gv.mouse + '_day_' + str(gv.day) + '.mat' ) 
         else: 
             data = loadmat(gv.path + '/data/' + gv.mouse + '/' + gv.mouse +'_day_' + str(gv.day) + '.mat') 
             
@@ -101,7 +104,7 @@ def get_fluo_data():
         y_labels = data['Events'].transpose() 
         gv.frame_rate = 6 
         
-    print(data.keys())
+    # print(data.keys())
     
     # print(y_labels[4])
     
@@ -116,7 +119,8 @@ def get_fluo_data():
     get_n_trials() 
     get_bins() 
     
-    print('mouse', gv.mouse, 'day', gv.day, '( session', gv.session,')', 'all data: X', X_data.shape,'y', y_labels.shape) 
+    print('mouse', gv.mouse, 'day', gv.day, 'all data: X', X_data.shape,'y', y_labels.shape) 
+    # print(gv.n_neurons)
     
     return X_data, y_labels 
     
