@@ -14,6 +14,22 @@ from . import constants as gv
 from . import progressbar as pg
 from . import featureSel as fs
 
+from dim_red.pca.pca_decomposition import pca_methods 
+
+def get_X_pca(X, **options):
+
+    my_pca = pca_methods(pca_model = options['pca_model'],
+                         pca_method = options['pca_method'],
+                         n_components = options['n_comp'],
+                         total_explained_variance = options['exp_var'],
+                         inflection = options['inflection'],
+                         verbose=options['verbose']) 
+    
+    X_pca = my_pca.fit_transform(X) 
+    gv.list_n_components = my_pca.list_n_components 
+
+    return X_pca
+
 def center(X):
     scaler = StandardScaler(with_mean=True, with_std=False)
     Xc = scaler.fit_transform(X.T).T
@@ -43,8 +59,8 @@ def z_score(X):
     return Xz 
 
 def normalize(X):
-    Xmin = np.amin(X[..., gv.bins_ED], axis=-1) 
-    Xmax = np.amax(X[..., gv.bins_ED], axis=-1) 
+    Xmin = np.amin(X[..., gv.bins_BL], axis=-1) 
+    Xmax = np.amax(X[..., gv.bins_BL], axis=-1) 
     
     Xmin = Xmin[..., np.newaxis] 
     Xmax = Xmax[..., np.newaxis]
@@ -67,13 +83,18 @@ def dFF0_remove_silent(X):
     else:
         F0 = np.mean(X[...,gv.bins_BL],axis=-1) 
         F0 = F0[..., np.newaxis]
-
+        
+    print('X', X.shape,  X[0,0, 0:3])
+    print('F0', F0.shape, F0[0,0,0:3]) 
+    
     if gv.F0_THRESHOLD is not None: 
         # removing silent neurons 
-        idx = np.argwhere(F0<=gv.F0_THRESHOLD) 
+        idx = np.where(F0<=gv.F0_THRESHOLD)
         F0 = np.delete(F0, idx, axis=-2) 
         X = np.delete(X, idx, axis=-2)
         
+    print('X', X.shape, 'F0', F0.shape)
+    
     return (X-F0) / (F0 + gv.eps) 
     
 def dFF0(X): 
@@ -393,17 +414,17 @@ def deconvolveFluo(X):
         S_dcv = uniform_filter1d( S_dcv, int(gv.frame_rate/4) ) 
         return S_dcv 
     
-    S_th = threshold_spikes(S_dcv, gv.DCV_THRESHOLD)    
+    S_th = threshold_spikes(S_dcv, gv.DCV_THRESHOLD)  
     S_avg = np.mean(S_th[...,gv.bins_BL],axis=-1) 
     S_avg = S_avg[..., np.newaxis]
-
+    
     print('X_avg', np.mean(S_avg))
     # removing silent neurons 
-    # idx = np.argwhere(S_avg<=.001) 
-    # S_th = np.delete(S_th, idx, axis=1)
+    idx = np.argwhere(S_avg<=.001) 
+    S_th = np.delete(S_th, idx, axis=1)
     
-    # print('X_dcv', S_th.shape[1]) 
-    # gv.n_neurons = S_th.shape[1] 
+    print('X_dcv', S_th.shape[1]) 
+    gv.n_neurons = S_th.shape[1] 
     
     if gv.Z_SCORE | gv.Z_SCORE_BL: 
         
@@ -471,7 +492,8 @@ def prescreening(X, y, alpha=0.05, scoring=f_classif):
 def preprocess_X(X):
     
     if gv.F0_THRESHOLD is not None: 
-        X = dFF0_remove_silent(X) 
+        X = dFF0_remove_silent(X)
+        print(X.shape) 
         gv.n_neurons = X.shape[1]
         
     if gv.DECONVOLVE:

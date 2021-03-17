@@ -83,7 +83,8 @@ def main(n_days, trial, event):
                 elif event=='correct': 
                     bool_type = bool_correct
                     plt.ylabel('Unpaired trials, CR')
-            else:
+                    
+            elif trial=='all':
                 if event=='hit': 
                     bool_type = bool_hit
                     plt.ylabel('All trials, Hit')
@@ -96,6 +97,9 @@ def main(n_days, trial, event):
                 elif event=='correct': 
                     bool_type = bool_correct
                     plt.ylabel('All trials, CR')
+                elif event=='hit_correct':
+                    bool_type = bool_hit | bool_correct
+                    plt.ylabel('All trials, performance')
                     
             for i_trial in range(len(gv.trials)): 
             
@@ -108,7 +112,7 @@ def main(n_days, trial, event):
                     
                 trial_type[i_trial, i_day] = np.count_nonzero(bool_trial) 
                 task = np.where( bool_trial )[0] 
-                # print('trial', gv.trials[i_trial], task.shape) 
+                print('trial', gv.trials[i_trial], task.shape) 
             
                 perf_sample = np.empty(1000) 
                 for i_sample in range(1000):

@@ -54,8 +54,7 @@ def figDir():
         gv.figdir = gv.figdir + '/concat_bins' 
                 
     if gv.T_WINDOW!=0 :
-        gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW
-        
+        gv.figdir = gv.figdir + '/t_window_%.1f' % gv.T_WINDOW        
         
     elif gv.DETREND :
         gv.figdir = gv.figdir + '/detrend'  
@@ -66,9 +65,8 @@ def figDir():
     if gv.Z_SCORE : 
         gv.figdir = gv.figdir + '/z_score'        
     elif gv.Z_SCORE_BL : 
-        gv.figdir = gv.figdir + '/z_score_bl'
-        
-    if gv.NORMALIZE : 
+        gv.figdir = gv.figdir + '/z_score_bl'        
+    elif gv.NORMALIZE : 
         gv.figdir = gv.figdir + '/norm'        
                 
     if gv.TIBSHIRANI_TRICK:
@@ -78,8 +76,7 @@ def figDir():
         gv.figdir = gv.figdir + '/feature_selection'
 
     if gv.pca_model is not None:
-        
-            
+                    
         gv.figdir = gv.figdir + '/dim_red/%s/%s' % (gv.pca_model, gv.pca_method)
         
         if gv.AVG_BEFORE_PCA: 

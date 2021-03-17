@@ -26,6 +26,8 @@ def set_globals(**opts):
     gv.day = gv.days[opts['i_day']] 
     gv.epoch = gv.epochs[opts['i_epoch']] 
 
+    gv.n_days = opts['n_days']
+    
     gv.SAME_DAYS = opts['same_days']
     gv.cos_trials = opts['cos_trials']
     gv.scores_trials = opts['scores_trials']
@@ -35,8 +37,8 @@ def set_globals(**opts):
         gv.pal = ['#ff00ff','#ffff00','#00ffff'] 
     
     # preprocessing
-    gv.DECONVOLVE= opts['DECONVOLVE']
-    gv.DCV_THRESHOLD = opts['DCV_THRESHOLD']
+    gv.DECONVOLVE= opts['DCV']
+    gv.DCV_THRESHOLD = opts['DCV_TH']
     
     gv.F0_THRESHOLD = opts['F0_THRESHOLD']
     gv.AVG_F0_TRIALS = opts['F0_AVG_TRIALS']
@@ -78,10 +80,20 @@ def set_globals(**opts):
     gv.TIBSHIRANI_TRICK = 0 
 
     # dimensionality reduction 
-    gv.AVG_BEFORE_PCA = 1 
-    gv.pca_model = None # PCA, sparsePCA, supervisedPCA or None 
-    gv.pls_method = None # 'PLSRegression', 'PLSCanonical', 'PLSSVD', CCA or None 
 
+    # PCA parameters
+    gv.AVG_BEFORE_PCA = 1 
+    gv.pca_model = opts['pca_model'] # PCA, sparsePCA, supervisedPCA or None
+    gv.explained_variance = opts['exp_var']
+    gv.n_components = opts['n_comp']
+    gv.list_n_components = None 
+    gv.inflection = opts['inflection']
+
+    gv.sparse_alpha = 1 
+    gv.ridge_alpha = .01
+    
+    gv.pca_method = opts['pca_method'] # 'hybrid', 'concatenated', 'averaged' or None
+        
     gv.fix_alpha_lbd = opts['fix_alpha_lbd']
     
 def set_options(**kwargs): 
@@ -104,9 +116,11 @@ def set_options(**kwargs):
     opts['i_trial'] = 0  
     opts['i_epoch'] = 0
     
+    opts['n_days'] = 6
+    
     opts['same_days'] = 1 
     opts['laser_on']=0
-
+    
     # bootstrap
     opts['boots'] = False 
     opts['n_boots'] = int(1e3) 
@@ -132,21 +146,28 @@ def set_options(**kwargs):
     
     opts['ED_MD_LD'] = 0 
     
-    opts['DECONVOLVE']=0 
-    opts['DCV_THRESHOLD']=0.5 
+    opts['DCV']=0 
+    opts['DCV_TH']=0.5 
     
     opts['F0_THRESHOLD']=None 
-    opts['F0_AVG_TRIALS'] = 1 
+    opts['F0_AVG_TRIALS'] = 1  
     
     opts['Z_SCORE'] = 0 
     opts['Z_SCORE_BL'] = 0 
     opts['NORM'] = 0 
+
+    # PCA parameters
+    opts['pca_model'] = None # PCA, sparsePCA, supervisedPCA or None
+    opts['pca_method'] = 'hybrid' # 'hybrid', 'concatenated', 'averaged' or None
+    opts['exp_var'] = 0.95
+    opts['n_comp'] = None
+    opts['inflection'] = False 
     
     # classification parameters 
-    opts['clf_name']='logitnetCV' 
-    opts['scoring'] = 'roc_auc' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
-    opts['inner_scoring'] = 'accuracy' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
-    opts['inner_splits'] = 10 # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
+    opts['clf_name']='logitnetAlphaCV' 
+    opts['scoring'] = 'roc_auc' 
+    opts['inner_scoring'] = 'deviance' # 'accuracy', 'f1', 'roc_auc' or 'neg_log_loss' 'r2' 
+    opts['inner_splits'] = 3 
     
     # sklearn LogisticRegression, LogisticRegressionCV
     opts['C']=1e0 
@@ -165,15 +186,15 @@ def set_options(**kwargs):
     opts['intercept_scaling']=1e2
 
     # for glmnet only 
-    opts['n_splits']=3 
+    opts['n_splits']=5
     opts['alpha'] = 1 
     opts['n_alpha'] = 10 
-    opts['n_lambda'] = 100 
+    opts['n_lambda'] = 10
     opts['alpha_path']= None # -np.sort(-np.logspace(-4, -2, opts['Cs'])) 
     opts['min_lambda_ratio'] = 1e-4 
     opts['prescreen'] = False 
 
-    opts['lbd'] = 'lambda_1se'
+    opts['lbd'] = 'lambda_min'
     
     opts['off_diag']=True 
     opts['standardize']=True 
@@ -182,7 +203,7 @@ def set_options(**kwargs):
     
     opts['shuffle'] = True     
     opts['random_state'] = None 
-    opts['tol']=1e-4 
+    opts['tol']=1e-6 
     opts['max_iter']= int(1e6) 
 
     opts.update(kwargs) 
